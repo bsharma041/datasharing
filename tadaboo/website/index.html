@@ -712,7 +712,7 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
   function renderDrawer() { const b = view.bag && B[view.bag]; if (b) renderDetail(b); else renderCart(); }
   function updateWa() {
     // A lone surrogate (half an emoji, e.g. from a cut-off paste) makes encodeURIComponent throw.
-    const enc = (x) => { try { return encodeURIComponent(x); } catch { return encodeURIComponent(x.toWellFormed ? x.toWellFormed() : x.replace(/[\uD800-\uDFFF]/g, "�")); } };
+    const enc = (x) => { try { return encodeURIComponent(x); } catch { return encodeURIComponent(x.toWellFormed ? x.toWellFormed() : x.replace(/[\uD800-\uDFFF]/g, "\uFFFD")); } };
     const a = $("#sendWa"); if (a) a.href = `https://wa.me/${T.whatsapp}?text=${enc(orderText())}`;
   }
   drawer.addEventListener("input", (e) => {
