@@ -34,7 +34,7 @@ Voice: warm, playful, short sentences, lots of "TADA!". Uppercase headings in th
 
 ## 3. Catalogue (50 products, 5 categories)
 
-Full data with descriptions and Stockroom ids: `tadaboo/website/catalog.js`. Photos: `tadaboo/website/img/<id>.jpg`.
+Full data with descriptions and Stockroom ids: `tadaboo/website/catalog.js`. Photos: `tadaboo/website/img/<id>.webp`.
 
 | Category | Products | Price range |
 |---|---|---|

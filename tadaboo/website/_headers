@@ -1,0 +1,8 @@
+# Cache rules for Netlify and Cloudflare Pages (other hosts ignore this file).
+# Photos rarely change; the page and catalogue must update quickly after an edit.
+/img/*
+  Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+/catalog.js
+  Cache-Control: public, max-age=300, must-revalidate
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate

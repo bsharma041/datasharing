@@ -1,7 +1,7 @@
 // TadaBoo catalogue data (source: Tadaboo_Catalogue.pdf, 2026 collection).
 // Prices are customer prices in ₹. `sid` links each product to its item id in the
 // TadaBoo Stockroom so stock and costs can be joined later.
-// To add a product: add a row here and a photo at img/<id>.jpg.
+// To add a product: add a row here and a photo at img/<id>.webp.
 window.TADABOO = {
   phone: "97306 24700",
   whatsapp: "919730624700",

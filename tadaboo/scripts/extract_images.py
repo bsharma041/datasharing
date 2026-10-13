@@ -45,21 +45,21 @@ def main(pdf, out):
         for f, slug in zip(files, SLUGS):
             im = Image.open(f"{tmp}/{f}").convert("RGB")
             im.thumbnail((520, 650))
-            im.save(f"{out}/{slug}.jpg", quality=74, optimize=True, progressive=True)
+            im.save(f"{out}/{slug}.webp", "WEBP", quality=76, method=6)
 
         # The white TadaBoo gift bag cut-out (page 7, first image + its soft mask).
         subprocess.run(["pdfimages", "-f", "7", "-l", "7", "-png", pdf, f"{tmp}/b"], check=True)
         bag = Image.open(f"{tmp}/b-000.png").convert("RGB")
         bag.putalpha(Image.open(f"{tmp}/b-001.png").convert("L"))
         bag.thumbnail((360, 400))
-        bag.save(f"{out}/tadaboo-bag.png", optimize=True)
+        bag.save(f"{out}/tadaboo-bag.webp", "WEBP", quality=80, method=6)
 
         # Thank-you card and bookmark (page 10).
         subprocess.run(["pdfimages", "-f", "10", "-l", "10", "-png", pdf, f"{tmp}/t"], check=True)
-        for src, name, box in (("t-000.png", "thank-you-card.jpg", (900, 600)), ("t-001.png", "bookmark.jpg", (240, 720))):
+        for src, name, box in (("t-000.png", "thank-you-card.webp", (900, 600)), ("t-001.png", "bookmark.webp", (240, 720))):
             im = Image.open(f"{tmp}/{src}").convert("RGB")
             im.thumbnail(box)
-            im.save(f"{out}/{name}", quality=78, optimize=True, progressive=True)
+            im.save(f"{out}/{name}", "WEBP", quality=78, method=6)
 
 
 if __name__ == "__main__":

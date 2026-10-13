@@ -36,7 +36,7 @@ The Stockroom is the owner's live books. **Never write to it without the owner's
 ## Working on the website
 
 - Location: `tadaboo/website/` — `index.html` (page, styles, logic), `catalog.js` (data), `img/` (photos from the catalogue).
-- To add a product: add a row to `catalog.js` (`id`, `sid`, `cat`, `name`, `price`, `desc`, `tags`) and a photo at `img/<id>.jpg` (≈520×650, JPEG). To add a collection: add to `bags` with `items` that exist in `products`.
+- To add a product: add a row to `catalog.js` (`id`, `sid`, `cat`, `name`, `price`, `desc`, `tags`) and a photo at `img/<id>.webp` (≈520×650, WebP). To add a collection: add to `bags` with `items` that exist in `products`.
 - New catalogue PDF: re-run `python3 tadaboo/scripts/extract_images.py <pdf> tadaboo/website/img`, updating its `SLUGS` order first.
 - Keep the brand system (Fredoka + Quicksand, orange TADA / navy BOO / yellow ✦, pastel panels), light and dark themes, phone width with no sideways scroll, and `prefers-reduced-motion`.
 - Before saying a change works, open the page in headless Chromium (Playwright is preinstalled) at desktop and phone width, click through the changed flow, and check the console.
