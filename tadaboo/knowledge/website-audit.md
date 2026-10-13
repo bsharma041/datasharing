@@ -103,3 +103,27 @@ Accessibility stays at 96 only because of the TADA✦BOO wordmark (a logotype, w
 | `#mbar` is a `div role=button` | It holds block content, which a `<button>` can't. It has keyboard support and an accessible name. | Nothing needed. |
 | No custom 404 page or sitemap | Single-page site. A sitemap needs the live domain. | Add a sitemap and absolute `og:image` once the domain is chosen. |
 | `_headers` paths assume the site is served from the domain root | `/img/*` rules won't match if it is deployed under a subfolder. | Adjust the paths if it is ever hosted in a subfolder. |
+
+---
+
+# Redesign + design-critic review: 13 Oct 2026
+
+The storefront was rebuilt to the "TadaBoo Store Redesign" Claude Design canvas (boutique layout, less text, gift bags open with their items in a circle). The `tadaboo-design-critic` review scored it Not-slop 3, Accessibility 4, Interest 3, Ease of use 3 and raised 15 findings; all were fixed and re-verified with Playwright:
+
+| Sev | Finding | Fix |
+|---|---|---|
+| High | Address and pincode fields showed even for "collect" (a `display:flex` rule beat `hidden`) | `[hidden]{display:none!important}` |
+| High | No navigation on phones | The three section links sit in a scrollable row under the header |
+| Med | Nothing above the fold said how to order | "Order on WhatsApp · Dispatch in 5–7 working days" under the hero buttons |
+| Med | The shop was one wall of 50 busy photos | "All" opens with 12 and a "Show all 50 items" button; categories and search show everything they match |
+| Med | After adding a gift bag the bag opened mid-form; the toast covered Send | Bag view scrolls to the top; the toast moves to the top while a drawer is open |
+| Med | Search kept a category highlighted while searching the whole shop | "All" shows as selected while a search term is entered |
+| Med | Phone category tiles were 60 px with 3-line labels | A sideways row of 112 px tiles with short one-line labels |
+| Med | Tablet hero photo pushed gift bags ~1,700 px down; tiles wrapped 4 + 1 | Stacked hero photo capped at 58vh; tiles fixed at 5 columns |
+| Low | Phone steppers 38 px wide | Back to 44 px |
+| Low | Gift-bag quantity buttons named only "One more/less" | Names include the bag |
+| Low | The ₹299 message appeared twice | One meter message: "Add ₹X more. Custom bags must total over ₹299." |
+| Low | Disabled Send looked clickable in dark mode | Disabled buttons are outline-only in both themes |
+| Low | Return Gift · Deluxe cover showed branded chocolate wrappers | Cover changed to the animal memo pad |
+| Low | Footer "BOO" inherited grey | `.wm .b` uses the ink colour |
+| Low | 76 px of empty footer space on desktop | That space is reserved only below 900 px, where the bag bar exists |

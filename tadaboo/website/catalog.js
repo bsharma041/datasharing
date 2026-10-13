@@ -100,7 +100,7 @@ window.TADABOO = {
       items: ["crayons-set", "labubu-gel-pen", "plane-sharpener", "fast-food-eraser", "popsicle-highlighter"] },
     { id: "rg-classic", cover: "3d-sticker", name: "Return Gift · Classic", price: 349, for: "any", occasion: "return", tint: "sky",
       items: ["crayons-set", "a7-notebook", "3d-sticker", "labubu-gel-pen", "plane-sharpener", "fast-food-eraser", "popsicle-highlighter"] },
-    { id: "rg-deluxe", cover: "chocolate-squishy", name: "Return Gift · Deluxe", price: 499, for: "any", occasion: "return", tint: "mint",
+    { id: "rg-deluxe", cover: "animal-memo-pad", name: "Return Gift · Deluxe", price: 499, for: "any", occasion: "return", tint: "mint",
       items: ["chocolate-squishy", "a7-notebook", "3d-sticker", "animal-memo-pad", "magnetic-bookmark", "rabbit-eraser", "labubu-gel-pen"] },
     { id: "hamper-boys", cover: "dumpling-squishy", name: "Birthday Hamper · Boys", price: 999, for: "boys", occasion: "birthday", tint: "sky",
       items: ["dumpling-squishy", "activity-set", "reward-stamps", "racing-pencils", "eraser-combo", "bath-bomb", "light-up-pen", "shuttlecock-sharpener"], note: "Activity set: Space or Dino. Eraser combo: Space or Sports." },
