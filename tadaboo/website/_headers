@@ -6,3 +6,12 @@
   Cache-Control: public, max-age=300, must-revalidate
 /index.html
   Cache-Control: public, max-age=0, must-revalidate
+
+# Security headers. The inline script is allowed by its hash: after editing the <script> in
+# index.html, run `python3 tadaboo/scripts/csp_hash.py` or the live shop will stop working.
+# Inline style attributes are used by the page, so style-src needs 'unsafe-inline'.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-F7TEvKB480MmH47Is/azgZWKMTlyXKp89KHmHtOUQuA='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()

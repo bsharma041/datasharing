@@ -36,7 +36,7 @@
 :root{
   --bg:#FFFDF9; --surface:#FFFFFF; --ink:#23264A; --muted:#62658A; --line:#F1E3D3;
   --accent:#FF6B2C; --accent-deep:#E2541A; --accent-soft:#FFE6D8; --on-accent:#23264A;
-  --accent-ink:#B83A0A; --teal-ink:#0C7268; /* text-safe versions of the brand orange and teal */
+  --accent-ink:#B83A0A; --teal-ink:#0C7268; --yellow-ink:#FFC63A; /* text-safe orange and teal; yellow text on the finder panel */
   --teal:#3FC1B6; --yellow:#FFC63A; --pink:#FF7DA1;
   --sky:#E6F2FC; --mint:#E5F6EC; --butter:#FFF4D2; --blush:#FFE8EE;
   --ok:#1E8E6E; --shadow:0 1px 0 rgba(35,38,74,.05),0 10px 30px rgba(35,38,74,.08);
@@ -47,14 +47,14 @@
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#16182C; --surface:#1F2240; --ink:#F7F1EA; --muted:#B6B4D2; --line:#2F3358;
   --accent:#FF8A55; --accent-deep:#FF8A55; --accent-soft:#45291F; --on-accent:#1A1326;
-  --accent-ink:#FF8A55; --teal-ink:#5ED6CB;
+  --accent-ink:#FF8A55; --teal-ink:#5ED6CB; --yellow-ink:#7A5200;
   --teal:#5ED6CB; --yellow:#FFD465; --pink:#FF97B5;
   --sky:#1E2C47; --mint:#1B3333; --butter:#36301C; --blush:#3A2233;
   --ok:#5AD3B0; --shadow:0 1px 0 rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.3); color-scheme:dark }}
 :root[data-theme="dark"]{
   --bg:#16182C; --surface:#1F2240; --ink:#F7F1EA; --muted:#B6B4D2; --line:#2F3358;
   --accent:#FF8A55; --accent-deep:#FF8A55; --accent-soft:#45291F; --on-accent:#1A1326;
-  --accent-ink:#FF8A55; --teal-ink:#5ED6CB;
+  --accent-ink:#FF8A55; --teal-ink:#5ED6CB; --yellow-ink:#7A5200;
   --teal:#5ED6CB; --yellow:#FFD465; --pink:#FF97B5;
   --sky:#1E2C47; --mint:#1B3333; --butter:#36301C; --blush:#3A2233;
   --ok:#5AD3B0; --shadow:0 1px 0 rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.3); color-scheme:dark }
@@ -69,7 +69,12 @@ h2{font-size:clamp(1.8rem,1.2rem + 2.4vw,2.8rem);line-height:1.05;font-weight:70
 h3{font-size:1.12rem;font-weight:600;line-height:1.2}
 p{margin:0}
 button,input,select,textarea{font:inherit;color:inherit}
-:focus-visible{outline:3px solid var(--accent);outline-offset:3px;border-radius:10px}
+:focus-visible{outline:3px solid var(--accent-ink);outline-offset:3px;border-radius:10px}
+.finder .chip:focus-visible{outline-color:var(--bg)}
+.callout :focus-visible{outline-color:var(--on-accent)}
+.skip{position:absolute;left:12px;top:-80px;z-index:100;background:var(--ink);color:var(--bg);padding:12px 18px;border-radius:999px;font:600 1rem var(--f-display);text-decoration:none}
+.skip:focus{top:12px}
+html.lock{overflow:hidden}
 .wrap{max-width:var(--max);margin:0 auto;padding-inline:var(--gutter)}
 .eyebrow{font:700 .74rem/1 var(--f-body);letter-spacing:.22em;text-transform:uppercase;color:var(--teal-ink)}
 .lede{color:var(--muted);font-size:1.05rem;max-width:56ch}
@@ -92,9 +97,9 @@ main>section:not(.hero):not(#shop){content-visibility:auto;contain-intrinsic-siz
 .btn.primary:active{transform:translateY(3px);box-shadow:0 1px 0 var(--accent-deep)}
 .btn.ghost{background:var(--surface);color:var(--ink);box-shadow:inset 0 0 0 2px var(--line)}
 .btn.ghost:hover{box-shadow:inset 0 0 0 2px var(--accent)}
-.btn.sm{min-height:40px;padding:8px 16px;font-size:.92rem}
+.btn.sm{min-height:44px;padding:8px 16px;font-size:.92rem}
 .btn[disabled]{opacity:.5;cursor:not-allowed}
-.chip{border:0;border-radius:999px;padding:9px 16px;font:600 .9rem var(--f-display);cursor:pointer;background:var(--surface);color:var(--muted);box-shadow:inset 0 0 0 2px var(--line);white-space:nowrap;transition:all .15s}
+.chip{border:0;border-radius:999px;min-height:44px;padding:9px 16px;font:600 .9rem var(--f-display);cursor:pointer;background:var(--surface);color:var(--muted);box-shadow:inset 0 0 0 2px var(--line);white-space:nowrap;transition:all .15s}
 .chip:hover{color:var(--ink)}
 .chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);box-shadow:none}
 .chips{display:flex;gap:8px;flex-wrap:wrap}
@@ -102,8 +107,9 @@ main>section:not(.hero):not(#shop){content-visibility:auto;contain-intrinsic-siz
 /* Header */
 .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:40;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .top .wrap{display:flex;align-items:center;gap:16px;min-height:68px}
+.top .wm,footer .wm{padding-block:10px}
 .top nav{display:flex;gap:4px;margin-left:auto}
-.top nav a{color:var(--ink);text-decoration:none;font:600 .95rem var(--f-display);padding:8px 12px;border-radius:999px}
+.top nav a{min-height:44px;display:inline-flex;align-items:center;color:var(--ink);text-decoration:none;font:600 .95rem var(--f-display);padding:8px 12px;border-radius:999px}
 .top nav a:hover{background:var(--accent-soft);color:var(--accent-deep)}
 .bagbtn{position:relative;border:0;background:var(--ink);color:var(--bg);border-radius:999px;min-height:44px;padding:8px 16px 8px 12px;display:inline-flex;align-items:center;gap:8px;font:600 .95rem var(--f-display);cursor:pointer}
 .bagbtn svg{width:22px;height:22px}
@@ -207,7 +213,7 @@ main>section:not(.hero):not(#shop){content-visibility:auto;contain-intrinsic-siz
 @media (max-width:860px){.finder{grid-template-columns:1fr}}
 .finder h2{color:var(--bg)}
 .finder .lede{color:color-mix(in srgb,var(--bg) 72%,transparent)}
-.finder .eyebrow{color:var(--yellow)}
+.finder .eyebrow{color:var(--yellow-ink)}
 .q{display:flex;flex-direction:column;gap:10px}
 .q+.q{margin-top:18px}
 .q .ql{font:600 1rem var(--f-display)}
@@ -230,7 +236,7 @@ main>section:not(.hero):not(#shop){content-visibility:auto;contain-intrinsic-siz
 .toolbar{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
 .search{flex:1;min-width:min(100%,220px);position:relative}
 .search input{width:100%;min-height:48px;border-radius:999px;border:2px solid var(--line);background:var(--surface);padding:10px 18px 10px 44px;font-weight:600}
-.search input:focus{outline:none;border-color:var(--accent)}
+.search input:focus{outline:none;border-color:var(--accent-ink)}
 .search svg{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:18px;height:18px;color:var(--muted)}
 select.sort{min-height:48px;border-radius:999px;border:2px solid var(--line);background:var(--surface);padding:8px 14px;font-weight:600}
 .cat-tabs{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;scrollbar-width:none;margin-bottom:8px}
@@ -247,7 +253,8 @@ select.sort{min-height:48px;border-radius:999px;border:2px solid var(--line);bac
 .card .d{font-size:.84rem;color:var(--muted);line-height:1.4}
 .card .act{margin-top:auto;padding-top:6px}
 .stepper{display:flex;align-items:center;justify-content:space-between;background:var(--accent-soft);border-radius:999px;padding:4px}
-.stepper button{border:0;width:36px;height:36px;border-radius:50%;background:var(--surface);color:var(--accent-ink);font:700 1.2rem var(--f-display);cursor:pointer;display:grid;place-items:center}
+.stepper button{position:relative;border:0;width:36px;height:36px;border-radius:50%;background:var(--surface);color:var(--accent-ink);font:700 1.2rem var(--f-display);cursor:pointer;display:grid;place-items:center}
+.stepper button::after{content:"";position:absolute;inset:-4px;border-radius:50%} /* 44px touch target */
 .stepper b{font:700 1rem var(--f-display);color:var(--accent-ink);font-variant-numeric:tabular-nums}
 .addbtn{width:100%;border:0;border-radius:999px;min-height:44px;background:var(--ink);color:var(--bg);font:600 .95rem var(--f-display);cursor:pointer;transition:background .15s,transform .15s}
 .addbtn:hover{background:var(--accent);color:var(--on-accent)}
@@ -297,7 +304,7 @@ select.sort{min-height:48px;border-radius:999px;border:2px solid var(--line);bac
 .olist p{color:var(--muted);font-size:.92rem}
 .callout{background:var(--accent);color:var(--on-accent);border-radius:calc(var(--r) + 6px);padding:26px;display:flex;flex-direction:column;gap:14px}
 .callout .k{font:700 .74rem/1.3 var(--f-body);letter-spacing:.16em;text-transform:uppercase}
-.callout .ph{font:700 clamp(2rem,1.4rem + 2.4vw,2.8rem)/1 var(--f-display);font-variant-numeric:tabular-nums;user-select:all}
+.callout .ph{color:inherit;text-decoration:none;padding-block:6px;font:700 clamp(2rem,1.4rem + 2.4vw,2.8rem)/1 var(--f-display);font-variant-numeric:tabular-nums;user-select:all}
 .callout .row{display:flex;gap:10px;flex-wrap:wrap}
 .callout .btn{background:var(--surface);color:var(--ink)}
 .callout .btn.alt{background:transparent;color:var(--on-accent);box-shadow:inset 0 0 0 2px color-mix(in srgb,var(--on-accent) 55%,transparent)}
@@ -318,8 +325,8 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
 .drawer{position:fixed;top:0;right:0;bottom:0;z-index:61;width:min(100%,440px);background:var(--bg);box-shadow:-10px 0 40px rgba(0,0,0,.2);transform:translateX(105%);transition:transform .35s cubic-bezier(.3,1,.4,1);display:flex;flex-direction:column;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 .drawer.open{transform:none}
 .dh{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--line)}
-.x{border:0;background:var(--surface);width:40px;height:40px;border-radius:50%;cursor:pointer;font:700 1.2rem var(--f-display);box-shadow:inset 0 0 0 2px var(--line)}
-.db{flex:1;overflow:auto;padding:16px 18px;display:flex;flex-direction:column;gap:16px}
+.x{border:0;background:var(--surface);width:44px;height:44px;border-radius:50%;cursor:pointer;font:700 1.2rem var(--f-display);box-shadow:inset 0 0 0 2px var(--line)}
+.db{flex:1;overflow:auto;overscroll-behavior:contain;padding:16px 18px;display:flex;flex-direction:column;gap:16px}
 .line{display:flex;gap:12px;align-items:center}
 .line img{width:52px;height:64px;object-fit:cover;border-radius:10px;flex:none}
 .line .li{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
@@ -327,6 +334,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
 .line .lp{font-size:.84rem;color:var(--muted);font-variant-numeric:tabular-nums}
 .line .stepper{padding:2px}
 .line .stepper button{width:30px;height:30px;font-size:1rem}
+.line .stepper button::after{inset:-7px}
 .line .stepper b{min-width:22px;text-align:center}
 .group-t{font:700 .72rem/1 var(--f-body);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
 .totals{border-top:2px dashed var(--line);padding-top:12px;display:flex;flex-direction:column;gap:6px}
@@ -337,7 +345,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
 .form label{display:flex;flex-direction:column;gap:4px;font-size:.82rem;color:var(--muted);min-width:0}
 .form label.full{grid-column:1/-1}
 .form input,.form textarea,.form select{width:100%;border:2px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 12px;font-weight:600;color:var(--ink);min-height:44px}
-.form input:focus,.form textarea:focus,.form select:focus{outline:none;border-color:var(--accent)}
+.form input:focus,.form textarea:focus,.form select:focus{outline:none;border-color:var(--accent-ink)}
 .df{padding:14px 18px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
 .df .btn{width:100%}
 .df .small{font-size:.8rem;color:var(--muted);text-align:center}
@@ -356,6 +364,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
 </style>
 </head>
 <body>
+<a class="skip" href="#top">Skip to content</a>
 
 <header class="top">
   <div class="wrap">
@@ -383,7 +392,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
         </h1>
         <p class="tagline">Little things that make you go <em>TADA!</em></p>
         <p class="lede">A world of seriously cute stationery, creative little adventures and happy surprises. Pick a ready-made gift bag or mix your own, and we pack it in our original white TadaBoo bag.</p>
-        <div class="pills" aria-label="Pick, mix, discover, gift"><span class="pill">PICK</span><span class="pill">MIX</span><span class="pill">DISCOVER</span><span class="pill">GIFT</span></div>
+        <div class="pills"><span class="pill">PICK</span><span class="pill">MIX</span><span class="pill">DISCOVER</span><span class="pill">GIFT</span></div>
         <div class="cta-row">
           <a class="btn primary" href="#collections">Shop gift bags</a>
           <a class="btn ghost" href="#shop">Build your own bag</a>
@@ -440,12 +449,12 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
           <h2 style="margin-top:10px">Not sure what to pick?</h2>
           <p class="lede" style="margin-top:10px">Answer three quick questions and we'll match you to the right TadaBoo bag.</p>
           <div style="margin-top:24px">
-            <div class="q"><span class="ql">Who is it for?</span><div class="chips" data-q="for"></div></div>
-            <div class="q"><span class="ql">What's the occasion?</span><div class="chips" data-q="occasion"></div></div>
-            <div class="q"><span class="ql">Budget per bag</span><div class="chips" data-q="budget"></div></div>
+            <div class="q"><span class="ql" id="ql-for">Who is it for?</span><div class="chips" data-q="for" role="group" aria-labelledby="ql-for"></div></div>
+            <div class="q"><span class="ql" id="ql-occasion">What's the occasion?</span><div class="chips" data-q="occasion" role="group" aria-labelledby="ql-occasion"></div></div>
+            <div class="q"><span class="ql" id="ql-budget">Budget per bag</span><div class="chips" data-q="budget" role="group" aria-labelledby="ql-budget"></div></div>
           </div>
         </div>
-        <div class="results" id="results" aria-live="polite"></div>
+        <div class="results" id="results"></div>
       </div>
     </div>
   </section>
@@ -517,7 +526,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
         </div>
         <div class="callout">
           <span class="k">For orders &amp; enquiries, reach us on call or WhatsApp</span>
-          <span class="ph" id="phone">97306 24700</span>
+          <a class="ph" id="phone" href="tel:+919730624700">97306&nbsp;24700</a>
           <div class="row">
             <a class="btn" id="waLink" href="https://wa.me/919730624700" target="_blank" rel="noopener">Chat on WhatsApp</a>
             <button class="btn alt" id="copyPhone">Copy number</button>
@@ -556,14 +565,15 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
 </div>
 
 <div class="scrim" id="scrim"></div>
-<aside class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="Your bag" inert>
+<div class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="Your bag" inert>
   <div class="dh"><h3 style="font-size:1.3rem">Your TadaBoo bag</h3><button class="x" id="closeDrawer" aria-label="Close">×</button></div>
   <div class="db" id="drawerBody"></div>
   <div class="df" id="drawerFoot"></div>
-</aside>
+</div>
 
 <canvas id="confetti" aria-hidden="true"></canvas>
-<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<div class="toast" id="toast" aria-hidden="true" hidden></div>
+<p class="sr" id="live" role="status" aria-live="polite"></p>
 
 <script src="catalog.js"></script>
 <script>
@@ -580,17 +590,32 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
 
   // ---------- Cart ----------
   const KEY = "tadaboo-bag-v1";
-  let cart = {}; // "p:id" | "b:id" -> qty
-  try { cart = JSON.parse(localStorage.getItem(KEY)) || {}; } catch { cart = {}; }
+  const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+  const isObj = (v) => !!v && typeof v === "object" && !Array.isArray(v);
+  const load = (k) => { try { const v = JSON.parse(localStorage.getItem(k)); return isObj(v) ? v : {}; } catch { return {}; } };
+  const cart = load(KEY); // "p:id" | "b:id" -> qty
   for (const k of Object.keys(cart)) {
-    const [t, id] = k.split(":");
-    if (!(t === "p" ? P[id] : B[id]) || !(cart[k] > 0)) delete cart[k];
+    const [t, id] = k.split(":"), n = Math.floor(Number(cart[k]));
+    if (!(t === "p" ? own(P, id) : t === "b" && own(B, id)) || !Number.isSafeInteger(n) || n < 1) delete cart[k]; else cart[k] = n;
   }
-  let form = {};
-  try { form = JSON.parse(localStorage.getItem(KEY + "-form")) || {}; } catch { form = {}; }
+  const form = load(KEY + "-form");
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(cart)); localStorage.setItem(KEY + "-form", JSON.stringify(form)); } catch {} };
   const qty = (k) => cart[k] || 0;
-  const setQty = (k, n) => { if (n > 0) cart[k] = n; else delete cart[k]; save(); renderAll(); };
+  const setQty = (k, n) => { if (n > 0) cart[k] = n; else delete cart[k]; save(); keep(renderAll); };
+  const nameOf = (k) => (k[0] === "p" ? P : B)[k.slice(2)].name;
+
+  // Re-rendering replaces buttons, so put keyboard focus back on the matching control
+  // (Add -> its stepper, stepper at 0 -> its Add button, chip -> same chip).
+  const FOCUS = ["data-inc", "data-dec", "data-add", "data-addbag", "data-bf", "data-cat", "data-v"];
+  function keep(fn) {
+    const a = document.activeElement, attr = a && FOCUS.find((n) => a.hasAttribute?.(n));
+    const box = attr && a.closest("[data-q],[id]");
+    fn();
+    if (!box || document.contains(a)) return;
+    const v = a.getAttribute(attr), id = v.replace(/^[pb]:/, ""), k = attr === "data-add" ? "p:" + v : attr === "data-addbag" ? "b:" + v : v;
+    const el = [`[${attr}="${v}"]`, `[data-inc="${k}"]`, `[data-dec="${k}"]`, `[data-add="${id}"]`, `[data-addbag="${id}"]`].map((sel) => box.querySelector(sel)).find(Boolean);
+    (el || (box.closest("#drawer") && $("#closeDrawer")))?.focus({ preventScroll: true });
+  }
   const totals = () => {
     let custom = 0, bags = 0, count = 0;
     for (const [k, n] of Object.entries(cart)) {
@@ -602,8 +627,9 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
   };
 
   // ---------- Toast ----------
-  let tt;
-  const toast = (msg) => { const el = $("#toast"); el.textContent = msg; el.hidden = false; clearTimeout(tt); tt = setTimeout(() => (el.hidden = true), 2200); };
+  let tt, lt;
+  const announce = (msg) => { const el = $("#live"); el.textContent = ""; clearTimeout(lt); lt = setTimeout(() => (el.textContent = msg), 60); };
+  const toast = (msg) => { const el = $("#toast"); el.textContent = msg; el.hidden = false; clearTimeout(tt); tt = setTimeout(() => (el.hidden = true), 2200); announce(msg); };
 
   // ---------- Fly to bag ----------
   function flyToBag(fromEl, src) {
@@ -651,13 +677,14 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
       cx.restore();
     }
     raf = parts.length ? requestAnimationFrame(tick) : 0;
-    if (!raf) cx.clearRect(0, 0, cv.width, cv.height);
+    if (!raf) cv.width = cv.height = 0; // clears and frees the full-screen buffer
   }
 
   // ---------- Hero bag ----------
   const stage = $("#stage"), giftBag = $("#giftBag");
-  let lastPick = null;
+  let lastPick = null, revealT;
   giftBag.addEventListener("click", () => {
+    clearTimeout(revealT);
     giftBag.classList.remove("shake"); void giftBag.offsetWidth; giftBag.classList.add("shake");
     $("#tapHint").hidden = true;
     stage.querySelectorAll(".burst,.reveal").forEach((e) => e.remove());
@@ -678,11 +705,12 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
     });
     const r = giftBag.getBoundingClientRect();
     confetti(r.left + r.width / 2, r.top + r.height * .35);
-    setTimeout(() => {
+    revealT = setTimeout(() => {
       const card = document.createElement("div");
       card.className = "reveal";
       card.innerHTML = `<img src="${img(pick.id)}" alt="${esc(pick.name)}"><div><span class="rt">TADA!</span><span class="rn">${esc(pick.name)}</span><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><b class="num">${inr(pick.price)}</b><button class="btn primary sm" data-add="${pick.id}">Add to bag</button></div></div>`;
       stage.appendChild(card);
+      announce(`TADA! ${pick.name}, ${inr(pick.price)}`);
     }, reduced ? 0 : 520);
   });
   stage.addEventListener("click", (e) => {
@@ -712,12 +740,12 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
       <div class="foot">${n ? stepper("b:" + b.id, n) : `<button class="btn primary sm" data-addbag="${b.id}">Add to bag</button>`}</div>
     </article>`;
   }
-  const stepper = (k, n) => `<div class="stepper" style="min-width:130px"><button data-dec="${k}" aria-label="One less">−</button><b class="num">${n}</b><button data-inc="${k}" aria-label="One more">+</button></div>`;
+  const stepper = (k, n) => `<div class="stepper" style="min-width:130px"><button data-dec="${k}" aria-label="One less ${esc(nameOf(k))}">−</button><b class="num">${n}</b><button data-inc="${k}" aria-label="One more ${esc(nameOf(k))}">+</button></div>`;
   function renderBags() {
     $("#bagFilters").innerHTML = bagFilters.map(([id, l]) => `<button class="chip" aria-pressed="${id === bagF}" data-bf="${id}">${l}</button>`).join("");
     $("#bagGrid").innerHTML = T.bags.filter(bagMatch).map(bagCard).join("");
   }
-  $("#bagFilters").addEventListener("click", (e) => { const c = e.target.closest("[data-bf]"); if (c) { bagF = c.dataset.bf; renderBags(); } });
+  $("#bagFilters").addEventListener("click", (e) => { const c = e.target.closest("[data-bf]"); if (c) { bagF = c.dataset.bf; keep(renderBags); announce(`${$("#bagGrid").children.length} gift bags`); } });
   $("#bagGrid").addEventListener("click", (e) => {
     const a = e.target.closest("[data-addbag]");
     if (a) { const id = a.dataset.addbag; flyToBag(a.closest(".bag").querySelector(".collage img"), img(B[id].items[0])); setQty("b:" + id, 1); toast(`${B[id].name} added`); }
@@ -731,6 +759,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
   };
   const ans = { for: "girls", occasion: "birthday", budget: "mid" };
   const fit = (b, budget) => budget === "low" ? b.price < 300 : budget === "mid" ? b.price >= 300 && b.price <= 500 : b.price > 500;
+  let finderBest = "";
   function renderFinder() {
     document.querySelectorAll("[data-q]").forEach((g) => {
       const k = g.dataset.q;
@@ -748,22 +777,23 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
       else s -= Math.min(3, Math.abs(b.price - (ans.budget === "low" ? 250 : ans.budget === "mid" ? 400 : 999)) / 150);
       return { b, s, why };
     }).sort((x, y) => y.s - x.s || x.b.price - y.b.price).slice(0, 3);
+    finderBest = scored[0].b.name;
     $("#results").innerHTML = scored.map(({ b, why }, i) => `<div class="res">
-      <div class="thumbs" aria-hidden="true">${b.items.slice(0, 3).map((id) => `<img src="${img(id)}" alt="">`).join("")}</div>
+      <div class="thumbs" aria-hidden="true">${b.items.slice(0, 3).map((id) => `<img src="${img(id)}" alt="" loading="lazy">`).join("")}</div>
       <div class="rb">${i === 0 ? `<span class="best">Best match</span>` : ""}<h3>${esc(b.name)}</h3><span class="why">${why.length ? esc(why.join(" · ")) : "A close alternative"}</span></div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px"><span class="price">${inr(b.price)}</span>${qty("b:" + b.id) ? `<span class="tag" style="color:var(--ok)">In your bag</span>` : `<button class="btn primary sm" data-addbag="${b.id}">Add</button>`}</div>
     </div>`).join("");
   }
   $("#finder").addEventListener("click", (e) => {
     const c = e.target.closest("[data-v]");
-    if (c) { ans[c.closest("[data-q]").dataset.q] = c.dataset.v; renderFinder(); return; }
+    if (c) { ans[c.closest("[data-q]").dataset.q] = c.dataset.v; keep(renderFinder); announce(`Best match: ${finderBest}`); return; }
     const a = e.target.closest("[data-addbag]");
     if (a) { const id = a.dataset.addbag; flyToBag(a.closest(".res").querySelector("img"), img(B[id].items[0])); setQty("b:" + id, 1); toast(`${B[id].name} added`); }
   });
 
   // ---------- Shop ----------
   let cat = "all", query = "", sort = "cat";
-  try { cat = localStorage.getItem(KEY + "-cat") || "all"; } catch {}
+  try { const c = localStorage.getItem(KEY + "-cat"); if (T.categories.some((x) => x.id === c)) cat = c; } catch {}
   function renderTabs() {
     const tabs = [{ id: "all", name: "Everything" }, ...T.categories];
     $("#catTabs").innerHTML = tabs.map((c) => `<button class="chip" aria-pressed="${c.id === cat}" data-cat="${c.id}">${esc(c.name)}</button>`).join("");
@@ -783,14 +813,16 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
     if (sort === "lo") list = [...list].sort((a, b) => a.price - b.price);
     if (sort === "hi") list = [...list].sort((a, b) => b.price - a.price);
     $("#grid").innerHTML = list.length ? list.map(productCard).join("") : `<div class="empty"><h3>Nothing matches "${esc(query)}"</h3><p>Try "pen", "eraser" or "squishy", or browse Everything.</p></div>`;
+    return list.length;
   }
-  $("#catTabs").addEventListener("click", (e) => { const c = e.target.closest("[data-cat]"); if (!c) return; cat = c.dataset.cat; try { localStorage.setItem(KEY + "-cat", cat); } catch {} renderTabs(); renderGrid(); });
-  $("#q").addEventListener("input", (e) => { query = e.target.value; renderGrid(); });
+  $("#catTabs").addEventListener("click", (e) => { const c = e.target.closest("[data-cat]"); if (!c) return; cat = c.dataset.cat; try { localStorage.setItem(KEY + "-cat", cat); } catch {} keep(() => { renderTabs(); renderGrid(); }); });
+  let st;
+  $("#q").addEventListener("input", (e) => { query = e.target.value; const n = renderGrid(); clearTimeout(st); st = setTimeout(() => announce(n ? `${n} products` : "No products match"), 500); });
   $("#sort").addEventListener("change", (e) => { sort = e.target.value; renderGrid(); });
   addEventListener("keydown", (e) => { if (e.key === "/" && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) { e.preventDefault(); $("#q").focus(); } });
   $("#grid").addEventListener("click", (e) => {
     const a = e.target.closest("[data-add]");
-    if (a) { const id = a.dataset.add; flyToBag(a.closest(".card").querySelector("img"), img(id)); setQty("p:" + id, 1); }
+    if (a) { const id = a.dataset.add; flyToBag(a.closest(".card").querySelector("img"), img(id)); setQty("p:" + id, 1); announce(`Added ${P[id].name}`); }
   });
   // Card tilt on pointer
   if (!reduced && matchMedia("(hover: hover)").matches) {
@@ -805,8 +837,9 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
   // Steppers anywhere on the page
   document.addEventListener("click", (e) => {
     const inc = e.target.closest("[data-inc]"), dec = e.target.closest("[data-dec]");
-    if (inc) setQty(inc.dataset.inc, qty(inc.dataset.inc) + 1);
-    if (dec) setQty(dec.dataset.dec, qty(dec.dataset.dec) - 1);
+    const k = (inc || dec)?.dataset[inc ? "inc" : "dec"]; if (!k) return;
+    setQty(k, qty(k) + (inc ? 1 : -1));
+    announce(qty(k) ? `${nameOf(k)}: ${qty(k)} in your bag` : `${nameOf(k)} removed from your bag`);
   });
 
   // ---------- Custom bag panel + meters ----------
@@ -833,15 +866,16 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
     const mb = $("#mbar");
     mb.classList.toggle("show", t.count > 0);
     $("#mbarText").textContent = t.custom > 0 && !done ? `Custom bag ${inr(t.custom)} · add ${inr(T.customMin + 1 - t.custom)} more` : `${t.count} in your bag · ${inr(t.total)}`;
+    mb.setAttribute("aria-label", `${$("#mbarText").textContent} · View bag`);
     $("#mbarFill").style.width = (t.custom > 0 ? pct : 100) + "%";
   }
 
   // ---------- Drawer / checkout ----------
   const drawer = $("#drawer"), scrim = $("#scrim");
   let lastFocus = null;
-  const behind = () => [$(".top"), $("main"), $("footer"), $("#mbar")];
-  function openDrawer() { lastFocus = document.activeElement; renderDrawer(); drawer.inert = false; behind().forEach((el) => (el.inert = true)); drawer.classList.add("open"); scrim.classList.add("open"); setTimeout(() => $("#closeDrawer").focus(), 50); }
-  function closeDrawer() { drawer.classList.remove("open"); scrim.classList.remove("open"); drawer.inert = true; behind().forEach((el) => (el.inert = false)); lastFocus?.focus?.(); }
+  const behind = () => [$(".skip"), $(".top"), $("main"), $("footer"), $("#mbar")];
+  function openDrawer() { lastFocus = document.activeElement; renderDrawer(); drawer.inert = false; behind().forEach((el) => (el.inert = true)); document.documentElement.classList.add("lock"); drawer.classList.add("open"); scrim.classList.add("open"); setTimeout(() => $("#closeDrawer").focus(), 50); }
+  function closeDrawer() { drawer.classList.remove("open"); scrim.classList.remove("open"); drawer.inert = true; behind().forEach((el) => (el.inert = false)); document.documentElement.classList.remove("lock"); lastFocus?.focus?.(); }
   $("#bagBtn").addEventListener("click", openDrawer);
   $("#mbOpen").addEventListener("click", openDrawer);
   $("#mbar").addEventListener("click", openDrawer);
@@ -872,7 +906,7 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
       body.innerHTML = `<div class="emptybag"><img src="img/tadaboo-bag.webp" alt="" width="359" height="400"><h3>Your bag is empty</h3><p>Pick a gift bag or add your favourite goodies.</p><a class="btn primary sm" href="#collections" data-close>Browse gift bags</a></div>`;
       foot.innerHTML = ""; return;
     }
-    const line = (k, n, src, name, price) => `<div class="line"><img src="${src}" alt=""><div class="li"><span class="ln">${esc(name)}</span><span class="lp">${inr(price)} each · ${inr(price * n)}</span></div><div class="stepper"><button data-dec="${k}" aria-label="One less">−</button><b class="num">${n}</b><button data-inc="${k}" aria-label="One more">+</button></div></div>`;
+    const line = (k, n, src, name, price) => `<div class="line"><img src="${src}" alt=""><div class="li"><span class="ln">${esc(name)}</span><span class="lp">${inr(price)} each · ${inr(price * n)}</span></div>${stepper(k, n).replace(' style="min-width:130px"', "")}</div>`;
     const bl = Object.entries(cart).filter(([k]) => k.startsWith("b:"));
     const pl = Object.entries(cart).filter(([k]) => k.startsWith("p:"));
     body.innerHTML = `
@@ -887,20 +921,22 @@ footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;
       </div>
       <form class="form" id="oform" autocomplete="on">
         <label>Your name<input id="f-name" name="name" value="${esc(form.name || "")}" autocomplete="name"></label>
-        <label>Phone<input id="f-phone" name="phone" inputmode="tel" value="${esc(form.phone || "")}" autocomplete="tel"></label>
+        <label>Phone<input id="f-phone" name="phone" type="tel" value="${esc(form.phone || "")}" autocomplete="tel"></label>
         <label class="full">Delivery<select id="f-delivery" name="delivery"><option value="collect"${form.delivery !== "door" ? " selected" : ""}>I'll collect / let's discuss</option><option value="door"${form.delivery === "door" ? " selected" : ""}>Door-to-door delivery (extra charge)</option></select></label>
-        <label class="full" ${form.delivery === "door" ? "" : "hidden"} id="addrWrap">Address<textarea id="f-address" name="address" rows="2">${esc(form.address || "")}</textarea></label>
-        <label ${form.delivery === "door" ? "" : "hidden"} id="pinWrap">Pincode<input id="f-pin" name="pin" inputmode="numeric" maxlength="6" value="${esc(form.pin || "")}"></label>
+        <label class="full" ${form.delivery === "door" ? "" : "hidden"} id="addrWrap">Address<textarea id="f-address" name="address" rows="2" autocomplete="street-address">${esc(form.address || "")}</textarea></label>
+        <label ${form.delivery === "door" ? "" : "hidden"} id="pinWrap">Pincode<input id="f-pin" name="pin" inputmode="numeric" maxlength="6" autocomplete="postal-code" value="${esc(form.pin || "")}"></label>
         <label class="full">Gift note (optional)<input id="f-note" name="note" value="${esc(form.note || "")}" placeholder="Happy birthday, Aanya!"></label>
       </form>`;
     foot.innerHTML = `
       ${t.customOk ? `<a class="btn primary" id="sendWa" target="_blank" rel="noopener" href="#">Send order on WhatsApp</a>` : `<button class="btn primary" disabled>Send order on WhatsApp</button>`}
-      <button class="btn ghost sm" id="copyOrder">Copy order text</button>
+      <button class="btn ghost sm" id="copyOrder"${t.customOk ? "" : " disabled"}>Copy order text</button>
       <span class="small">Opens WhatsApp to <span class="num">${T.phone}</span>. Dispatch in ${T.dispatchDays}.</span>`;
     updateWa();
   }
   function updateWa() {
-    const a = $("#sendWa"); if (a) a.href = `https://wa.me/${T.whatsapp}?text=${encodeURIComponent(orderText())}`;
+    // A lone surrogate (half an emoji, e.g. from a cut-off paste) makes encodeURIComponent throw.
+    const enc = (x) => { try { return encodeURIComponent(x); } catch { return encodeURIComponent(x.toWellFormed ? x.toWellFormed() : x.replace(/[\uD800-\uDFFF]/g, "\uFFFD")); } };
+    const a = $("#sendWa"); if (a) a.href = `https://wa.me/${T.whatsapp}?text=${enc(orderText())}`;
   }
   drawer.addEventListener("input", (e) => {
     const f = e.target.closest("#oform [name]"); if (!f) return;

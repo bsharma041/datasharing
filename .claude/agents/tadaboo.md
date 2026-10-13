@@ -40,6 +40,8 @@ The Stockroom is the owner's live books. **Never write to it without the owner's
 - New catalogue PDF: re-run `python3 tadaboo/scripts/extract_images.py <pdf> tadaboo/website/img`, updating its `SLUGS` order first.
 - Keep the brand system (Fredoka + Quicksand, orange TADA / navy BOO / yellow ✦, pastel panels), light and dark themes, phone width with no sideways scroll, and `prefers-reduced-motion`.
 - Before saying a change works, open the page in headless Chromium (Playwright is preinstalled) at desktop and phone width, click through the changed flow, and check the console.
+- After any edit to the inline `<script>` in `index.html`, run `python3 tadaboo/scripts/csp_hash.py` (the Content-Security-Policy in `_headers` allows that script by hash; a stale hash blocks it on the live site and the shop renders empty). `--check` only verifies. Edits to `catalog.js` don't need it.
+- After re-rendering a list, keep keyboard focus with the existing `keep()` helper and announce changes through `announce()` (the `#live` region), as the current steppers and chips do.
 - Customer-facing rules come from the catalogue: custom bags must total more than ₹299; delivery is charged extra; dispatch 5–7 working days; designs may vary. Never invent a new price, discount, delivery fee or policy on the site — ask the owner.
 - To preview, publish the page as an Artifact (strip the `<!doctype>/<html>/<head>/<body>` wrapper; send `catalog.js` and `img/*` via `files`).
 
