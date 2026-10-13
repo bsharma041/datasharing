@@ -91,7 +91,7 @@ main{flex:1;width:100%;max-width:1120px;margin:0 auto;padding-inline:16px;paddin
 .chip.ok{background:var(--ok-soft);color:var(--ok)} .chip.low{background:var(--low-soft);color:var(--low)} .chip.out{background:var(--out-soft);color:var(--out)}
 .chip.check{background:var(--accent-soft);color:var(--accent-deep)} .chip.plain{background:var(--surface-2);color:var(--muted)}
 .filters{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none}
-.filters button{border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font:600 .85rem var(--f-display);cursor:pointer;white-space:nowrap;color:var(--muted)}
+.filters button{min-height:44px;border:1.5px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font:600 .85rem var(--f-display);cursor:pointer;white-space:nowrap;color:var(--muted)}
 .filters button[aria-pressed="true"]{border-color:var(--accent);color:var(--accent-deep);background:var(--accent-soft)}
 
 /* Forms */
@@ -100,6 +100,7 @@ label.f{display:flex;flex-direction:column;gap:5px;font-weight:600;font-size:.85
 .input:focus{border-color:var(--accent);outline:none}
 .input:focus-visible{outline:3px solid var(--accent);outline-offset:1px}
 .sheet:focus{outline:none}
+.sheet .section-head .icon-btn{width:44px;height:44px}
 .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 @media (max-width:420px){.grid3{grid-template-columns:repeat(2,minmax(0,1fr))}}
@@ -226,8 +227,10 @@ button.trow:hover{background:color-mix(in srgb,var(--surface-2) 50%,transparent)
   .nav{position:static}
   .sticky{position:static}
 }
-.toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + 16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:30;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-weight:600;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
+.toast{pointer-events:none;position:fixed;left:50%;bottom:calc(var(--nav-h) + 16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:30;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:999px;font-weight:600;box-shadow:var(--shadow);max-width:calc(100% - 32px)}
 .toast.bad{background:var(--out);color:#fff}
+/* With a panel open, messages show at the top so they never cover its buttons or fields. */
+body:has(#sheet .scrim) .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
 @media (min-width:900px){.toast{bottom:24px}}
 </style>
 

@@ -82,6 +82,7 @@ async function connect() {
       S.loaded.add(c); S.conn = 'live'; onData();
     }, (e) => { S.conn = 'err'; S.error = e; S.loaded.add(c); onData(); }); // show what loaded, flagged, instead of spinning forever
   }
+  db.doc('settings/web').onSnapshot((snap) => { S.web = snap.exists ? snap.data() : {}; onData(); }, () => {});
   db.doc('settings/main').onSnapshot((snap) => {
     if (snap.exists) S.settings = { ...S.settings, ...snap.data() };
     if (!S.setDirty) S.setDraft = null; // show outside changes unless the owner is mid-edit
@@ -540,10 +541,22 @@ const ORDER_LABEL = { ...Object.fromEntries(ORDER_STEPS), cancelled: 'Cancelled'
 const ORDER_NEXT = { confirmed: ['packed', 'Mark packed'], packed: ['dispatched', 'Mark dispatched'], dispatched: ['delivered', 'Mark delivered'] };
 const orderChip = (s) => `<span class="chip ${s === 'new' ? 'check' : s === 'cancelled' ? 'out' : s === 'delivered' ? 'ok' : 'low'}">${esc(ORDER_LABEL[s] || s)}</span>`;
 const blankOrd = () => ({ paste: '', parsed: null, filter: 'active' });
+const orderCount = (lines = []) => {
+  const b = lines.filter((l) => l.kind === 'bag').reduce((a, l) => a + n(l.qty), 0), i = lines.filter((l) => l.kind !== 'bag').reduce((a, l) => a + n(l.qty), 0);
+  return [b && `${b} gift bag${b === 1 ? '' : 's'}`, i && `${i} item${i === 1 ? '' : 's'}`].filter(Boolean).join(' · ') || 'empty';
+};
+const ORDER_PREV = { packed: 'confirmed', dispatched: 'packed', delivered: 'dispatched' };
+let orderStepAt = 0; // a status button that appears under the finger right after a change ignores that tap
+// After a status change the sheet redraws: keep focus on its next button and say what happened.
+const afterOrderStep = (msg) => setTimeout(() => { ($('.sheet .btn.primary') || $('.sheet'))?.focus({ preventScroll: true }); $('#sr').textContent = msg; }, 60);
+// Website stock is out of date once an order is confirmed or cancelled after the last stock file.
+const stockStale = () => { const last = str(S.web?.stockExportedAt); return S.orders.filter((o) => ['confirmed', 'cancelled'].some((st) => (o.history || []).some((h) => h.status === st && str(h.at) > last))).length; };
 
 function parseOrder(text) {
   const t = str(text);
-  const m = /TB1\|(TB-\d{6}-[A-Z0-9]{4})\|([^\s]+)/.exec(t);
+  // WhatsApp can wrap the long code line; take everything after "TB1|" up to a blank line, minus spaces.
+  const at = t.indexOf('TB1|'), codeText = at < 0 ? '' : t.slice(at).split(/\n\s*\n/)[0].replace(/\s+/g, '');
+  const m = /^TB1\|(TB-\d{6}-[A-Z0-9]{4})\|([^\s]+)/.exec(codeText);
   if (!m) return { error: 'No TadaBoo order code found. Paste the whole WhatsApp message, including the line that starts “Order code”.' };
   const lines = [];
   for (const part of m[2].split(',')) {
@@ -566,7 +579,9 @@ function orderModel(o, opts = {}) {
   const lines = (o.lines || []).map((l) => {
     const rec = l.kind === 'bag' ? D.bagsById[l.ref] : D.itemsById[l.ref];
     return { ...l, name: rec ? nameOf(rec) : `Unknown ${l.kind === 'bag' ? 'gift bag' : 'item'} (${l.ref})`, known: !!rec && !rec.archived, total: n(l.qty) * n(l.price),
-      priceDiff: l.kind === 'bag' && rec && rec.price != null && n(rec.price) !== n(l.price) ? n(rec.price) : null };
+      priceDiff: !rec ? null : l.kind === 'bag' ? (rec.price != null && n(rec.price) !== n(l.price) ? n(rec.price) : null)
+        : rec.sellPrice == null ? null : l.units === 1 ? (n(rec.sellPrice) !== n(l.price) ? n(rec.sellPrice) : null)
+        : (n(l.price) / l.units < n(rec.sellPrice) / 2 || n(l.price) / l.units > n(rec.sellPrice) * 2 ? n(rec.sellPrice) * l.units : null) };
   });
   const snap = (c) => (c == null ? null : +(+c).toFixed(4));
   const saleLines = lines.filter((l) => l.known).map((l) => (l.kind === 'bag'
@@ -587,7 +602,7 @@ function orderModel(o, opts = {}) {
 }
 const orderLinesHtml = (m) => `<div class="list">${m.lines.map((l) => `<div class="li" style="cursor:default">
     <div class="grow"><div class="name">${esc(l.qty)} × ${esc(l.name)}</div>
-      <div class="meta">${l.kind === 'bag' ? 'Gift bag' : l.units > 1 ? `Box of ${esc(l.units)}` : 'Item'} · ${inr(l.price)} each${l.priceDiff != null ? ` · <span class="warnc">Stockroom price ${inr(l.priceDiff)}</span>` : ''}</div></div>
+      <div class="meta">${l.kind === 'bag' ? 'Gift bag' : l.units > 1 ? `Box of ${esc(l.units)}` : 'Item'} · ${inr(l.price)} each${l.priceDiff != null ? ` · <span class="warnc">Stockroom price ${inr(l.priceDiff)}${l.units > 1 ? ` (₹${esc(n(l.priceDiff) / l.units)} a piece)` : ''}</span>` : ''}</div></div>
     <div class="right"><span class="num">${inr(l.total)}</span>${l.known ? '' : '<span class="chip out">Not found</span>'}</div></div>`).join('')}</div>`;
 const customerHtml = (c) => `<div class="small muted">${[c?.name && `<b>${esc(c.name)}</b>`, c?.phone && esc(c.phone), c?.delivery === 'door' ? `Door-to-door${c.address ? `: ${esc(c.address)}` : ''}` : 'Collect / discuss', c?.note && `Gift note: “${esc(c.note)}”`].filter(Boolean).join(' · ')}</div>`;
 
@@ -600,10 +615,11 @@ function viewOrders() {
   return `<div class="stack" data-draft="orders">
   <div class="section-head"><div><div class="eyebrow">Website</div><h2>Orders</h2></div>
     <button class="btn ghost sm" data-act="stockFile" ${S.downloads ? '' : 'hidden'}>Website stock file</button></div>
+  ${stockStale() ? `<div class="warn" role="status">Website stock is out of date: ${stockStale()} order${stockStale() === 1 ? '' : 's'} changed since the last stock file. ${S.downloads ? 'Tap “Website stock file” and upload it with the website, or a' : 'A'}sk Tadaboo to “refresh the website stock”.</div>` : ''}
   <div class="card stack"><h3>Add an order from WhatsApp</h3>
     <label class="f">Paste the customer’s whole WhatsApp message<textarea class="input" rows="4" data-bind="paste" placeholder="Hi TadaBoo! I'd like to order (TB-…)">${esc(d.paste)}</textarea></label>
     <div class="row"><button class="btn primary grow" data-act="ordRead">Read order</button>${d.paste || p ? '<button class="btn ghost" data-act="ordClear">Clear</button>' : ''}</div>
-    ${p?.error ? `<div class="err">${esc(p.error)}</div>` : ''}
+    ${p?.error ? `<div class="err" role="alert">${esc(p.error)}</div>` : ''}
     ${m ? `<div class="stack">
       <div class="section-head"><h3>${esc(p.id)}</h3><span class="num"><b>${inr(m.total)}</b></span></div>
       ${customerHtml(p.customer)}
@@ -611,14 +627,14 @@ function viewOrders() {
       ${dup ? `<div class="warn">This order is already saved (${esc(ORDER_LABEL[dup.status] || dup.status)}). <button class="btn ghost sm" data-act="openOrder" data-id="${esc(dup.id)}">Open it</button></div>` : ''}
       ${m.unknown.length ? `<div class="err">Not in the Stockroom: ${esc(m.unknown.map((l) => l.ref).join(', '))}. Add or restore them before confirming.</div>` : ''}
       ${m.short.length ? `<div class="warn">Not enough stock right now: ${esc(m.short.join('; '))}.</div>` : ''}
-      ${m.lines.some((l) => l.priceDiff != null) ? '<div class="warn">A price in this message differs from the Stockroom. Check it before confirming.</div>' : ''}
+      ${m.lines.some((l) => l.priceDiff != null) ? '<div class="warn" role="alert">A price in this message differs from the Stockroom. Check it before confirming.</div>' : ''}
       ${dup ? '' : '<button class="btn primary block" data-act="saveOrder">Save order</button>'}
     </div>` : ''}
   </div>
   <div class="section-head"><h3>${waiting ? `${waiting} waiting to confirm` : 'All orders'}</h3></div>
   <div class="filters" role="group" aria-label="Show orders">${[['active', 'Open'], ['delivered', 'Delivered'], ['cancelled', 'Cancelled'], ['all', 'All']].map(([k, l]) => `<button data-act="ordFilter" data-v="${k}" aria-pressed="${d.filter === k}">${l}</button>`).join('')}</div>
   ${list.length ? `<div class="card" style="padding-block:4px"><div class="list">${list.map((o) => `<button class="li" data-act="openOrder" data-id="${esc(o.id)}">
-      <div class="grow"><div class="name">${esc(o.customer?.name || 'Customer')} · ${esc(o.id)}</div><div class="meta">${fmtDate(str(o.createdAt).slice(0, 10))} · ${(o.lines || []).reduce((a, l) => a + n(l.qty), 0)} items</div></div>
+      <div class="grow"><div class="name">${esc(o.customer?.name || 'Customer')} · ${esc(o.id)}</div><div class="meta">${fmtDate(str(o.createdAt).slice(0, 10))} · ${orderCount(o.lines)}</div></div>
       <div class="right"><span class="num">${inr(o.total)}</span>${orderChip(o.status)}</div></button>`).join('')}</div></div>`
     : `<div class="card empty"><h3>No ${d.filter === 'all' ? '' : esc({ active: 'open', delivered: 'delivered', cancelled: 'cancelled' }[d.filter] || '') + ' '}orders</h3><p>Paste a WhatsApp order above to add it.</p></div>`}
 </div>`;
@@ -652,7 +668,8 @@ function sheetOrder() {
       ${o.saleId && !S.sales.some((x) => x.id === o.saleId) && st !== 'cancelled' ? '<div class="warn">This order’s sale was deleted in History, so its stock is no longer taken off.</div>' : ''}
       ${o.saleId ? `<div class="sum-row muted"><span>Recorded as a sale</span><button class="btn ghost sm" data-act="openEntry" data-k="sales" data-id="${esc(o.saleId)}">Open sale</button></div>` : ''}</div>
     ${st === 'packed' ? field('Courier / tracking (optional)', 'tracking', d.tracking, { ph: 'e.g. DTDC 7X123…' }) : o.tracking ? `<p class="small muted">Tracking: ${esc(o.tracking)}</p>` : ''}
-    ${ORDER_NEXT[st] ? `<button class="btn primary block" data-act="saveOrderStatus" data-v="${ORDER_NEXT[st][0]}">${ORDER_NEXT[st][1]}</button>` : ''}`}
+    ${ORDER_NEXT[st] ? `<button class="btn primary block" data-act="saveOrderStatus" data-v="${ORDER_NEXT[st][0]}">${ORDER_NEXT[st][1]}</button>` : ''}
+    ${ORDER_PREV[st] ? `<button class="btn ghost sm" data-act="saveOrderBack">Undo: back to ${esc(ORDER_LABEL[ORDER_PREV[st]])}</button>` : ''}`}
   ${done ? '' : `<button class="btn danger block" data-act="deleteOrderCancel" data-confirm="${o.saleId ? 'Tap again to cancel and put the stock back' : 'Tap again to cancel this order'}">Cancel order</button>`}`;
 }
 function orderPreview(m, t) {
@@ -1290,13 +1307,19 @@ const A = {
     if (!(await write(() => setDoc('sales', saleId, { ...m.sale, createdAt: at })))) return;
     const ok = await write(() => S.db.collection('orders').doc(id).update({ status: 'confirmed', saleId, pack: m.pack, kits: m.kits, shippingCharged: n(d.shippingCharged), courierCost: n(d.courierCost),
       updatedAt: at, history: [...(Array.isArray(o.history) ? o.history : []), { status: 'confirmed', at }] }), `Confirmed · stock updated · profit ${inr(m.totals.profit)}`);
-    if (ok) { S.sheet.orig = JSON.stringify(S.sheet.draft); renderAll(); }
+    if (ok) { orderStepAt = Date.now(); S.sheet.orig = JSON.stringify(S.sheet.draft); renderAll(); afterOrderStep('Order confirmed. Stock updated. Website stock file is now out of date.'); }
   },
   saveOrderStatus: async (el) => {
+    if (Date.now() - orderStepAt < 1200) return; // the tap that confirmed or moved the order, landing on the new button
     const { id, draft: d } = S.sheet, o = S.orders.find((x) => x.id === id), to = el.dataset.v, at = nowIso();
     if (!o || ORDER_NEXT[o.status]?.[0] !== to) return toast('This order changed elsewhere. Close and reopen it.', true);
     const body = { status: to, updatedAt: at, history: [...(Array.isArray(o.history) ? o.history : []), { status: to, at }], ...(o.status === 'packed' ? { tracking: str(d.tracking).trim() } : {}) };
-    if (await write(() => S.db.collection('orders').doc(id).update(body), `Marked ${ORDER_LABEL[to].toLowerCase()}`)) { S.sheet.orig = JSON.stringify(S.sheet.draft); renderAll(); }
+    if (await write(() => S.db.collection('orders').doc(id).update(body), `Marked ${ORDER_LABEL[to].toLowerCase()}`)) { orderStepAt = Date.now(); S.sheet.orig = JSON.stringify(S.sheet.draft); renderAll(); afterOrderStep(`Order ${ORDER_LABEL[to].toLowerCase()}`); }
+  },
+  saveOrderBack: async () => {
+    if (Date.now() - orderStepAt < 1200) return;
+    const id = S.sheet.id, o = S.orders.find((x) => x.id === id), to = ORDER_PREV[o?.status], at = nowIso(); if (!to) return;
+    if (await write(() => S.db.collection('orders').doc(id).update({ status: to, updatedAt: at, history: [...(Array.isArray(o.history) ? o.history : []), { status: to, at, undo: true }] }), `Back to ${ORDER_LABEL[to].toLowerCase()}`)) { orderStepAt = Date.now(); renderAll(); afterOrderStep(`Order back to ${ORDER_LABEL[to].toLowerCase()}`); }
   },
   deleteOrderCancel: async (el) => {
     if (needsConfirm(el)) return;
@@ -1304,12 +1327,16 @@ const A = {
     // Deleting the order's sale puts its items and packaging back into stock.
     if (o.saleId && S.sales.some((x) => x.id === o.saleId) && !(await write(() => delDoc('sales', o.saleId)))) return;
     if (await write(() => S.db.collection('orders').doc(id).update({ status: 'cancelled', updatedAt: at, history: [...(Array.isArray(o.history) ? o.history : []), { status: 'cancelled', at }] }),
-      o.saleId ? 'Order cancelled · stock put back' : 'Order cancelled')) { S.sheet.orig = JSON.stringify(S.sheet.draft); renderAll(); }
+      o.saleId ? 'Order cancelled · stock put back' : 'Order cancelled')) { orderStepAt = Date.now(); S.sheet.orig = JSON.stringify(S.sheet.draft); renderAll(); afterOrderStep('Order cancelled'); }
   },
   stockFile: async () => {
     if (!S.downloads) return;
     derive();
-    try { await S.downloads.save({ filename: 'stock.json', data: stockFileJson() }); toast('Saved stock.json. Put it in the website folder, next to index.html.'); }
+    try {
+      await S.downloads.save({ filename: 'stock.json', data: stockFileJson() });
+      await write(() => S.db.doc('settings/web').set({ ...(S.web || {}), stockExportedAt: nowIso() }));
+      toast('Saved stock.json. Upload it with the website (next to index.html).');
+    }
     catch (e) { if (e?.code !== 'declined') toast('Could not save the stock file.', true); }
   },
   export: () => exportXlsx(),

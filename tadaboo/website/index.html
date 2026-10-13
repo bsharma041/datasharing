@@ -159,6 +159,8 @@ section{padding-block:clamp(64px,8vw,96px)}
 .bagcard .row{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
 .bagcard .nm{font-weight:600;font-size:1.05rem;line-height:1.3}
 .bagcard .ct{font-size:.88rem;color:var(--muted);margin-top:-6px}
+.stepper button:disabled{opacity:.35;cursor:not-allowed}
+.bagcard.sold .cv img{opacity:.55;filter:grayscale(.35)}
 .soldout{font-size:.8rem;font-weight:600;color:var(--muted);background:var(--bg);padding:6px 12px;border-radius:999px}
 .inbag{position:absolute;left:12px;top:12px;background:var(--bg);color:var(--ink);font-size:.78rem;font-weight:600;padding:5px 10px;border-radius:999px}
 
@@ -508,11 +510,24 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
   // Stock from the Stockroom (stock.json, exported from its Orders tab). Until it loads, or if it
   // is missing, nothing is capped; the Stockroom checks stock again when the order is confirmed.
   let STOCK = null;
+  // Stockroom units each cart line uses, by Stockroom item id (a gift bag uses its items' units).
+  const unitsOf = (k, n) => {
+    const id = k.slice(2), out = {};
+    for (const pid of k[0] === "b" ? B[id].items : [id]) out[P[pid].sid] = (out[P[pid].sid] || 0) + (P[pid].units || 1) * n;
+    return out;
+  };
+  // How many of k the bag can hold, counting stock already taken by the bag's other lines
+  // (a Back to School · Plus and a loose 12-piece pencil set draw on the same sets).
   const avail = (k) => {
     if (!STOCK) return Infinity;
-    const id = k.slice(2);
-    if (k[0] === "b") { const c = STOCK.bags?.["cat-" + id]; return Number.isFinite(c) ? c : Infinity; }
-    const p = P[id], u = STOCK.items?.[p.sid]; return Number.isFinite(u) ? Math.floor(u / (p.units || 1)) : Infinity;
+    const used = {};
+    for (const [o, n] of Object.entries(cart)) if (o !== k) for (const [sid, u] of Object.entries(unitsOf(o, n))) used[sid] = (used[sid] || 0) + u;
+    let a = k[0] === "b" && Number.isFinite(STOCK.bags?.["cat-" + k.slice(2)]) ? STOCK.bags["cat-" + k.slice(2)] : Infinity;
+    for (const [sid, per] of Object.entries(unitsOf(k, 1))) {
+      const u = STOCK.items?.[sid];
+      if (Number.isFinite(u)) a = Math.min(a, Math.floor(Math.max(0, u - (used[sid] || 0)) / per));
+    }
+    return a;
   };
   const setQty = (k, n) => {
     const a = avail(k);
@@ -608,11 +623,12 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
   let bagF = "all";
   const bagMatch = (b) => bagF === "all" || b.occasion === bagF || b.for === bagF || (bagF === "school" && b.occasion === "create");
   const chips = (b) => b.items.filter((id) => id !== (b.cover || b.items[0])).map((id) => `<img src="${img(id)}" alt="" loading="lazy" width="416" height="520">`).join("");
-  const stockTag = (k) => { const a = avail(k); return a <= 0 ? `<span class="inbag">Sold out</span>` : a <= 3 ? `<span class="inbag">Only ${a} left</span>` : ""; };
+  const stockTag = (k) => { const a = avail(k); return a <= 0 ? (k[0] === "b" ? `<span class="inbag">Sold out</span>` : "") : a <= 3 ? `<span class="inbag">Only ${a} left</span>` : ""; };
+  const askLink = (name) => `<a class="btn line" target="_blank" rel="noopener" href="https://wa.me/${T.whatsapp}?text=${encodeURIComponent(`Hi TadaBoo! Is ${name} back in stock?`)}">Sold out · ask us on WhatsApp</a>`;
   function bagCard(b) {
     const n = qty("b:" + b.id);
-    return `<button class="bagcard" data-openbag="${b.id}" aria-haspopup="dialog">
-      <span class="ph"><span class="cv"><img src="${cover(b)}" alt="" loading="lazy" width="416" height="520"></span><span class="chips" aria-hidden="true">${chips(b)}</span>${n ? `<span class="inbag">In bag · ${n}</span>` : stockTag("b:" + b.id)}</span>
+    return `<button class="bagcard${!n && avail("b:" + b.id) <= 0 ? " sold" : ""}" data-openbag="${b.id}" aria-haspopup="dialog">
+      <span class="ph"><span class="cv"><img src="${cover(b)}" alt="" loading="lazy" width="416" height="520"></span><span class="chips" aria-hidden="true">${chips(b)}</span>${n ? `<span class="inbag">In bag · ${n}${avail("b:" + b.id) <= n ? " · all we have" : ""}</span>` : stockTag("b:" + b.id)}</span>
       <span class="row"><span class="nm">${esc(b.name)}</span><span class="price">${inr(b.price)}</span></span>
       <span class="ct">${b.items.length} items</span>
     </button>`;
@@ -748,8 +764,8 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
   function renderDetailFoot(b) {
     const k = "b:" + b.id;
     $("#drawerFoot").innerHTML = `<div class="addrow">
-      <div class="stepper flat"><button data-dq="-1" aria-label="One less ${esc(b.name)}">−</button><b class="num" id="dq">${detailQty}</b><button data-dq="1" aria-label="One more ${esc(b.name)}"${detailQty >= avail(k) - qty(k) ? " disabled" : ""}>+</button></div>
-      ${avail(k) - qty(k) > 0 ? `<button class="btn" data-addbag="${b.id}">Add to bag · ${inr(b.price * detailQty)}</button>` : `<button class="btn" disabled>${avail(k) > 0 ? "All available are in your bag" : "Sold out"}</button>`}</div>
+      ${avail(k) - qty(k) <= 0 ? "" : `<div class="stepper flat"><button data-dq="-1" aria-label="One less ${esc(b.name)}">−</button><b class="num" id="dq">${detailQty}</b><button data-dq="1" aria-label="One more ${esc(b.name)}"${detailQty >= avail(k) - qty(k) ? " disabled" : ""}>+</button></div>`}
+      ${avail(k) - qty(k) > 0 ? `<button class="btn" data-addbag="${b.id}">Add to bag · ${inr(b.price * detailQty)}</button>` : (avail(k) > 0 ? `<button class="btn" disabled>All we have is in your bag</button>` : askLink(b.name))}</div>
       ${qty(k) ? `<span class="small">${qty(k)} already in your bag</span>` : ""}`;
   }
   function orderText() {
@@ -765,7 +781,7 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
     L.push(`Delivery: ${form.delivery === "door" ? "Door-to-door delivery" : "I'll collect / discuss"}`);
     if (form.delivery === "door" && form.address) L.push(`Address: ${form.address}${form.pin ? " – " + form.pin : ""}`);
     if (form.note) L.push(`Gift note: ${form.note}`);
-    L.push("", `Order code (please keep): ${orderCode()}`);
+    L.push("", `Order code (please don't edit): ${orderCode()}`);
     return L.join("\n");
   }
   function renderCart() {
@@ -819,7 +835,7 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
   }
   function renderProductFoot(p) {
     const k = "p:" + p.id, n = qty(k), m = meterInfo();
-    $("#drawerFoot").innerHTML = `<div class="addrow">${n ? stepper(k, n, "flat") + `<span class="small" style="flex:1">${n} in your custom bag</span>` : avail(k) <= 0 ? `<button class="btn" disabled>Sold out</button>` : `<button class="btn" data-padd="${p.id}">${view.from ? "Add just this item" : "Add to bag"} · ${inr(p.price)}</button>`}</div>
+    $("#drawerFoot").innerHTML = `<div class="addrow">${n ? stepper(k, n, "flat") + `<span class="small" style="flex:1">${n} in your custom bag</span>` : avail(k) <= 0 ? askLink(p.name) : `<button class="btn" data-padd="${p.id}">${view.from ? "Add just this item" : "Add to bag"} · ${inr(p.price)}</button>`}</div>
       <span class="small">${m.t.custom > 0 ? m.msg : `Single items make a custom bag (over ₹${T.customMin}).`}</span>`;
   }
   // soft: refresh only what changed, so the bag's circle and product zoom don't replay.
