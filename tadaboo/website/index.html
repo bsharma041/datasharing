@@ -24,7 +24,7 @@
 {"@type":"Question","name":"Do you deliver?","acceptedAnswer":{"@type":"Answer","text":"Yes. Door-to-door delivery has an additional charge, which we confirm with you by phone or WhatsApp before you pay it."}},
 {"@type":"Question","name":"Will I get exactly the colour in the photo?","acceptedAnswer":{"@type":"Answer","text":"Colours, characters or designs may vary with availability. The product type and value always stay the same."}},
 {"@type":"Question","name":"Can I buy single pencils?","acceptedAnswer":{"@type":"Answer","text":"Yes. Our Unicorn and Racing Car 2B pencils come in a box of 12 for ₹109, or as single pencils at ₹15 each."}},
-{"@type":"Question","name":"How do I pay?","acceptedAnswer":{"@type":"Answer","text":"By UPI. Place your order on this site and pay from your UPI app, or send your order on WhatsApp and we share payment details when we confirm it."}},
+{"@type":"Question","name":"How do I pay?","acceptedAnswer":{"@type":"Answer","text":"By UPI, for your order total. Door-to-door delivery, if you choose it, is confirmed and paid separately."}},
 {"@type":"Question","name":"Can I order many return gifts for a party?","acceptedAnswer":{"@type":"Answer","text":"Yes. Add the return-gift bag you like, set the quantity, and send it to us. We'll confirm stock for larger orders."}}]}
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -264,9 +264,10 @@ footer .wm{font-size:1.25rem}
 .form label.full{grid-column:1/-1}
 .form input,.form textarea,.form select{width:100%;border:1px solid var(--line-strong);background:var(--bg);border-radius:12px;padding:10px 12px;color:var(--ink);min-height:46px}
 .form input:focus,.form textarea:focus,.form select:focus{outline:none;border-color:var(--price)}
-.df .err{color:var(--accent-ink);font-size:.88rem;text-align:center;font-weight:600}
-.form [aria-invalid="true"]{border-color:var(--accent-ink);box-shadow:0 0 0 1px var(--accent-ink)}
-.df .small .link,.placed .link{min-height:auto;font-size:inherit;background:none;border:0;padding:0;color:inherit;cursor:pointer}
+.df .err{color:var(--price);font-size:.88rem;text-align:center;font-weight:600}
+.df .err::before{content:"! ";font-weight:700}
+.form [aria-invalid="true"]{border-color:var(--price);box-shadow:0 0 0 1px var(--price);background:color-mix(in srgb,var(--price) 6%,var(--bg))}
+.df .small .link{min-height:32px;font-size:inherit;background:none;border:0;padding:4px 2px;color:inherit;cursor:pointer}
 .placed{display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center}
 .placed img{width:96px}
 .placed h3{font-size:1.4rem}
@@ -447,7 +448,7 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
       </div>
       <ol class="steps">
         <li><span class="n">01</span><span>Add gift bags or favourites to your bag</span></li>
-        <li><span class="n">02</span><span>Place your order here and pay by UPI, or send it on WhatsApp</span></li>
+        <li><span class="n">02</span><span>Place your order here, or send it on WhatsApp</span></li>
         <li><span class="n">03</span><span>We confirm, pack and dispatch</span></li>
       </ol>
     </div>
@@ -462,7 +463,7 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
         <details><summary>Do you deliver?</summary><p>Yes. Door-to-door delivery has an additional charge, which we confirm with you by phone or WhatsApp before you pay it.</p></details>
         <details><summary>Will I get exactly the colour in the photo?</summary><p>Colours, characters or designs may vary with availability. The product type and value always stay the same.</p></details>
         <details><summary>Can I buy single pencils?</summary><p>Yes. Our Unicorn and Racing Car 2B pencils come in a box of 12 for ₹109, or as single pencils at ₹15 each. Mention it in your order note.</p></details>
-        <details><summary>How do I pay?</summary><p>By UPI. Place your order on this site and pay from your UPI app, or send your order on WhatsApp and we share payment details when we confirm it.</p></details>
+        <details><summary>How do I pay?</summary><p>By UPI, for your order total. Door-to-door delivery, if you choose it, is confirmed and paid separately.</p></details>
         <details><summary>Can I order many return gifts for a party?</summary><p>Yes. Add the return-gift bag you like, set the quantity, and send it to us. We'll confirm stock for larger orders.</p></details>
       </div>
     </div>
@@ -828,8 +829,8 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
     foot.innerHTML = t.customOk ? `
       <p class="err" id="ferr" role="alert" hidden></p>
       <button class="btn" id="placeOrder" type="button">Place order · ${inr(t.total)}</button>
-      <a class="btn line" id="sendWa" target="_blank" rel="noopener" href="#">Order on WhatsApp instead</a>
-      <span class="small">${T.upi ? "Pay by UPI once you place your order." : "We confirm your order and share payment details."} Dispatch in ${T.dispatchDays}. <button class="link" id="copyOrder" type="button">Copy order text</button></span>`
+      <a class="btn line sm" id="sendWa" target="_blank" rel="noopener" href="#">Order on WhatsApp instead</a>
+      <span class="small">Prefer to chat? Same order, sent on WhatsApp. Dispatch in ${T.dispatchDays}.</span>`
       : `<button class="btn" disabled>Place order</button><span class="small">${m.msg}</span>`;
     updateWa();
     if (t.customOk) sapi().catch(() => {});
@@ -882,13 +883,13 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
   async function placeOrder(btn) {
     if (placing) return;
     const err = $("#ferr"), door = form.delivery === "door", need = [];
-    drawer.querySelectorAll("#oform [aria-invalid]").forEach((el) => el.removeAttribute("aria-invalid"));
+    drawer.querySelectorAll("#oform [aria-invalid]").forEach((el) => { el.removeAttribute("aria-invalid"); el.removeAttribute("aria-describedby"); });
     if (!String(form.name || "").trim()) need.push(["f-name", "your name"]);
     if (!/^[6-9]\d{9}$/.test(mobile(form.phone))) need.push(["f-phone", "a 10-digit mobile number"]);
     if (door && !String(form.address || "").trim()) need.push(["f-address", "your address"]);
     if (door && !/^\d{6}$/.test(String(form.pin || "").trim())) need.push(["f-pin", "a 6-digit pincode"]);
     if (need.length) {
-      need.forEach(([id]) => $("#" + id).setAttribute("aria-invalid", "true"));
+      need.forEach(([id]) => { $("#" + id).setAttribute("aria-invalid", "true"); $("#" + id).setAttribute("aria-describedby", "ferr"); });
       err.textContent = "Please add " + need.map((x) => x[1]).join(", ").replace(/, ([^,]*)$/, " and $1") + ".";
       err.hidden = false; $("#" + need[0][0]).focus(); return;
     }
@@ -910,7 +911,7 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
     } catch {}
     placing = false;
     if (!ok) {
-      btn.disabled = false; btn.textContent = `Place order · ${inr(t.total)}`;
+      btn.disabled = false; btn.textContent = "Try placing it again"; btn.classList.add("line"); $("#sendWa").classList.remove("line");
       err.textContent = "We couldn't place your order online just now. Your bag is saved: please send it on WhatsApp instead.";
       err.hidden = false; $("#sendWa").focus(); return;
     }
@@ -936,12 +937,20 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
     </div>`;
     const upi = /^[\w.\-]{2,}@[a-zA-Z]{2,}$/.test(T.upi || "") ? T.upi : "";
     const q = (o2) => Object.entries(o2).map(([k, v]) => k + "=" + encodeURIComponent(v).replace(/%40/g, "@")).join("&");
-    $("#drawerFoot").innerHTML = upi ? `
-      <a class="btn" href="upi://pay?${q({ pa: upi, pn: T.upiName || "TadaBoo", am: o.total.toFixed(2), cu: "INR", tn: "TadaBoo " + o.id })}">Pay ${inr(o.total)} with UPI</a>
-      <span class="small">Opens GPay, PhonePe, Paytm or your bank app. On a computer, pay <span class="num">${inr(o.total)}</span> to <b>${esc(upi)}</b> with note ${esc(o.id)}. <button class="link" data-copyupi type="button">Copy UPI ID</button></span>
-      <a class="btn line sm" target="_blank" rel="noopener" href="https://wa.me/${T.whatsapp}?text=${encodeURIComponent(`Hi TadaBoo! I placed order ${o.id} on the website.`)}">Questions? WhatsApp us</a>`
-      : `<span class="small">We'll share payment details when we confirm your order.</span>
-      <a class="btn line" target="_blank" rel="noopener" href="https://wa.me/${T.whatsapp}?text=${encodeURIComponent(`Hi TadaBoo! I placed order ${o.id} on the website.`)}">Questions? WhatsApp us</a>`;
+    const wa = `https://wa.me/${T.whatsapp}?text=${encodeURIComponent(`Hi TadaBoo! I placed order ${o.id} on the website.`)}`;
+    const what = o.door ? `Pay ${inr(o.total)} for your items` : `Pay ${inr(o.total)}`;
+    const link = `upi://pay?${q({ pa: upi, pn: T.upiName || "TadaBoo", am: o.total.toFixed(2), cu: "INR", tn: "TadaBoo " + o.id })}`;
+    // upi:// links open a UPI app on phones; on a computer, copying the UPI ID is what works.
+    const desk = matchMedia("(hover: hover) and (pointer: fine)").matches;
+    const note = `<span class="small">${o.door ? "Delivery is confirmed and paid separately. " : ""}Pay to <b>${esc(upi)}</b> with note <span class="num">${esc(o.id)}</span>.</span>`;
+    $("#drawerFoot").innerHTML = !upi
+      ? `<span class="small">We'll share payment details when we confirm your order.</span>
+      <a class="btn line" target="_blank" rel="noopener" href="${wa}">Questions? WhatsApp us</a>`
+      : desk
+      ? `<button class="btn" data-copyupi type="button">Copy UPI ID to pay ${inr(o.total)}</button>${note}
+      <a class="btn line sm" href="${link}">Open a UPI app</a>`
+      : `<a class="btn" href="${link}">${what} with UPI</a>${note}
+      <a class="btn line sm" target="_blank" rel="noopener" href="${wa}">Questions? WhatsApp us</a>`;
   }
   function updateWa() {
     // A lone surrogate (half an emoji, e.g. from a cut-off paste) makes encodeURIComponent throw.
@@ -950,7 +959,7 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
   }
   drawer.addEventListener("input", (e) => {
     const f = e.target.closest("#oform [name]"); if (!f) return;
-    form[f.name] = f.value; save(); f.removeAttribute("aria-invalid");
+    form[f.name] = f.value; save(); f.removeAttribute("aria-invalid"); f.removeAttribute("aria-describedby");
     if (f.name === "delivery") { $("#addrWrap").hidden = $("#pinWrap").hidden = f.value !== "door"; }
     updateWa();
   });
@@ -965,7 +974,8 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
     if (v) {
       const left = view.product;
       view = v.dataset.view === "placed" ? { placed: true } : v.dataset.view === "bag" && view.from ? { bag: view.from, still: true } : {}; renderDrawer(); $("#drawerBody").scrollTop = 0;
-      (left && drawer.querySelector(`.itembtn[data-prod="${left}"]`) || $("#closeDrawer")).focus();
+      if (view.placed) { $("#drawerTitle").setAttribute("tabindex", "-1"); $("#drawerTitle").focus(); }
+      else (left && drawer.querySelector(`.itembtn[data-prod="${left}"]`) || $("#closeDrawer")).focus();
     }
     const pr = e.target.closest("[data-prod]");
     if (pr) { view = { product: pr.dataset.prod, from: view.bag || view.from }; renderDrawer(); $("#drawerBody").scrollTop = 0; drawer.querySelector(".back")?.focus(); announce(P[view.product].name); }
