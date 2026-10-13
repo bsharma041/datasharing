@@ -12,7 +12,14 @@ from `seed.json` (a dump of the live data you build yourself; never commit it, i
 customer details). Serve this folder with `python3 -m http.server 8766` and open http://localhost:8766.
 
 ## Website orders (Orders tab)
-1. A customer sends an order from the website on WhatsApp. The message ends with
+Orders reach the owner in one of two ways, and both carry the same order code:
+- **On the website** ("Place order"): the order goes to the WebsitePublisher order inbox (project 30289,
+  form `tadaboo_order`, lead capture) with name, phone, delivery, address, items, total and
+  `order_code`. The buyer can then pay by UPI (if `upi` is set in `catalog.js`). The Tadaboo agent reads
+  new orders with `leads/get-leads`; the owner can also see them in the WebsitePublisher dashboard.
+- **On WhatsApp** ("Order on WhatsApp instead"): a prefilled message.
+
+1. Take the order text (the WhatsApp message, or the inbox entry's fields) — it ends with
    `Order code (please keep): TB1|<order id>|<lines>`; each line is
    `kind:stockroomId:qty:unitsPerQty:unitPrice` (`b` = gift bag `cat-<id>`, `i` = item; a box of 12
    pencils is `i:it-racing-pencils:1:12:109`).

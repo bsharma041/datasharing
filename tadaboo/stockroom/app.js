@@ -531,7 +531,7 @@ function syncSell() {
 }
 
 // ---------------------------------------------------------------- ORDERS (website)
-// Every order sent from the website's WhatsApp button ends with one machine-readable line:
+// Every website order (placed on the site, or sent with its WhatsApp button) carries one machine-readable line:
 //   Order code (please keep): TB1|TB-261013-AB12|b:cat-kuromi:1:1:259,i:it-labubu-gel-pen:2:1:20
 // Each part is kind:stockroomId:qty:unitsPerQty:unitPrice (b = gift bag, i = single item; a box of
 // 12 pencils is i:<pencil id>:1:12:109). Pasting the message here saves the order; confirming it
@@ -557,7 +557,7 @@ function parseOrder(text) {
   // WhatsApp can wrap the long code line; take everything after "TB1|" up to a blank line, minus spaces.
   const at = t.indexOf('TB1|'), codeText = at < 0 ? '' : t.slice(at).split(/\n\s*\n/)[0].replace(/\s+/g, '');
   const m = /^TB1\|(TB-\d{6}-[A-Z0-9]{4})\|([^\s]+)/.exec(codeText);
-  if (!m) return { error: 'No TadaBoo order code found. Paste the whole WhatsApp message, including the line that starts “Order code”.' };
+  if (!m) return { error: 'No TadaBoo order code found. Paste the whole WhatsApp message, or the order’s details from the website order inbox, including the code that starts “TB1|”.' };
   const lines = [];
   for (const part of m[2].split(',')) {
     const f = part.split(':');
@@ -568,7 +568,7 @@ function parseOrder(text) {
   const line = (label) => (new RegExp(`^${label}:[ \\t]*(.+)$`, 'mi').exec(t)?.[1] || '').trim().slice(0, 300);
   return {
     id: m[1], code: m[0], lines,
-    customer: { name: line('Name'), phone: line('Phone'), delivery: /door/i.test(line('Delivery')) ? 'door' : 'collect', address: line('Address'), note: line('Gift note') },
+    customer: { name: line('Name'), phone: line('Phone'), delivery: /door/i.test(line('Delivery')) ? 'door' : 'collect', address: line('Address'), note: line('(?:Gift )?note') },
     raw: t.slice(0, 4000),
   };
 }
@@ -616,8 +616,8 @@ function viewOrders() {
   <div class="section-head"><div><div class="eyebrow">Website</div><h2>Orders</h2></div>
     <button class="btn ghost sm" data-act="stockFile" ${S.downloads ? '' : 'hidden'}>Website stock file</button></div>
   ${stockStale() ? `<div class="warn" role="status">Website stock is out of date: ${stockStale()} order${stockStale() === 1 ? '' : 's'} changed since the last stock file. ${S.downloads ? 'Tap “Website stock file” and upload it with the website, or a' : 'A'}sk Tadaboo to “refresh the website stock”.</div>` : ''}
-  <div class="card stack"><h3>Add an order from WhatsApp</h3>
-    <label class="f">Paste the customer’s whole WhatsApp message<textarea class="input" rows="4" data-bind="paste" placeholder="Hi TadaBoo! I'd like to order (TB-…)">${esc(d.paste)}</textarea></label>
+  <div class="card stack"><h3>Add a website or WhatsApp order</h3>
+    <label class="f">Paste the WhatsApp message, or the order from the website inbox<textarea class="input" rows="4" data-bind="paste" placeholder="Hi TadaBoo! I'd like to order (TB-…)">${esc(d.paste)}</textarea></label>
     <div class="row"><button class="btn primary grow" data-act="ordRead">Read order</button>${d.paste || p ? '<button class="btn ghost" data-act="ordClear">Clear</button>' : ''}</div>
     ${p?.error ? `<div class="err" role="alert">${esc(p.error)}</div>` : ''}
     ${m ? `<div class="stack">
@@ -636,7 +636,7 @@ function viewOrders() {
   ${list.length ? `<div class="card" style="padding-block:4px"><div class="list">${list.map((o) => `<button class="li" data-act="openOrder" data-id="${esc(o.id)}">
       <div class="grow"><div class="name">${esc(o.customer?.name || 'Customer')} · ${esc(o.id)}</div><div class="meta">${fmtDate(str(o.createdAt).slice(0, 10))} · ${orderCount(o.lines)}</div></div>
       <div class="right"><span class="num">${inr(o.total)}</span>${orderChip(o.status)}</div></button>`).join('')}</div></div>`
-    : `<div class="card empty"><h3>No ${d.filter === 'all' ? '' : esc({ active: 'open', delivered: 'delivered', cancelled: 'cancelled' }[d.filter] || '') + ' '}orders</h3><p>Paste a WhatsApp order above to add it.</p></div>`}
+    : `<div class="card empty"><h3>No ${d.filter === 'all' ? '' : esc({ active: 'open', delivered: 'delivered', cancelled: 'cancelled' }[d.filter] || '') + ' '}orders</h3><p>Paste an order above to add it.</p></div>`}
 </div>`;
 }
 function openOrderSheet(id) {
@@ -1283,7 +1283,7 @@ const A = {
     if (await write(() => S.db.doc('settings/main').set({ ...S.settings, ...body }), 'Settings saved')) { S.setDraft = null; S.setDirty = false; renderAll(); } else el.disabled = false;
   },
   // orders (website)
-  ordRead: () => { const d = S.ord; d.parsed = str(d.paste).trim() ? parseOrder(d.paste) : { error: 'Paste the customer’s WhatsApp message first.' }; renderView(); },
+  ordRead: () => { const d = S.ord; d.parsed = str(d.paste).trim() ? parseOrder(d.paste) : { error: 'Paste the order first.' }; renderView(); },
   ordClear: () => { S.ord = { ...blankOrd(), filter: S.ord.filter }; renderView(); },
   ordFilter: (el) => { S.ord.filter = el.dataset.v; renderView(); },
   openOrder: (el) => openOrderSheet(el.dataset.id),

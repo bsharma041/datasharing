@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>TadaBoo Land</title>
-<meta name="description" content="TadaBoo: curated stationery and ready-to-gift bags, packed by hand. Order on WhatsApp.">
+<meta name="description" content="TadaBoo: curated stationery and ready-to-gift bags, packed by hand. Order online or on WhatsApp.">
 <meta name="theme-color" content="#1E2140">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="TadaBoo">
 <meta property="og:title" content="TadaBoo: little things that make you go tada">
-<meta property="og:description" content="Curated stationery and ready-to-gift bags, packed by hand. Pick a gift bag or build your own, and order on WhatsApp.">
+<meta property="og:description" content="Curated stationery and ready-to-gift bags, packed by hand. Pick a gift bag or build your own, and order online or on WhatsApp.">
 <meta property="og:locale" content="en_IN">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%231E2140'/%3E%3Cpath d='M32 10l5.5 16.5L54 32l-16.5 5.5L32 54l-5.5-16.5L10 32l16.5-5.5z' fill='%23E8B23A'/%3E%3C/svg%3E">
@@ -21,9 +21,10 @@
 {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
 {"@type":"Question","name":"Is there a minimum for custom bags?","acceptedAnswer":{"@type":"Answer","text":"Yes. Items you pick for a custom bag must total more than ₹299. You pay only for the items you choose. Ready-made gift bags have no minimum."}},
 {"@type":"Question","name":"How long does dispatch take?","acceptedAnswer":{"@type":"Answer","text":"We curate bags in small batches, so please allow 5–7 working days for dispatch."}},
-{"@type":"Question","name":"Do you deliver?","acceptedAnswer":{"@type":"Answer","text":"Yes. Door-to-door delivery has an additional charge, which we confirm with you on WhatsApp before you pay."}},
+{"@type":"Question","name":"Do you deliver?","acceptedAnswer":{"@type":"Answer","text":"Yes. Door-to-door delivery has an additional charge, which we confirm with you by phone or WhatsApp before you pay it."}},
 {"@type":"Question","name":"Will I get exactly the colour in the photo?","acceptedAnswer":{"@type":"Answer","text":"Colours, characters or designs may vary with availability. The product type and value always stay the same."}},
 {"@type":"Question","name":"Can I buy single pencils?","acceptedAnswer":{"@type":"Answer","text":"Yes. Our Unicorn and Racing Car 2B pencils come in a box of 12 for ₹109, or as single pencils at ₹15 each."}},
+{"@type":"Question","name":"How do I pay?","acceptedAnswer":{"@type":"Answer","text":"By UPI. Place your order on this site and pay from your UPI app, or send your order on WhatsApp and we share payment details when we confirm it."}},
 {"@type":"Question","name":"Can I order many return gifts for a party?","acceptedAnswer":{"@type":"Answer","text":"Yes. Add the return-gift bag you like, set the quantity, and send it to us. We'll confirm stock for larger orders."}}]}
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -263,6 +264,16 @@ footer .wm{font-size:1.25rem}
 .form label.full{grid-column:1/-1}
 .form input,.form textarea,.form select{width:100%;border:1px solid var(--line-strong);background:var(--bg);border-radius:12px;padding:10px 12px;color:var(--ink);min-height:46px}
 .form input:focus,.form textarea:focus,.form select:focus{outline:none;border-color:var(--price)}
+.df .err{color:var(--accent-ink);font-size:.88rem;text-align:center;font-weight:600}
+.form [aria-invalid="true"]{border-color:var(--accent-ink);box-shadow:0 0 0 1px var(--accent-ink)}
+.df .small .link,.placed .link{min-height:auto;font-size:inherit;background:none;border:0;padding:0;color:inherit;cursor:pointer}
+.placed{display:flex;flex-direction:column;gap:14px;align-items:center;text-align:center}
+.placed img{width:96px}
+.placed h3{font-size:1.4rem}
+.placed .oid{font:600 1rem var(--f-display);letter-spacing:.04em;padding:6px 14px;border:1px dashed var(--line-strong);border-radius:999px}
+.placed .totals,.placed ul{align-self:stretch;text-align:left}
+.placed ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:4px;font-size:.9rem;color:var(--muted)}
+.lastorder{font-size:.9rem}
 .emptybag{text-align:center;padding:40px 10px;color:var(--muted);display:flex;flex-direction:column;gap:14px;align-items:center}
 .emptybag img{width:110px}
 .emptybag h3{color:var(--ink);font-size:1.3rem}
@@ -371,7 +382,7 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
           <a class="btn" href="#bags">Shop gift bags</a>
           <a class="link" href="#build">Build your own</a>
         </div>
-        <p class="how">Order on WhatsApp · Dispatch in 5–7 working days</p>
+        <p class="how">Order here or on WhatsApp · Dispatch in 5–7 working days</p>
       </div>
       <div class="hero-media">
         <img src="img/7pc-aesthetic.webp" alt="7-piece aesthetic stationery set" width="416" height="520" fetchpriority="high">
@@ -436,7 +447,7 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
       </div>
       <ol class="steps">
         <li><span class="n">01</span><span>Add gift bags or favourites to your bag</span></li>
-        <li><span class="n">02</span><span>Send your order to us on WhatsApp</span></li>
+        <li><span class="n">02</span><span>Place your order here and pay by UPI, or send it on WhatsApp</span></li>
         <li><span class="n">03</span><span>We confirm, pack and dispatch</span></li>
       </ol>
     </div>
@@ -448,9 +459,10 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
       <div class="faq">
         <details><summary>Is there a minimum for custom bags?</summary><p>Yes. Items you pick for a custom bag must total more than ₹299. You pay only for the items you choose. Ready-made gift bags have no minimum.</p></details>
         <details><summary>How long does dispatch take?</summary><p>We curate bags in small batches, so please allow 5–7 working days for dispatch.</p></details>
-        <details><summary>Do you deliver?</summary><p>Yes. Door-to-door delivery has an additional charge, which we confirm with you on WhatsApp before you pay.</p></details>
+        <details><summary>Do you deliver?</summary><p>Yes. Door-to-door delivery has an additional charge, which we confirm with you by phone or WhatsApp before you pay it.</p></details>
         <details><summary>Will I get exactly the colour in the photo?</summary><p>Colours, characters or designs may vary with availability. The product type and value always stay the same.</p></details>
-        <details><summary>Can I buy single pencils?</summary><p>Yes. Our Unicorn and Racing Car 2B pencils come in a box of 12 for ₹109, or as single pencils at ₹15 each. Mention it in your WhatsApp message.</p></details>
+        <details><summary>Can I buy single pencils?</summary><p>Yes. Our Unicorn and Racing Car 2B pencils come in a box of 12 for ₹109, or as single pencils at ₹15 each. Mention it in your order note.</p></details>
+        <details><summary>How do I pay?</summary><p>By UPI. Place your order on this site and pay from your UPI app, or send your order on WhatsApp and we share payment details when we confirm it.</p></details>
         <details><summary>Can I order many return gifts for a party?</summary><p>Yes. Add the return-gift bag you like, set the quantity, and send it to us. We'll confirm stock for larger orders.</p></details>
       </div>
     </div>
@@ -790,7 +802,7 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
     $("#drawerLead").innerHTML = "";
     const body = $("#drawerBody"), foot = $("#drawerFoot");
     if (!t.count) {
-      body.innerHTML = `<div class="emptybag"><img src="img/tadaboo-bag.webp" alt="" width="359" height="400"><h3>Your bag is empty</h3><p>Pick a gift bag or add your favourites.</p><a class="btn sm" href="#bags" data-close>Browse gift bags</a></div>`;
+      body.innerHTML = `<div class="emptybag"><img src="img/tadaboo-bag.webp" alt="" width="359" height="400"><h3>Your bag is empty</h3><p>Pick a gift bag or add your favourites.</p><a class="btn sm" href="#bags" data-close>Browse gift bags</a>${lastPlaced() ? `<button class="link lastorder" data-view="placed">Your last order · ${esc(lastPlaced().id)}</button>` : ""}</div>`;
       foot.innerHTML = ""; return;
     }
     const line = (k, n, src, name, price) => `<div class="line"><img src="${src}" alt=""><div class="li"><span class="ln">${esc(name)}</span><span class="lp">${inr(price)} each</span></div>${stepper(k, n, "flat")}</div>`;
@@ -803,7 +815,7 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
         <div class="meter${m.done ? " done" : ""}"><span class="bar"><i style="width:${m.pct}%"></i></span><span>${m.msg}</span></div>` : ""}
       <div class="totals">
         <div class="r t"><span>Total</span><span>${inr(t.total)}</span></div>
-        <span class="note">Delivery is charged extra and confirmed on WhatsApp.</span>
+        <span class="note">Delivery is charged extra. We confirm it with you first.</span>
       </div>
       <form class="form" id="oform" autocomplete="on">
         <label>Your name<input id="f-name" name="name" value="${esc(form.name || "")}" autocomplete="name"></label>
@@ -811,13 +823,16 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
         <label class="full">Delivery<select id="f-delivery" name="delivery"><option value="collect"${form.delivery !== "door" ? " selected" : ""}>I'll collect / let's discuss</option><option value="door"${form.delivery === "door" ? " selected" : ""}>Door-to-door delivery (extra charge)</option></select></label>
         <label class="full" ${form.delivery === "door" ? "" : "hidden"} id="addrWrap">Address<textarea id="f-address" name="address" rows="2" autocomplete="street-address">${esc(form.address || "")}</textarea></label>
         <label ${form.delivery === "door" ? "" : "hidden"} id="pinWrap">Pincode<input id="f-pin" name="pin" inputmode="numeric" maxlength="6" autocomplete="postal-code" value="${esc(form.pin || "")}"></label>
-        <label class="full">Gift note (optional)<input id="f-note" name="note" value="${esc(form.note || "")}" placeholder="Happy birthday, Aanya!"></label>
+        <label class="full">Gift note or request (optional)<input id="f-note" name="note" value="${esc(form.note || "")}" placeholder="Happy birthday, Aanya!"></label>
       </form>`;
-    foot.innerHTML = `
-      ${t.customOk ? `<a class="btn" id="sendWa" target="_blank" rel="noopener" href="#">Send order on WhatsApp</a>` : `<button class="btn" disabled>Send order on WhatsApp</button>`}
-      <button class="btn line sm" id="copyOrder"${t.customOk ? "" : " disabled"}>Copy order text</button>
-      <span class="small">Opens WhatsApp to <span class="num">${T.phone}</span>. Dispatch in ${T.dispatchDays}.</span>`;
+    foot.innerHTML = t.customOk ? `
+      <p class="err" id="ferr" role="alert" hidden></p>
+      <button class="btn" id="placeOrder" type="button">Place order · ${inr(t.total)}</button>
+      <a class="btn line" id="sendWa" target="_blank" rel="noopener" href="#">Order on WhatsApp instead</a>
+      <span class="small">${T.upi ? "Pay by UPI once you place your order." : "We confirm your order and share payment details."} Dispatch in ${T.dispatchDays}. <button class="link" id="copyOrder" type="button">Copy order text</button></span>`
+      : `<button class="btn" disabled>Place order</button><span class="small">${m.msg}</span>`;
     updateWa();
+    if (t.customOk) sapi().catch(() => {});
   }
   const back = (label) => `<button class="back" data-view="bag" aria-label="Back to ${esc(label)}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Back</button>`;
   function renderProduct(p) {
@@ -844,7 +859,89 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
     drawer.classList.toggle("wide", !!(p || b));
     if (p) soft ? renderProductFoot(p) : renderProduct(p);
     else if (b) soft ? renderDetailFoot(b) : renderDetail(b);
+    else if (view.placed && lastPlaced()) renderPlaced(lastPlaced());
     else renderCart();
+  }
+  // ---------- Website checkout ----------
+  // Orders go to the WebsitePublisher order inbox (catalog.js `orders`); WhatsApp stays as the other way.
+  // The script loads only when someone is about to order; if it can't load or the send fails,
+  // the bag is kept and the buyer is pointed to WhatsApp.
+  let sapiP = null;
+  const sapi = () => sapiP || (sapiP = new Promise((res, rej) => {
+    const ready = () => (window.WP && WP.sapi ? res(WP.sapi(T.orders.project)) : rej(new Error("no client")));
+    if (window.WP && WP.sapi) return ready();
+    const sc = document.createElement("script");
+    sc.src = "https://cdn.websitepublisher.ai/js/sapi-client.js"; sc.async = true;
+    sc.onload = ready; sc.onerror = () => rej(new Error("load failed"));
+    document.head.append(sc);
+  }).catch((err) => { sapiP = null; throw err; }));
+  const PLACED_KEY = KEY + "-placed";
+  const lastPlaced = () => { const o = load(PLACED_KEY); return typeof o.id === "string" && Number.isFinite(o.total) ? o : null; };
+  const mobile = (v) => String(v || "").replace(/\D/g, "").replace(/^(?:91|0)(?=\d{10}$)/, "");
+  let placing = false;
+  async function placeOrder(btn) {
+    if (placing) return;
+    const err = $("#ferr"), door = form.delivery === "door", need = [];
+    drawer.querySelectorAll("#oform [aria-invalid]").forEach((el) => el.removeAttribute("aria-invalid"));
+    if (!String(form.name || "").trim()) need.push(["f-name", "your name"]);
+    if (!/^[6-9]\d{9}$/.test(mobile(form.phone))) need.push(["f-phone", "a 10-digit mobile number"]);
+    if (door && !String(form.address || "").trim()) need.push(["f-address", "your address"]);
+    if (door && !/^\d{6}$/.test(String(form.pin || "").trim())) need.push(["f-pin", "a 6-digit pincode"]);
+    if (need.length) {
+      need.forEach(([id]) => $("#" + id).setAttribute("aria-invalid", "true"));
+      err.textContent = "Please add " + need.map((x) => x[1]).join(", ").replace(/, ([^,]*)$/, " and $1") + ".";
+      err.hidden = false; $("#" + need[0][0]).focus(); return;
+    }
+    const t = totals(), id = orderId();
+    const items = Object.entries(cart).map(([k, n]) => `${nameOf(k)} × ${n} = ${inr((k[0] === "b" ? B : P)[k.slice(2)].price * n)}`);
+    const fields = {
+      order_id: id, name: String(form.name).trim(), phone: mobile(form.phone),
+      delivery: door ? "Door-to-door delivery" : "Collect / discuss",
+      address: door ? String(form.address).trim() : "-", pincode: door ? String(form.pin).trim() : "-",
+      note: String(form.note || "").trim(), items: items.join("\n"), total: String(t.total),
+      order_code: orderCode(), website: "", // honeypot: must stay empty
+    };
+    placing = true; btn.disabled = true; btn.textContent = "Placing your order…"; err.hidden = true;
+    let ok = false;
+    try {
+      const client = await sapi();
+      const r = await Promise.race([client.submitForm(T.orders.form, fields), new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 20000))]);
+      ok = !!(r && r.ok);
+    } catch {}
+    placing = false;
+    if (!ok) {
+      btn.disabled = false; btn.textContent = `Place order · ${inr(t.total)}`;
+      err.textContent = "We couldn't place your order online just now. Your bag is saved: please send it on WhatsApp instead.";
+      err.hidden = false; $("#sendWa").focus(); return;
+    }
+    try { localStorage.setItem(PLACED_KEY, JSON.stringify({ id, total: t.total, items, name: fields.name, phone: fields.phone, door, at: Date.now() })); } catch {}
+    for (const k of Object.keys(cart)) delete cart[k];
+    sent = true; newOrderIfSent(); save();
+    view = { placed: true }; renderAll(); renderDrawer(); $("#drawerBody").scrollTop = 0;
+    $("#drawerTitle").setAttribute("tabindex", "-1"); $("#drawerTitle").focus();
+    announce(`Order ${id} placed`);
+  }
+  function renderPlaced(o) {
+    $("#drawerTitle").textContent = "Order placed";
+    $("#drawerLead").innerHTML = "";
+    const first = String(o.name || "").split(/\s+/)[0];
+    $("#drawerBody").innerHTML = `<div class="placed">
+      <img src="img/tadaboo-bag.webp" alt="" width="359" height="400">
+      <h3>Thank you${first ? ", " + esc(first) : ""}!</h3>
+      <span class="oid num">${esc(o.id)}</span>
+      <p>We have your order. We'll call or WhatsApp you on <span class="num">${esc(o.phone || "")}</span> to confirm it${o.door ? " and the delivery charge" : ""}.</p>
+      <ul>${(o.items || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
+      <div class="totals"><div class="r t"><span>Order total</span><span>${inr(o.total)}</span></div>
+        <span class="note">${o.door ? "Delivery is charged separately, once we confirm it." : "Dispatch in " + esc(T.dispatchDays) + "."}</span></div>
+    </div>`;
+    const upi = /^[\w.\-]{2,}@[a-zA-Z]{2,}$/.test(T.upi || "") ? T.upi : "";
+    const q = (o2) => Object.entries(o2).map(([k, v]) => k + "=" + encodeURIComponent(v).replace(/%40/g, "@")).join("&");
+    $("#drawerFoot").innerHTML = upi ? `
+      <a class="btn" href="upi://pay?${q({ pa: upi, pn: T.upiName || "TadaBoo", am: o.total.toFixed(2), cu: "INR", tn: "TadaBoo " + o.id })}">Pay ${inr(o.total)} with UPI</a>
+      <span class="small">Opens GPay, PhonePe, Paytm or your bank app. On a computer, pay <span class="num">${inr(o.total)}</span> to <b>${esc(upi)}</b> with note ${esc(o.id)}. <button class="link" data-copyupi type="button">Copy UPI ID</button></span>
+      <a class="btn line sm" target="_blank" rel="noopener" href="https://wa.me/${T.whatsapp}?text=${encodeURIComponent(`Hi TadaBoo! I placed order ${o.id} on the website.`)}">Questions? WhatsApp us</a>`
+      : `<span class="small">We'll share payment details when we confirm your order.</span>
+      <a class="btn line" target="_blank" rel="noopener" href="https://wa.me/${T.whatsapp}?text=${encodeURIComponent(`Hi TadaBoo! I placed order ${o.id} on the website.`)}">Questions? WhatsApp us</a>`;
   }
   function updateWa() {
     // A lone surrogate (half an emoji, e.g. from a cut-off paste) makes encodeURIComponent throw.
@@ -853,7 +950,7 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
   }
   drawer.addEventListener("input", (e) => {
     const f = e.target.closest("#oform [name]"); if (!f) return;
-    form[f.name] = f.value; save();
+    form[f.name] = f.value; save(); f.removeAttribute("aria-invalid");
     if (f.name === "delivery") { $("#addrWrap").hidden = $("#pinWrap").hidden = f.value !== "door"; }
     updateWa();
   });
@@ -862,10 +959,12 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
     if (e.target.closest("[data-close]")) closeDrawer();
     if (e.target.closest("#copyOrder")) { sent = true; copy(orderText(), "Order copied. Paste it in WhatsApp to " + T.phone); }
     if (e.target.closest("#sendWa")) sent = true;
+    if (e.target.closest("#placeOrder")) placeOrder(e.target.closest("#placeOrder"));
+    if (e.target.closest("[data-copyupi]")) copy(T.upi, "UPI ID copied");
     const v = e.target.closest("[data-view]");
     if (v) {
       const left = view.product;
-      view = v.dataset.view === "bag" && view.from ? { bag: view.from, still: true } : {}; renderDrawer(); $("#drawerBody").scrollTop = 0;
+      view = v.dataset.view === "placed" ? { placed: true } : v.dataset.view === "bag" && view.from ? { bag: view.from, still: true } : {}; renderDrawer(); $("#drawerBody").scrollTop = 0;
       (left && drawer.querySelector(`.itembtn[data-prod="${left}"]`) || $("#closeDrawer")).focus();
     }
     const pr = e.target.closest("[data-prod]");

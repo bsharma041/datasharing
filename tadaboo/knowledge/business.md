@@ -9,12 +9,12 @@ Numbers below are a snapshot. For anything current, re-read the Stockroom (see "
 - **What we sell**: seriously cute stationery for children and young collectors (kawaii pens, novelty erasers and sharpeners, diaries, sticky notes), craft kits, squishies, and **curated gift bags**.
 - **Customers**: parents buying for kids (school, birthdays, party return gifts), gift-givers, stationery collectors.
 - **Market**: India. Prices in ₹. Launch: October 2026; no sales recorded yet in the Stockroom.
-- **How people order**: by call or WhatsApp on **97306 24700**. The website builds a WhatsApp order message; there is no online payment yet.
+- **How people order**: on the website ("Place order": goes to the WebsitePublisher order inbox, then the buyer pays by UPI) or by call/WhatsApp on **97306 24700** (the website can also prefill a WhatsApp order). UPI payment is buyer-initiated; there is no payment gateway, so match each UPI credit to its order ID before packing.
 - **Promise**: "You pick. We pack. TADA!" Every order goes in the original **white TadaBoo bag** with a TadaBoo sticker, the **thank-you card** and the **"Read. Dream. Imagine. Repeat!" bookmark**.
 
 ### Customer-facing rules (from the catalogue; do not change without the owner)
 - **Custom bags**: selected items must total **more than ₹299**. Customers pay only for the items they choose.
-- **Delivery**: additional charges apply for door-to-door delivery (amount confirmed per order on WhatsApp).
+- **Delivery**: additional charges apply for door-to-door delivery (amount confirmed per order by phone or WhatsApp, paid separately).
 - **Dispatch**: bags are curated in small batches; allow **5–7 working days**.
 - **Variation**: colours, characters or designs may vary with availability; product type and value stay the same.
 - **Pencils**: Unicorn and Racing Car 2B pencils sell as a box of 12 for ₹109, or ₹15 per single pencil.
@@ -92,8 +92,8 @@ Payment methods seen: ICICI debit card, Amazon credit card, account transfer.
 | System | Where | What it does |
 |---|---|---|
 | **TadaBoo Stockroom** | https://claude.ai/artifact/LaZN37L8DS7RDsbxhM9inG | Inventory, purchases (landed cost), sales, gift-bag recipes, packaging kits, profit. Shared database collections: `items`, `bags`, `purchases`, `sales`, `adjustments`, `settings/main`. Stock and cost are derived from the ledger (see its `calc.js`). |
-| **Website orders** | Stockroom → Orders tab | Paste a WhatsApp order (it carries an order code); confirming records sale `web-<order id>`, so stock and profit update. Statuses New → Confirmed → Packed → Dispatched → Delivered, or Cancelled (stock put back). Exports `stock.json` for the website. See `tadaboo/stockroom/README.md`. |
-| **Website** | `tadaboo/website/` | Customer storefront: gift collections, gift finder, shop, custom-bag builder with ₹299 meter, WhatsApp checkout. Static files; deploy anywhere. |
+| **Website orders** | WebsitePublisher order inbox (project 30289, form `tadaboo_order`) + Stockroom → Orders tab | Website orders land in the inbox; WhatsApp orders arrive as messages. Both carry an order code: paste it in the Orders tab; confirming records sale `web-<order id>`, so stock and profit update. Statuses New → Confirmed → Packed → Dispatched → Delivered, or Cancelled (stock put back). Exports `stock.json` for the website. See `tadaboo/stockroom/README.md`. |
+| **Website** | `tadaboo/website/` | Customer storefront: gift collections, gift finder, shop, custom-bag builder with ₹299 meter, checkout on the site (order inbox + UPI) or on WhatsApp. Static files; deploy anywhere. |
 | **Catalogue PDF** | owner's files | Customer-facing source of truth for products, prices, collections, policies. |
 | **Website design draft** | claude.ai/design project "TadaBoo Store" | Needs `/design-login` or "Send to Claude Code" to be read by an agent. |
 

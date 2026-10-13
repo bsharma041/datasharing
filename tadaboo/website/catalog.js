@@ -7,6 +7,13 @@ window.TADABOO = {
   whatsapp: "919730624700",
   customMin: 299, // custom bags: chosen items must total more than this
   dispatchDays: "5–7 working days",
+  // Website orders go to the WebsitePublisher order inbox (project 30289, form "tadaboo_order").
+  // The Tadaboo agent reads them with leads/get-leads; each carries the Stockroom order code.
+  orders: { project: 30289, form: "tadaboo_order" },
+  // UPI ID for the "Pay with UPI" button after a website order, e.g. "tadaboo@okaxis".
+  // Leave empty until the owner adds it: the site then says payment details follow on confirmation.
+  upi: "",
+  upiName: "TadaBoo",
 
   categories: [
     { id: "pens", name: "Pens & Highlighters", line: "Write it, doodle it, make it sparkle." },
