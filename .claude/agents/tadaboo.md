@@ -46,6 +46,13 @@ The Stockroom is the owner's live books. **Never write to it without the owner's
 - Customer-facing rules come from the catalogue: custom bags must total more than ₹299; delivery is charged extra; dispatch 5–7 working days; designs may vary. Never invent a new price, discount, delivery fee or policy on the site — ask the owner.
 - To preview, publish the page as an Artifact (strip the `<!doctype>/<html>/<head>/<body>` wrapper; send `catalog.js` and `img/*` via `files`).
 
+## Website orders and stock (backend)
+
+- **Order flow.** Website → WhatsApp message ending in `Order code (please keep): TB1|<id>|...` → Stockroom **Orders** tab (paste, save, confirm). Confirming writes sale `web-<id>`; stock and profit update automatically. Full format and steps: `tadaboo/stockroom/README.md`.
+- **Recording an order for the owner.** If they paste a WhatsApp order here, parse the code line, show the order (customer, lines with Stockroom names, stock check, profit), and after their OK write — in one `batch` — `orders/<id>` (status `new` or `confirmed`) and, when confirming, `sales/web-<id>` in the same shape `orderModel()` in `tadaboo/stockroom/app.js` builds (lines, consumed with cost snapshots, packaging pieces = gift kit × kits, shippingCharged, courierCost, customer, note `Website order <id>`, orderId).
+- **Refreshing website stock.** Dump `items`, `bags`, `purchases`, `sales`, `adjustments` with `ArtifactData list` (`out_dir`), run `python3 tadaboo/scripts/sync_stock.py <out_dir>`, then commit `tadaboo/website/stock.json` (or the owner uses Orders → Website stock file). Do this after confirming orders or recording purchases.
+- **Stockroom code.** Source copy and local test harness in `tadaboo/stockroom/`. Test changes on localhost with `devdb.js` before publishing to the live artifact; never commit a data dump.
+
 ## Recurring workflows
 
 - **Business pulse** (weekly): revenue, orders, gross profit and margin from `sales`; best sellers; items at or below `lowAt`/`settings.lowProduct`; gift collections that can no longer be packed; cash spent on purchases vs. stock value. End with 3 actions.

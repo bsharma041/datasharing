@@ -12,6 +12,9 @@ tadaboo/
   website/index.html           Storefront: gift collections, gift finder, shop, custom-bag builder, WhatsApp checkout
   website/catalog.js           Products, prices and gift collections (from the catalogue)
   website/img/                 Product photos, gift bag, thank-you card, bookmark
+  website/stock.json           Stock the website may sell (from the Stockroom; refresh after orders/purchases)
+  stockroom/                   Source copy of the Stockroom artifact + local test harness; README explains the order flow
+  scripts/sync_stock.py        Rebuild website/stock.json from a Stockroom database dump
 ```
 
 ## Using the agent

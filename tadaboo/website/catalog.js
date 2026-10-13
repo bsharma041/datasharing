@@ -31,8 +31,8 @@ window.TADABOO = {
     { id: "popsicle-highlighter", sid: "it-popsicle-highlighter", cat: "pens", name: "Popsicle Highlighter", price: 30, desc: "Popsicle-shaped highlighters.", tags: ["sweet", "return", "school"] },
 
     // Pencils, Notebooks & Notes
-    { id: "unicorn-pencils", sid: "it-unicorn-pencils", cat: "paper", name: "Unicorn Print 2B Pencil (Box of 12)", price: 109, desc: "Box of 12 for ₹109, or single pencils at ₹15.", tags: ["school", "girls", "unicorn"] },
-    { id: "racing-pencils", sid: "it-racing-pencils", cat: "paper", name: "Racing Car Themed 2B Pencil (Box of 12)", price: 109, desc: "Box of 12 for ₹109, or single pencils at ₹15.", tags: ["school", "boys", "vroom"] },
+    { id: "unicorn-pencils", units: 12, sid: "it-unicorn-pencils", cat: "paper", name: "Unicorn Print 2B Pencil (Box of 12)", price: 109, desc: "Box of 12 for ₹109, or single pencils at ₹15.", tags: ["school", "girls", "unicorn"] },
+    { id: "racing-pencils", units: 12, sid: "it-racing-pencils", cat: "paper", name: "Racing Car Themed 2B Pencil (Box of 12)", price: 109, desc: "Box of 12 for ₹109, or single pencils at ₹15.", tags: ["school", "boys", "vroom"] },
     { id: "a7-notebook", sid: "it-a7-notebook", cat: "paper", name: "A7 Kawaii Mini Spiral Notebook", price: 80, desc: "Pocket notebook, ruled pages, cute animal covers.", tags: ["kawaii", "return", "school"] },
     { id: "snoopy-diary", sid: "it-snoopy-diary", cat: "paper", name: "Snoopy Diary", price: 149, desc: "Snoopy-themed diary, assorted designs.", tags: ["any", "kawaii"] },
     { id: "clipboard-diary", sid: "it-clipboard-diary", cat: "paper", name: "Kawaii Mini Clipboard Notepad Diary", price: 99, desc: "Mini clipboard-style notepad.", tags: ["kawaii", "school"] },

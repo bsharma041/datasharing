@@ -92,6 +92,7 @@ Payment methods seen: ICICI debit card, Amazon credit card, account transfer.
 | System | Where | What it does |
 |---|---|---|
 | **TadaBoo Stockroom** | https://claude.ai/artifact/LaZN37L8DS7RDsbxhM9inG | Inventory, purchases (landed cost), sales, gift-bag recipes, packaging kits, profit. Shared database collections: `items`, `bags`, `purchases`, `sales`, `adjustments`, `settings/main`. Stock and cost are derived from the ledger (see its `calc.js`). |
+| **Website orders** | Stockroom → Orders tab | Paste a WhatsApp order (it carries an order code); confirming records sale `web-<order id>`, so stock and profit update. Statuses New → Confirmed → Packed → Dispatched → Delivered, or Cancelled (stock put back). Exports `stock.json` for the website. See `tadaboo/stockroom/README.md`. |
 | **Website** | `tadaboo/website/` | Customer storefront: gift collections, gift finder, shop, custom-bag builder with ₹299 meter, WhatsApp checkout. Static files; deploy anywhere. |
 | **Catalogue PDF** | owner's files | Customer-facing source of truth for products, prices, collections, policies. |
 | **Website design draft** | claude.ai/design project "TadaBoo Store" | Needs `/design-login` or "Send to Claude Code" to be read by an agent. |

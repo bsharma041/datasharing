@@ -159,6 +159,7 @@ section{padding-block:clamp(64px,8vw,96px)}
 .bagcard .row{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
 .bagcard .nm{font-weight:600;font-size:1.05rem;line-height:1.3}
 .bagcard .ct{font-size:.88rem;color:var(--muted);margin-top:-6px}
+.soldout{font-size:.8rem;font-weight:600;color:var(--muted);background:var(--bg);padding:6px 12px;border-radius:999px}
 .inbag{position:absolute;left:12px;top:12px;background:var(--bg);color:var(--ink);font-size:.78rem;font-weight:600;padding:5px 10px;border-radius:999px}
 
 /* Build band */
@@ -504,7 +505,42 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
   const form = load(KEY + "-form");
   const save = () => { try { localStorage.setItem(KEY, JSON.stringify(cart)); localStorage.setItem(KEY + "-form", JSON.stringify(form)); } catch {} };
   const qty = (k) => cart[k] || 0;
-  const setQty = (k, n) => { if (n > 0) cart[k] = n; else delete cart[k]; save(); keep(renderAll); };
+  // Stock from the Stockroom (stock.json, exported from its Orders tab). Until it loads, or if it
+  // is missing, nothing is capped; the Stockroom checks stock again when the order is confirmed.
+  let STOCK = null;
+  const avail = (k) => {
+    if (!STOCK) return Infinity;
+    const id = k.slice(2);
+    if (k[0] === "b") { const c = STOCK.bags?.["cat-" + id]; return Number.isFinite(c) ? c : Infinity; }
+    const p = P[id], u = STOCK.items?.[p.sid]; return Number.isFinite(u) ? Math.floor(u / (p.units || 1)) : Infinity;
+  };
+  const setQty = (k, n) => {
+    const a = avail(k);
+    if (n > a) { n = a; toast(a > 0 ? `Only ${a} available right now` : "Sold out right now"); }
+    if (n > 0) cart[k] = n; else delete cart[k];
+    newOrderIfSent(); save(); keep(renderAll);
+  };
+  // A bag saved on an earlier visit may now be more than is in stock.
+  const clampCart = () => { for (const k of Object.keys(cart)) { const a = avail(k); if (cart[k] > a) { if (a > 0) cart[k] = a; else delete cart[k]; } } };
+  // Every order gets an ID; once it has been sent, the next change to the bag starts a new one.
+  const ORDER_KEY = KEY + "-order";
+  let curId = null, sent = false;
+  const orderId = () => {
+    if (!curId) { try { curId = localStorage.getItem(ORDER_KEY); } catch {} }
+    if (!/^TB-\d{6}-[A-Z0-9]{4}$/.test(curId || "")) {
+      const d = new Date(), p2 = (x) => String(x).padStart(2, "0");
+      const r = Array.from(crypto.getRandomValues(new Uint8Array(4)), (b) => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[b % 32]).join("");
+      curId = `TB-${String(d.getFullYear()).slice(2)}${p2(d.getMonth() + 1)}${p2(d.getDate())}-${r}`;
+      try { localStorage.setItem(ORDER_KEY, curId); } catch {}
+    }
+    return curId;
+  };
+  function newOrderIfSent() { if (!sent) return; sent = false; curId = null; try { localStorage.removeItem(ORDER_KEY); } catch {} }
+  // Machine-readable line the Stockroom's Orders tab reads: kind:stockroomId:qty:unitsPerQty:unitPrice.
+  const orderCode = () => "TB1|" + orderId() + "|" + Object.entries(cart).map(([k, n]) => {
+    const id = k.slice(2);
+    return k[0] === "b" ? `b:cat-${id}:${n}:1:${B[id].price}` : `i:${P[id].sid}:${n}:${P[id].units || 1}:${P[id].price}`;
+  }).join(",");
   const nameOf = (k) => (k[0] === "p" ? P : B)[k.slice(2)].name;
 
   // Re-rendering replaces buttons, so put keyboard focus back on the matching control
@@ -552,7 +588,7 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
     });
     setTimeout(() => { f.remove(); bump(); }, 680);
   }
-  const stepper = (k, n, cls = "") => `<div class="stepper ${cls}"><button data-dec="${k}" aria-label="One less ${esc(nameOf(k))}">−</button><b class="num">${n}</b><button data-inc="${k}" aria-label="One more ${esc(nameOf(k))}">+</button></div>`;
+  const stepper = (k, n, cls = "") => `<div class="stepper ${cls}"><button data-dec="${k}" aria-label="One less ${esc(nameOf(k))}">−</button><b class="num">${n}</b><button data-inc="${k}" aria-label="One more ${esc(nameOf(k))}"${n >= avail(k) ? " disabled" : ""}>+</button></div>`;
   const plusIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>`;
 
   // ---------- Categories ----------
@@ -572,10 +608,11 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
   let bagF = "all";
   const bagMatch = (b) => bagF === "all" || b.occasion === bagF || b.for === bagF || (bagF === "school" && b.occasion === "create");
   const chips = (b) => b.items.filter((id) => id !== (b.cover || b.items[0])).map((id) => `<img src="${img(id)}" alt="" loading="lazy" width="416" height="520">`).join("");
+  const stockTag = (k) => { const a = avail(k); return a <= 0 ? `<span class="inbag">Sold out</span>` : a <= 3 ? `<span class="inbag">Only ${a} left</span>` : ""; };
   function bagCard(b) {
     const n = qty("b:" + b.id);
     return `<button class="bagcard" data-openbag="${b.id}" aria-haspopup="dialog">
-      <span class="ph"><span class="cv"><img src="${cover(b)}" alt="" loading="lazy" width="416" height="520"></span><span class="chips" aria-hidden="true">${chips(b)}</span>${n ? `<span class="inbag">In bag · ${n}</span>` : ""}</span>
+      <span class="ph"><span class="cv"><img src="${cover(b)}" alt="" loading="lazy" width="416" height="520"></span><span class="chips" aria-hidden="true">${chips(b)}</span>${n ? `<span class="inbag">In bag · ${n}</span>` : stockTag("b:" + b.id)}</span>
       <span class="row"><span class="nm">${esc(b.name)}</span><span class="price">${inr(b.price)}</span></span>
       <span class="ct">${b.items.length} items</span>
     </button>`;
@@ -600,7 +637,7 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
     const n = qty("p:" + p.id);
     return `<article class="card">
       <div class="ph"><button class="phbtn" data-prod="${p.id}" aria-haspopup="dialog" aria-label="View ${esc(p.name)}"><img src="${img(p.id)}" alt="" loading="lazy" width="416" height="520"></button>
-        <div class="act">${n ? stepper("p:" + p.id, n) : `<button class="plus" data-add="${p.id}" aria-label="Add ${esc(p.name)} to bag">${plusIcon}</button>`}</div></div>
+        ${stockTag("p:" + p.id)}<div class="act">${n ? stepper("p:" + p.id, n) : avail("p:" + p.id) <= 0 ? `<span class="soldout">Sold out</span>` : `<button class="plus" data-add="${p.id}" aria-label="Add ${esc(p.name)} to bag">${plusIcon}</button>`}</div></div>
       <span class="nm">${esc(p.name)}</span><span class="price">${inr(p.price)}</span>
     </article>`;
   }
@@ -711,13 +748,13 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
   function renderDetailFoot(b) {
     const k = "b:" + b.id;
     $("#drawerFoot").innerHTML = `<div class="addrow">
-      <div class="stepper flat"><button data-dq="-1" aria-label="One less ${esc(b.name)}">−</button><b class="num" id="dq">${detailQty}</b><button data-dq="1" aria-label="One more ${esc(b.name)}">+</button></div>
-      <button class="btn" data-addbag="${b.id}">Add to bag · ${inr(b.price * detailQty)}</button></div>
+      <div class="stepper flat"><button data-dq="-1" aria-label="One less ${esc(b.name)}">−</button><b class="num" id="dq">${detailQty}</b><button data-dq="1" aria-label="One more ${esc(b.name)}"${detailQty >= avail(k) - qty(k) ? " disabled" : ""}>+</button></div>
+      ${avail(k) - qty(k) > 0 ? `<button class="btn" data-addbag="${b.id}">Add to bag · ${inr(b.price * detailQty)}</button>` : `<button class="btn" disabled>${avail(k) > 0 ? "All available are in your bag" : "Sold out"}</button>`}</div>
       ${qty(k) ? `<span class="small">${qty(k)} already in your bag</span>` : ""}`;
   }
   function orderText() {
     const t = totals();
-    const L = ["Hi TadaBoo! I'd like to order:", ""];
+    const L = [`Hi TadaBoo! I'd like to order (${orderId()}):`, ""];
     const bl = Object.entries(cart).filter(([k]) => k.startsWith("b:"));
     const pl = Object.entries(cart).filter(([k]) => k.startsWith("p:"));
     if (bl.length) { L.push("Gift bags:"); for (const [k, n] of bl) L.push(`• ${B[k.slice(2)].name} × ${n} = ${inr(B[k.slice(2)].price * n)}`); L.push(""); }
@@ -728,6 +765,7 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
     L.push(`Delivery: ${form.delivery === "door" ? "Door-to-door delivery" : "I'll collect / discuss"}`);
     if (form.delivery === "door" && form.address) L.push(`Address: ${form.address}${form.pin ? " – " + form.pin : ""}`);
     if (form.note) L.push(`Gift note: ${form.note}`);
+    L.push("", `Order code (please keep): ${orderCode()}`);
     return L.join("\n");
   }
   function renderCart() {
@@ -781,7 +819,7 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
   }
   function renderProductFoot(p) {
     const k = "p:" + p.id, n = qty(k), m = meterInfo();
-    $("#drawerFoot").innerHTML = `<div class="addrow">${n ? stepper(k, n, "flat") + `<span class="small" style="flex:1">${n} in your custom bag</span>` : `<button class="btn" data-padd="${p.id}">${view.from ? "Add just this item" : "Add to bag"} · ${inr(p.price)}</button>`}</div>
+    $("#drawerFoot").innerHTML = `<div class="addrow">${n ? stepper(k, n, "flat") + `<span class="small" style="flex:1">${n} in your custom bag</span>` : avail(k) <= 0 ? `<button class="btn" disabled>Sold out</button>` : `<button class="btn" data-padd="${p.id}">${view.from ? "Add just this item" : "Add to bag"} · ${inr(p.price)}</button>`}</div>
       <span class="small">${m.t.custom > 0 ? m.msg : `Single items make a custom bag (over ₹${T.customMin}).`}</span>`;
   }
   // soft: refresh only what changed, so the bag's circle and product zoom don't replay.
@@ -806,7 +844,8 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
   drawer.addEventListener("submit", (e) => e.preventDefault());
   drawer.addEventListener("click", (e) => {
     if (e.target.closest("[data-close]")) closeDrawer();
-    if (e.target.closest("#copyOrder")) copy(orderText(), "Order copied. Paste it in WhatsApp to " + T.phone);
+    if (e.target.closest("#copyOrder")) { sent = true; copy(orderText(), "Order copied. Paste it in WhatsApp to " + T.phone); }
+    if (e.target.closest("#sendWa")) sent = true;
     const v = e.target.closest("[data-view]");
     if (v) {
       const left = view.product;
@@ -820,12 +859,12 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
     const pa = e.target.closest("[data-padd]");
     if (pa) { const id = pa.dataset.padd; flyToBag($(".pview .big img"), img(id)); setQty("p:" + id, 1); renderProductFoot(P[id]); drawer.querySelector(`[data-inc="p:${id}"]`)?.focus(); announce(`Added ${P[id].name}`); }
     const dq = e.target.closest("[data-dq]");
-    if (dq) { detailQty = Math.max(1, Math.min(99, detailQty + Number(dq.dataset.dq))); renderDetailFoot(B[view.bag]); drawer.querySelector(`[data-dq="${dq.dataset.dq}"]`).focus(); announce(`Quantity ${detailQty}`); }
+    if (dq) { detailQty = Math.max(1, Math.min(99, avail("b:" + view.bag) - qty("b:" + view.bag), detailQty + Number(dq.dataset.dq))); renderDetailFoot(B[view.bag]); drawer.querySelector(`[data-dq="${dq.dataset.dq}"]`).focus(); announce(`Quantity ${detailQty}`); }
     const add = e.target.closest("[data-addbag]");
     if (add) {
       const id = add.dataset.addbag;
       flyToBag($(".detail .orbit .core"), cover(B[id]));
-      cart["b:" + id] = qty("b:" + id) + detailQty; save();
+      cart["b:" + id] = Math.min(avail("b:" + id), qty("b:" + id) + detailQty); newOrderIfSent(); save();
       toast(`${detailQty} × ${B[id].name} added`);
       detailQty = 1; view = {}; renderAll(); renderDrawer(); $("#drawerBody").scrollTop = 0; $("#closeDrawer").focus();
     }
@@ -850,6 +889,10 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
     }
   }
   renderTabs(); renderAll();
+  fetch("stock.json", { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).then((d) => {
+    if (!isObj(d) || !isObj(d.items) || !isObj(d.bags)) return;
+    STOCK = d; clampCart(); save(); keep(renderAll);
+  }).catch(() => {});
 
   // Sections rise gently as they scroll in (they are already visible; only the lift plays).
   if (!reduced && "IntersectionObserver" in window) {
