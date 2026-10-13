@@ -11,7 +11,7 @@
 # index.html, run `python3 tadaboo/scripts/csp_hash.py` or the live shop will stop working.
 # Inline style attributes are used by the page, so style-src needs 'unsafe-inline'.
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-aNAHf4XPhTDaPYZ/aLzEJ9K4XaPSDpd72z8B/1wYjVc='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'sha256-RGD3Jh/55RtpwagQdyDagdTn9tYbvgnFQmSLox6lW10='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()

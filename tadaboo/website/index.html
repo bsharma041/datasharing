@@ -145,12 +145,17 @@ section{padding-block:clamp(64px,8vw,96px)}
 .bags{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:28px 22px;margin-top:24px}
 .bagcard{border:0;background:none;padding:0;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:12px;min-width:0}
 .bagcard .ph{position:relative;border-radius:20px;overflow:hidden;background:var(--tile)}
-.bagcard img{width:100%;aspect-ratio:4/5;object-fit:cover;transition:transform .5s ease}
-.bagcard:hover img{transform:scale(1.04)}
-/* Bag cards show every item: two rows on a 12-column grid, sized so any 4–8 items fill it evenly. */
-.mosaic{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:3px;aspect-ratio:1;background:var(--bg)}
-.mosaic img{grid-column:span var(--s);width:100%;height:100%;aspect-ratio:auto!important;object-fit:cover;background:var(--tile);transition:transform .5s ease,filter .3s}
-.bagcard:hover .mosaic img{transform:scale(1.03)}
+.bagcard .cv img{width:100%;aspect-ratio:4/5;object-fit:cover;transition:transform .5s ease}
+.bagcard:hover .cv img{transform:scale(1.04)}
+/* Bag cards: the bag's signature item large, and every other item as a row of round photos
+   along the bottom edge (the same circle motif as the open bag). */
+.bagcard .ph{overflow:visible}
+.bagcard .ph>.cv{border-radius:20px;overflow:hidden;background:var(--tile)}
+.chips{position:absolute;left:10px;right:10px;bottom:10px;display:flex}
+.chips img{width:clamp(30px,17%,46px);aspect-ratio:1!important;border-radius:50%;object-fit:cover;border:3px solid var(--bg);background:var(--tile);box-shadow:0 4px 10px rgba(30,33,64,.18);transition:transform .3s ease}
+.chips img+img{margin-left:-8px}
+.bagcard:hover .chips img{transform:translateY(-3px)}
+.bagcard:hover .chips img:nth-child(2n){transform:translateY(-6px)}
 .bagcard .row{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
 .bagcard .nm{font-weight:600;font-size:1.05rem;line-height:1.3}
 .bagcard .ct{font-size:.88rem;color:var(--muted);margin-top:-6px}
@@ -286,7 +291,8 @@ footer .wm{font-size:1.25rem}
 /* Product view */
 .pview{display:flex;flex-direction:column;gap:14px}
 .pview .big{position:relative;border-radius:22px;overflow:hidden;background:var(--tile)}
-.pview .big img{width:100%;aspect-ratio:4/5;max-height:62vh;object-fit:cover;animation:zoomIn .45s cubic-bezier(.2,.8,.2,1) both}
+.pview .big{max-width:460px;width:100%;margin:0 auto}
+.pview .big img{width:100%;aspect-ratio:4/5;max-height:70vh;object-fit:contain;animation:zoomIn .45s cubic-bezier(.2,.8,.2,1) both}
 @keyframes zoomIn{from{transform:scale(.92);opacity:.4}}
 .pview .nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:0;background:var(--bg);color:var(--ink);box-shadow:var(--shadow);cursor:pointer;display:grid;place-items:center}
 .pview .nav.prev{left:12px}.pview .nav.next{right:12px}
@@ -296,6 +302,7 @@ footer .wm{font-size:1.25rem}
 .pview .price{font-size:1.3rem}
 .pview .desc{color:var(--muted)}
 .pview .part{font-size:.85rem;color:var(--muted)}
+.orbit.still *{animation:none!important}
 .phbtn{all:unset;display:block;cursor:zoom-in;width:100%}
 .phbtn:focus-visible{outline:3px solid var(--price);outline-offset:-3px}
 .detail li{transition:background .2s}
@@ -564,13 +571,11 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
   const bagFilters = [["all", "All"], ["school", "School"], ["girls", "For girls"], ["boys", "For boys"], ["return", "Return gifts"], ["birthday", "Hampers"]];
   let bagF = "all";
   const bagMatch = (b) => bagF === "all" || b.occasion === bagF || b.for === bagF || (bagF === "school" && b.occasion === "create");
-  // Top row holds half the items (rounded down), bottom row the rest; spans divide the 12 columns.
-  const mosaic = (b) => { const top = Math.floor(b.items.length / 2), bot = b.items.length - top;
-    return b.items.map((id, i) => `<img src="${img(id)}" alt="" loading="lazy" width="416" height="520" style="--s:${12 / (i < top ? top : bot)}">`).join(""); };
+  const chips = (b) => b.items.filter((id) => id !== (b.cover || b.items[0])).map((id) => `<img src="${img(id)}" alt="" loading="lazy" width="416" height="520">`).join("");
   function bagCard(b) {
     const n = qty("b:" + b.id);
     return `<button class="bagcard" data-openbag="${b.id}" aria-haspopup="dialog">
-      <span class="ph"><span class="mosaic" aria-hidden="true">${mosaic(b)}</span>${n ? `<span class="inbag">In bag · ${n}</span>` : ""}</span>
+      <span class="ph"><span class="cv"><img src="${cover(b)}" alt="" loading="lazy" width="416" height="520"></span><span class="chips" aria-hidden="true">${chips(b)}</span>${n ? `<span class="inbag">In bag · ${n}</span>` : ""}</span>
       <span class="row"><span class="nm">${esc(b.name)}</span><span class="price">${inr(b.price)}</span></span>
       <span class="ct">${b.items.length} items</span>
     </button>`;
@@ -620,7 +625,7 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
   $("#grid").addEventListener("click", (e) => {
     const a = e.target.closest("[data-add]");
     if (a) { const id = a.dataset.add; flyToBag(a.closest(".card").querySelector("img"), img(id)); setQty("p:" + id, 1); announce(`Added ${P[id].name}`); }
-    const pv = e.target.closest("[data-prod]"); if (pv) openDrawer({ product: pv.dataset.prod });
+    const pv = e.target.closest("[data-prod]"); if (pv) { openDrawer({ product: pv.dataset.prod }); announce(`${P[pv.dataset.prod].name}, ${inr(P[pv.dataset.prod].price)}`); }
     if (e.target.closest("#showAll")) { const n = $("#grid").children.length - 1; showAll = true; renderGrid(); $("#grid").children[n]?.querySelector("button")?.focus({ preventScroll: true }); announce("Showing all items"); }
   });
 
@@ -649,21 +654,43 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
 
   // ---------- Drawer: bag and gift-bag detail ----------
   const drawer = $("#drawer"), scrim = $("#scrim");
-  let lastFocus = null, view = {};
+  let lastFocus = null, lastSel = null, view = {};
   const behind = () => [$(".skip"), $(".top"), $("main"), $("footer"), $("#mbar")];
   function openDrawer(v = {}) {
-    if (!drawer.classList.contains("open")) lastFocus = document.activeElement;
+    if (!drawer.classList.contains("open")) {
+      lastFocus = document.activeElement;
+      // Lists re-render while the drawer is open, so also remember how to find the opener again.
+      const a = ["data-prod", "data-openbag", "data-add"].find((n) => lastFocus?.hasAttribute?.(n));
+      lastSel = a ? `[${a}="${lastFocus.getAttribute(a)}"]` : null;
+    }
     view = v; renderDrawer(); drawer.inert = false; behind().forEach((el) => (el.inert = true));
     document.documentElement.classList.add("lock"); drawer.classList.add("open"); scrim.classList.add("open");
     $("#drawerBody").scrollTop = 0;
     setTimeout(() => $("#closeDrawer").focus(), 50);
   }
-  function closeDrawer() { drawer.classList.remove("open"); scrim.classList.remove("open"); drawer.inert = true; behind().forEach((el) => (el.inert = false)); document.documentElement.classList.remove("lock"); lastFocus?.focus?.(); }
+  function closeDrawer() { drawer.classList.remove("open"); scrim.classList.remove("open"); drawer.inert = true; behind().forEach((el) => (el.inert = false)); document.documentElement.classList.remove("lock");
+    const sel = lastSel && `main ${lastSel}`, id = lastSel?.match(/"(.+)"/)?.[1];
+    (document.contains(lastFocus) ? lastFocus : (sel && $(sel)) || (id && ($(`main [data-inc="p:${id}"]`) || $(`main [data-openbag="${id}"]`))) || $("#bagBtn")).focus?.(); }
   $("#bagBtn").addEventListener("click", () => openDrawer());
   $("#mbar").addEventListener("click", () => openDrawer());
   $("#closeDrawer").addEventListener("click", closeDrawer);
   scrim.addEventListener("click", closeDrawer);
-  addEventListener("keydown", (e) => { if (e.key === "Escape" && drawer.classList.contains("open")) closeDrawer(); });
+  addEventListener("keydown", (e) => {
+    if (!drawer.classList.contains("open")) return;
+    if (e.key === "Escape") return closeDrawer();
+    // Keep Tab inside the open panel.
+    if (e.key === "Tab") {
+      const f = [...drawer.querySelectorAll("button:not([disabled]),a[href],input,select,textarea")].filter((el) => el.offsetParent && el.tabIndex >= 0);
+      if (!f.length) return;
+      const first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+    // Arrow keys flip through a bag's items in the product view.
+    if ((e.key === "ArrowLeft" || e.key === "ArrowRight") && view.product && view.from && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName)) {
+      e.preventDefault(); drawer.querySelector(`[data-step="${e.key === "ArrowLeft" ? -1 : 1}"]`)?.click();
+    }
+  });
 
   let detailQty = 1;
   function renderDetail(b) {
@@ -671,7 +698,7 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
     $("#drawerTitle").textContent = "Gift bag";
     $("#drawerLead").innerHTML = `<button class="back" data-view="cart"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Your bag (${totals().count})</button>`;
     $("#drawerBody").innerHTML = `<div class="detail" style="display:flex;flex-direction:column;gap:16px">
-      <div class="orbit" aria-hidden="true"><span class="ring"></span><img class="core" src="img/tadaboo-bag.webp" alt="" width="359" height="400">${b.items.map((id, i) => `<button class="orb" tabindex="-1" data-i="${i}" data-prod="${id}" style="--a:${(360 / b.items.length) * i}deg;--d:${120 + i * 70}ms"><img src="${img(id)}" alt="" width="416" height="520"></button>`).join("")}</div>
+      <div class="orbit${view.still ? " still" : ""}" aria-hidden="true"><span class="ring"></span><img class="core" src="img/tadaboo-bag.webp" alt="" width="359" height="400">${b.items.map((id, i) => `<button class="orb" tabindex="-1" data-i="${i}" data-prod="${id}" style="--a:${(360 / b.items.length) * i}deg;--d:${120 + i * 70}ms"><img src="${img(id)}" alt="" width="416" height="520"></button>`).join("")}</div>
       <div class="row"><h3>${esc(b.name)}</h3><span class="price">${inr(b.price)}</span></div>
       ${w > b.price ? `<span class="worth">Worth ${inr(w)} bought separately</span>` : ""}
       <span class="group-t">Inside · ${b.items.length} items</span>
@@ -738,23 +765,23 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
       <span class="small">Opens WhatsApp to <span class="num">${T.phone}</span>. Dispatch in ${T.dispatchDays}.</span>`;
     updateWa();
   }
-  const back = (label) => `<button class="back" data-view="${view.from ? "bag" : "cart"}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>${esc(label)}</button>`;
+  const back = (label) => `<button class="back" data-view="bag" aria-label="Back to ${esc(label)}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Back</button>`;
   function renderProduct(p) {
     const fb = view.from && B[view.from], list = fb ? fb.items : null, i = list ? list.indexOf(p.id) : -1;
     $("#drawerTitle").textContent = "Product";
-    $("#drawerLead").innerHTML = back(fb ? fb.name : `Your bag (${totals().count})`);
+    $("#drawerLead").innerHTML = fb ? back(fb.name) : "";
     const arrow = (dir, d) => `<button class="nav ${dir}" data-step="${d}" aria-label="${d < 0 ? "Previous" : "Next"} item in ${esc(fb.name)}"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="${d < 0 ? "M15 6l-6 6 6 6" : "M9 6l6 6-6 6"}"/></svg></button>`;
     $("#drawerBody").innerHTML = `<div class="pview">
       <div class="big"><img src="${img(p.id)}" alt="${esc(p.name)}" width="416" height="520">${list && list.length > 1 ? arrow("prev", -1) + arrow("next", 1) + `<span class="pos">${i + 1} / ${list.length}</span>` : ""}</div>
       <div class="row"><h3>${esc(p.name)}</h3><span class="price">${inr(p.price)}</span></div>
       <p class="desc">${esc(p.desc)}</p>
-      ${fb ? `<span class="part">Part of ${esc(fb.name)} · ${inr(fb.price)}</span>` : ""}
+      ${fb ? `<span class="part">Part of <button class="link" data-view="bag" style="min-height:auto">${esc(fb.name)} · ${inr(fb.price)}</button></span>` : ""}
     </div>`;
     renderProductFoot(p);
   }
   function renderProductFoot(p) {
     const k = "p:" + p.id, n = qty(k), m = meterInfo();
-    $("#drawerFoot").innerHTML = `<div class="addrow">${n ? stepper(k, n, "flat") + `<span class="small" style="flex:1">${n} in your custom bag</span>` : `<button class="btn" data-padd="${p.id}">Add to bag · ${inr(p.price)}</button>`}</div>
+    $("#drawerFoot").innerHTML = `<div class="addrow">${n ? stepper(k, n, "flat") + `<span class="small" style="flex:1">${n} in your custom bag</span>` : `<button class="btn" data-padd="${p.id}">${view.from ? "Add just this item" : "Add to bag"} · ${inr(p.price)}</button>`}</div>
       <span class="small">${m.t.custom > 0 ? m.msg : `Single items make a custom bag (over ₹${T.customMin}).`}</span>`;
   }
   // soft: refresh only what changed, so the bag's circle and product zoom don't replay.
@@ -780,7 +807,12 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
   drawer.addEventListener("click", (e) => {
     if (e.target.closest("[data-close]")) closeDrawer();
     if (e.target.closest("#copyOrder")) copy(orderText(), "Order copied. Paste it in WhatsApp to " + T.phone);
-    const v = e.target.closest("[data-view]"); if (v) { view = v.dataset.view === "bag" ? { bag: view.from } : {}; renderDrawer(); $("#drawerBody").scrollTop = 0; $("#closeDrawer").focus(); }
+    const v = e.target.closest("[data-view]");
+    if (v) {
+      const left = view.product;
+      view = v.dataset.view === "bag" && view.from ? { bag: view.from, still: true } : {}; renderDrawer(); $("#drawerBody").scrollTop = 0;
+      (left && drawer.querySelector(`.itembtn[data-prod="${left}"]`) || $("#closeDrawer")).focus();
+    }
     const pr = e.target.closest("[data-prod]");
     if (pr) { view = { product: pr.dataset.prod, from: view.bag || view.from }; renderDrawer(); $("#drawerBody").scrollTop = 0; drawer.querySelector(".back")?.focus(); announce(P[view.product].name); }
     const stp = e.target.closest("[data-step]");

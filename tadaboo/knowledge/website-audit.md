@@ -127,3 +127,22 @@ The storefront was rebuilt to the "TadaBoo Store Redesign" Claude Design canvas 
 | Low | Return Gift · Deluxe cover showed branded chocolate wrappers | Cover changed to the animal memo pad |
 | Low | Footer "BOO" inherited grey | `.wm .b` uses the ink colour |
 | Low | 76 px of empty footer space on desktop | That space is reserved only below 900 px, where the bag bar exists |
+
+# Bag contents + product view, critic round 2: 13 Oct 2026
+
+Owner asked for every item of a bag to be visible on its card, a larger circle on open, and a clickable product close-up. A first attempt (a photo mosaic on each card) was rejected by the `tadaboo-design-critic` (cards looked alike, 69 tiles with only 36 unique photos, 39 px slivers on phones). Final design and fixes:
+
+| Sev | Finding | Fix |
+|---|---|---|
+| High | Mosaic made all bag cards look alike | Each card shows the bag's signature item large, with every other item as a row of round photos (same motif as the open bag); covers differ per bag |
+| High | 7–8 item mosaics became 39 px slivers on phones | Round photos stay ≥30 px at 375 px, ≥43 px on desktop |
+| High | Focus lost after adding then closing | The opener is found again after re-render; focus returns to it (or its stepper) |
+| Med | Product view from the shop announced only "Product" | Name and price are announced when it opens |
+| Med | "Back" from a shop product led to an empty bag | No back button unless the product was opened from a bag |
+| Med | "Add to bag" inside a hamper's item view looked like adding the hamper | Button reads "Add just this item"; "Part of …" links back to the bag |
+| Med | Large photo upscaled/cropped (and badly at 200% zoom) | Capped at 460 px wide, `object-fit:contain` |
+| Low | Returning to the bag replayed the 1.3 s fan-out | Re-entry renders the circle still; focus returns to the item you left |
+| Low | Tab escaped the dialog | Tab and Shift+Tab loop inside the panel |
+| Low | Arrow keys didn't flip items | ← / → step through a bag's items |
+| Low | Long back label wrapped on phones | Visible "Back" with a full accessible name |
+| Low | Bag images square vs 4:5 elsewhere | Bag covers back to 4:5 |
