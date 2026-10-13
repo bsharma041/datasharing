@@ -39,6 +39,7 @@ The Stockroom is the owner's live books. **Never write to it without the owner's
 - To add a product: add a row to `catalog.js` (`id`, `sid`, `cat`, `name`, `price`, `desc`, `tags`) and a photo at `img/<id>.webp` (≈520×650, WebP). To add a collection: add to `bags` with `items` that exist in `products`.
 - New catalogue PDF: re-run `python3 tadaboo/scripts/extract_images.py <pdf> tadaboo/website/img`, updating its `SLUGS` order first.
 - Keep the brand system (Fredoka + Quicksand, orange TADA / navy BOO / yellow ✦, pastel panels), light and dark themes, phone width with no sideways scroll, and `prefers-reduced-motion`.
+- After any visual or UX change, and before publishing, have the `tadaboo-design-critic` subagent review it; fix its High and Medium findings (or say why not) before calling the work done.
 - Before saying a change works, open the page in headless Chromium (Playwright is preinstalled) at desktop and phone width, click through the changed flow, and check the console.
 - After any edit to the inline `<script>` in `index.html`, run `python3 tadaboo/scripts/csp_hash.py` (the Content-Security-Policy in `_headers` allows that script by hash; a stale hash blocks it on the live site and the shop renders empty). `--check` only verifies. Edits to `catalog.js` don't need it.
 - After re-rendering a list, keep keyboard focus with the existing `keep()` helper and announce changes through `announce()` (the `#live` region), as the current steppers and chips do.

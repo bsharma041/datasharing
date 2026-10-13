@@ -105,7 +105,7 @@ Payment methods seen: ICICI debit card, Amazon credit card, account transfer.
 
 ## 7. Open issues and data gaps (as of 13 Oct 2026)
 
-1. **Stockroom gift bags are out of date.** The Stockroom has 9 bags (Aesthetic Bloom, Aesthetic Muse, Back to School ₹549, Fun Explorer, K-Style Cutie, Make & Create ₹499, Mini Surprise, Snoopy & Friends, Sweet Treats). The catalogue sells 12 different collections. Until the Stockroom bags match, bag sales cannot deduct the right stock.
+1. ~~Stockroom gift bags out of date~~ **Resolved 13 Oct 2026:** the Stockroom now holds the 12 catalogue collections (ids `cat-<bag id>`, pencil boxes counted as 12 units); the 9 older bags (Aesthetic Bloom, Aesthetic Muse, Back to School ₹549, Fun Explorer, K-Style Cutie, Make & Create ₹499, Mini Surprise, Snoopy & Friends, Sweet Treats) are archived, not deleted.
 2. **Pencil units.** The Stockroom tracks 2B pencils as single pencils (₹15, 120 each in stock); the catalogue sells boxes of 12 at ₹109. A box sale must consume 12 units.
 3. **Bookmark not in the gift kit.** The catalogue promises a bookmark in every package, but `settings/main.giftKit` lists only paper bag, sticker and thank-you card.
 4. **Return-gift capacity.** Return Gift Mini and Classic can make only 4 bags each (Cute Crayons Set: 4 in stock). Party orders usually need 10–20 identical bags.
