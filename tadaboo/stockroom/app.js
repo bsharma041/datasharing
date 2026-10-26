@@ -233,6 +233,39 @@ const kitLines = (draftKey, path, lines, type) => `${lines.map((l, i) => `<div c
     <button class="icon-btn" data-act="rmLine" data-path="${path}" data-i="${i}" aria-label="Remove">×</button></div>${l.label ? `<div class="small muted">${esc(l.label)}</div>` : ''}`).join('')}
   <button class="btn ghost sm" data-act="addLine" data-path="${path}" data-kind="kit">+ Add piece</button>`;
 
+// ---- Packaging given with a sale or order: every packaging item with a tick and a quantity.
+// "Gift kit" / "Pouch" fill it from the kits in Settings; only what is ticked comes out of stock.
+const packItems = () => {
+  const inKit = new Set([...(S.settings.giftKit || []), ...(S.settings.pouchKit || [])].map((k) => k.itemId));
+  return S.items.filter((i) => i.type === 'packaging' && !i.archived).sort((a, b) => (inKit.has(b.id) - inKit.has(a.id)) || byName(a, b));
+};
+const kitOf = (mode) => (mode === 'gift' ? S.settings.giftKit : mode === 'pouch' ? S.settings.pouchKit : []) || [];
+const kitQty = (mode, times) => Object.fromEntries(kitOf(mode).filter((k) => k.itemId && n(k.qty) > 0).map((k) => [k.itemId, String(n(k.qty) * Math.max(0, n(times)))]).filter(([, v]) => n(v) > 0));
+const packGiven = (q) => Object.fromEntries(Object.entries(q || {}).filter(([id, v]) => id && n(v) > 0).map(([id, v]) => [id, n(v)]));
+/** 'gift' or 'pouch' when the ticks are exactly that kit (any number of kits), 'none' when nothing, else 'custom'. */
+function packMode(q) {
+  const has = packGiven(q), ids = Object.keys(has);
+  if (!ids.length) return 'none';
+  for (const mode of ['gift', 'pouch']) {
+    const ks = kitOf(mode).filter((k) => k.itemId && n(k.qty) > 0);
+    if (!ks.length || ks.length !== ids.length) continue;
+    const t = n(has[ks[0].itemId]) / n(ks[0].qty);
+    if (t > 0 && ks.every((k) => has[k.itemId] === n(k.qty) * t)) return mode;
+  }
+  return 'custom';
+}
+const packPieces = (q, snap) => Object.entries(packGiven(q)).map(([itemId, qty]) => ({ itemId, qty, cost: snap(D.costs[itemId] ?? null) }));
+const packSummary = (pieces) => (pieces || []).map((x) => `${x.qty} × ${itemName(x.itemId)}`).join(', ');
+function packChecklist(d, presets) {
+  const mode = packMode(d.packQty), rows = packItems();
+  return `<div class="seg" role="group" aria-label="Fill with">${presets.map(([k, l]) => `<button data-act="packPreset" data-v="${k}" aria-pressed="${mode === k}">${l}</button>`).join('')}</div>
+    ${rows.length ? `<div class="list">${rows.map((it) => { const q = d.packQty?.[it.id] ?? '', on = n(q) > 0; return `<div class="li packrow" style="cursor:default">
+      <label class="switch grow"><input type="checkbox" data-act="packTick" data-id="${esc(it.id)}" ${on ? 'checked' : ''}><span><span class="name">${esc(nameOf(it))}</span> <span class="meta">${esc(n(D.stock[it.id]))} in stock</span></span></label>
+      <input class="input num" style="width:76px;text-align:center" type="number" inputmode="decimal" min="0" step="any" data-bind="packQty.${esc(it.id)}" value="${esc(q)}" placeholder="0" aria-label="How many ${esc(nameOf(it))}"></div>`; }).join('')}</div>`
+      : '<p class="small muted">No packaging items yet. Add them in Stock → Packaging.</p>'}
+    <p class="small muted">Tick only what went in with this order. Ticked items come out of stock and count in the packaging cost.</p>`;
+}
+
 // ---------------------------------------------------------------- HOME
 function viewHome() {
   const s = D.sum, costTotal = s.itemCost + s.packCost + s.courier;
@@ -455,7 +488,7 @@ function sheetItem() {
       : `<label class="f">Cost per piece<span class="input num" aria-readonly="true">${inr(avg, 2)}</span></label>`}
     ${field('Unit', 'unit', d.unit, { ph: pk ? 'pcs, m or roll' : 'pcs' })}
   </div>
-  ${pk ? '<p class="small muted">Packaging is used when you pack orders, never sold. Pick the unit you count when packing: boxes in pcs, bubble wrap or tape in metres. Add it to a sale or order under Packaging → Custom.</p>' : ''}
+  ${pk ? '<p class="small muted">Packaging is used when you pack orders, never sold. Pick the unit you count when packing: boxes in pcs, bubble wrap or tape in metres. Tick it under “Packaging given” when you record a sale or confirm an order.</p>' : ''}
   <p class="small muted">${avg == null ? 'Cost is used until you record a purchase of this item.' : 'Cost comes from your purchases, including GST and shipping.'} Changing the stock count saves a “Manual count” entry in History.</p>  ${field('Supplier', 'supplier', d.supplier, { ph: 'optional' })}
   <label class="f">Note<textarea class="input" rows="2" data-bind="note">${esc(d.note)}</textarea></label>
   <label class="switch"><input type="checkbox" data-bind="check" ${d.check ? 'checked' : ''}> Mark “⚠ check” (needs my review)</label>
@@ -480,7 +513,7 @@ function refsOf(id) {
 }
 
 // ---------------------------------------------------------------- SELL
-const blankSell = () => ({ date: today(), lines: [], shippingCharged: '', courierCost: '', pack: 'none', customPieces: [], customer: '', note: '' });
+const blankSell = () => ({ date: today(), lines: [], shippingCharged: '', courierCost: '', packQty: {}, customer: '', note: '' });
 const unitPriceOf = (l) => (l.t === 'bag' ? D.bagsById[l.id]?.price : D.itemsById[l.id]?.sellPrice) ?? 0;
 function sellModel(d) {
   const lines = d.lines.filter((l) => l.id && n(l.qty) > 0).map((l) => (l.t === 'bag'
@@ -489,12 +522,11 @@ function sellModel(d) {
   // Unknown costs stay null so the app can fill them in later instead of freezing ₹0.
   const snap = (c) => (c == null ? null : +(+c).toFixed(4));
   const consumed = expandSale({ lines }, S.bags).map((c) => ({ ...c, cost: snap(D.costs[c.itemId]) }));
-  const kit = d.pack === 'gift' ? S.settings.giftKit : d.pack === 'pouch' ? S.settings.pouchKit : d.pack === 'custom' ? d.customPieces.filter((p) => p.itemId && n(p.qty) > 0) : [];
-  const pieces = kitPieces(kit, D.costs).map((p) => ({ ...p, cost: snap(p.cost) }));
+  const pieces = packPieces(d.packQty, snap);
   const noCost = [...new Set([...consumed, ...pieces].filter((c) => c.cost == null).map((c) => itemName(c.itemId)))];
   const kinds = new Set(lines.map((l) => (l.bagId ? 'bag' : 'item')));
   const sale = { date: d.date || today(), kind: kinds.size > 1 ? 'custom' : kinds.has('bag') ? 'bag' : 'items', lines, consumed,
-    packaging: { mode: d.pack, pieces }, shippingCharged: n(d.shippingCharged), courierCost: n(d.courierCost), customer: d.customer.trim(), note: d.note.trim() };
+    packaging: { mode: packMode(d.packQty), pieces }, shippingCharged: n(d.shippingCharged), courierCost: n(d.courierCost), customer: d.customer.trim(), note: d.note.trim() };
   const need = {};
   for (const c of [...consumed, ...pieces]) need[c.itemId] = (need[c.itemId] || 0) + c.qty;
   const short = Object.entries(need).filter(([id, q]) => (D.stock[id] ?? 0) < q).map(([id, q]) => `${itemName(id)} (need ${q}, have ${D.stock[id] ?? 0})`);
@@ -521,11 +553,8 @@ function viewSell() {
     <div class="card stack"><h3>Delivery</h3><div class="grid2">
       ${field('Shipping charged to customer', 'shippingCharged', d.shippingCharged, { type: 'number', rupee: true, ph: '0' })}
       ${field('Courier cost you paid', 'courierCost', d.courierCost, { type: 'number', rupee: true, ph: '0' })}</div></div>
-    <div class="card stack"><div class="section-head"><h3>Packaging used</h3>${sug !== 'none' && sug !== d.pack ? `<button class="chip check" data-act="setPack" data-v="${sug}" style="border:0;cursor:pointer">Suggested: ${sug === 'gift' ? 'Gift kit' : 'Pouch'} · use</button>` : ''}</div>
-      <div class="seg" role="group" aria-label="Packaging">${[['none', 'None'], ['gift', 'Gift kit'], ['pouch', 'Pouch'], ['custom', 'Custom']].map(([k, l]) => `<button data-act="setPack" data-v="${k}" aria-pressed="${d.pack === k}">${l}</button>`).join('')}</div>
-      ${d.pack === 'gift' || d.pack === 'pouch' ? `<p class="small muted">Uses ${esc((d.pack === 'gift' ? S.settings.giftKit : S.settings.pouchKit).map((k) => `${k.qty} × ${itemName(k.itemId)}`).join(', ') || 'nothing yet: set the kit under More → Settings')}.</p>` : ''}
-      ${d.pack === 'custom' ? kitLines('sell', 'customPieces', d.customPieces, 'packaging') : ''}
-      ${S.settings.threshold == null ? '<p class="small muted">Set a gift-kit threshold under More → Settings to get a suggestion here.</p>' : ''}
+    <div class="card stack"><div class="section-head"><h3>Packaging given</h3>${sug !== 'none' && sug !== packMode(d.packQty) ? `<button class="chip check" data-act="packPreset" data-v="${sug}" style="border:0;cursor:pointer">Suggested: ${sug === 'gift' ? 'Gift kit' : 'Pouch'} · use</button>` : ''}</div>
+      ${packChecklist(d, [['gift', 'Gift kit'], ['pouch', 'Pouch'], ['none', 'None']])}
     </div>
     <div class="card stack"><h3>Details</h3><div class="grid2">
       ${field('Date', 'date', d.date, { type: 'date' })}
@@ -629,17 +658,17 @@ function orderModel(o, opts = {}) {
     ? { bagId: l.ref, qty: l.qty, price: l.total, name: l.name }
     : { itemId: l.ref, qty: l.qty * l.units, price: l.total, name: l.units > 1 ? `${l.name} (${l.qty} × box of ${l.units})` : l.name }));
   const consumed = expandSale({ lines: saleLines }, S.bags).map((c) => ({ ...c, cost: snap(D.costs[c.itemId]) }));
-  const pack = opts.pack || 'gift', kits = Math.max(0, Math.floor(n(opts.kits ?? defaultKits(lines))));
-  const kit = pack === 'gift' ? S.settings.giftKit : pack === 'pouch' ? S.settings.pouchKit : [];
-  const pieces = kitPieces(kit, D.costs).filter((p) => p.itemId).map((p) => ({ ...p, qty: p.qty * kits, cost: snap(p.cost) })).filter((p) => p.qty > 0);
+  // Packaging: what the owner ticked, or (before that) the order's kit × kits, by default one gift kit per bag.
+  const packQty = opts.packQty || kitQty(opts.pack || 'gift', opts.kits ?? defaultKits(lines));
+  const pieces = packPieces(packQty, snap), pack = packMode(packQty);
   const kinds = new Set(saleLines.map((l) => (l.bagId ? 'bag' : 'item')));
   const sale = { date: today(), kind: kinds.size > 1 ? 'custom' : kinds.has('bag') ? 'bag' : 'items', lines: saleLines, consumed,
-    packaging: { mode: kits ? pack : 'none', pieces }, shippingCharged: n(opts.shippingCharged), courierCost: n(opts.courierCost),
+    packaging: { mode: pack, pieces }, shippingCharged: n(opts.shippingCharged), courierCost: n(opts.courierCost),
     customer: str(o.customer?.name).trim(), note: `Website order ${o.id}`, orderId: o.id };
   const need = {};
   for (const c of [...consumed, ...pieces]) need[c.itemId] = (need[c.itemId] || 0) + c.qty;
   const short = Object.entries(need).filter(([id, q]) => (D.stock[id] ?? 0) < q).map(([id, q]) => `${itemName(id)} (need ${q}, have ${D.stock[id] ?? 0})`);
-  return { lines, sale, totals: saleTotals(sale, D.costs, S.bags), short, unknown: lines.filter((l) => !l.known), total: lines.reduce((a, l) => a + l.total, 0), kits, pack };
+  return { lines, sale, totals: saleTotals(sale, D.costs, S.bags), short, unknown: lines.filter((l) => !l.known), total: lines.reduce((a, l) => a + l.total, 0), pack, pieces, packQty: packGiven(packQty) };
 }
 const orderLinesHtml = (m) => `<div class="list">${m.lines.map((l) => `<div class="li" style="cursor:default">
     <div class="grow"><div class="name">${esc(l.qty)} × ${esc(l.name)}</div>
@@ -682,7 +711,7 @@ function viewOrders() {
 }
 function openOrderSheet(id) {
   const o = S.orders.find((x) => x.id === id); if (!o) return toast('This order was removed elsewhere.', true);
-  const draft = { shippingCharged: o.shippingCharged ?? '', courierCost: o.courierCost ?? '', pack: o.pack || 'gift', kits: o.kits ?? defaultKits(o.lines || []), tracking: o.tracking || '',
+  const draft = { shippingCharged: o.shippingCharged ?? '', courierCost: o.courierCost ?? '', packQty: o.packQty ? Object.fromEntries(Object.entries(o.packQty).map(([k, v]) => [k, String(v)])) : kitQty(o.pack || 'gift', o.kits ?? defaultKits(o.lines || [])), tracking: o.tracking || '',
     payRef: o.payment?.ref || '', payAmt: o.payment?.amount ?? '', payDate: o.payment?.date || today() };
   S.sheet = { kind: 'order', id, draft, orig: JSON.stringify(draft) }; renderSheet();
 }
@@ -698,10 +727,10 @@ function sheetOrder() {
   ${st === 'new' ? `
     ${m.unknown.length ? `<div class="err">Not in the Stockroom: ${esc(m.unknown.map((l) => l.ref).join(', '))}. Add or restore them, then confirm.</div>` : ''}
     ${m.short.length ? `<div class="warn">Not enough stock: ${esc(m.short.join('; '))}. You can still confirm; stock will show as Out.</div>` : ''}
-    <div class="card stack"><h3>Packing and delivery</h3>
-      <div class="seg" role="group" aria-label="Packaging">${[['gift', 'Gift kit'], ['pouch', 'Pouch'], ['none', 'None']].map(([k, l]) => `<button data-act="setDraft" data-k="pack" data-v="${k}" aria-pressed="${d.pack === k}">${l}</button>`).join('')}</div>
-      <div class="grid3">
-        ${d.pack === 'none' ? '' : field('How many kits', 'kits', d.kits, { type: 'number' })}
+    <div class="card stack"><h3>Packaging given</h3>
+      ${packChecklist(d, [['gift', `Gift kit × ${Math.max(1, defaultKits(o.lines || []))}`], ['pouch', 'Pouch'], ['none', 'None']])}</div>
+    <div class="card stack"><h3>Delivery</h3>
+      <div class="grid2">
         ${field('Shipping charged', 'shippingCharged', d.shippingCharged, { type: 'number', rupee: true, ph: '0' })}
         ${field('Courier cost', 'courierCost', d.courierCost, { type: 'number', rupee: true, ph: '0' })}</div></div>
     <div class="card stack" id="order-preview">${orderPreview(m, t)}</div>
@@ -781,7 +810,7 @@ function orderPreview(m, t) {
   return `<h3>If you confirm</h3>
     <div class="sum-row"><span>Revenue</span><span>${inr(t.revenue)}</span></div>
     <div class="sum-row muted"><span>Item cost</span><span>−${inr(t.itemCost)}</span></div>
-    <div class="sum-row muted"><span>Packaging (${m.kits} ${m.pack === 'pouch' ? 'pouch' : 'kit'}${m.kits === 1 ? '' : 's'})</span><span>−${inr(t.packCost)}</span></div>
+    <div class="sum-row muted"><span>Packaging${m.pieces.length ? ` (${esc(packSummary(m.pieces))})` : ': none'}</span><span>−${inr(t.packCost)}</span></div>
     <div class="sum-row muted"><span>Courier</span><span>−${inr(t.courier)}</span></div>
     <div class="sum-row total"><span>Profit</span><span class="${t.profit >= 0 ? 'pos' : 'neg'}">${inr(t.profit)}</span></div>
     <p class="small muted">Confirming records this as a sale: stock goes down and it appears in History and on Home.</p>`;
@@ -1063,7 +1092,7 @@ function sheetEntry() {
       ${(d.lines || []).map((l) => `<div class="sum-row"><span>${esc(l.qty)} × ${esc(l.name || (l.bagId ? bagName(l.bagId) : itemName(l.itemId)))}</span><span>${inr(l.price)}</span></div>`).join('')}
       <div class="sum-row muted"><span>Shipping charged</span><span>${inr(d.shippingCharged)}</span></div>
       <div class="sum-row muted"><span>Item cost</span><span>−${inr(t.itemCost)}</span></div>
-      <div class="sum-row muted"><span>Packaging (${esc(d.packaging?.mode || 'none')})</span><span>−${inr(t.packCost)}</span></div>
+      <div class="sum-row muted"><span>Packaging${d.packaging?.pieces?.length ? ` (${esc(packSummary(d.packaging.pieces))})` : ': none'}</span><span>−${inr(t.packCost)}</span></div>
       <div class="sum-row muted"><span>Courier</span><span>−${inr(t.courier)}</span></div>
       <div class="sum-row total"><span>Profit</span><span class="${t.profit >= 0 ? 'pos' : 'neg'}">${inr(t.profit)}</span></div>
       <p class="small muted">Deleting this sale puts its items and packaging back in stock.</p>`;
@@ -1274,6 +1303,7 @@ function onInput(e) {
   const path = el.dataset.bind;
   const val = el.type === 'checkbox' ? el.checked : el.value;
   setPath(d, path, val);
+  if (path.startsWith('packQty.')) { const cb = el.closest('.packrow')?.querySelector('input[type="checkbox"]'); if (cb) cb.checked = n(val) > 0; }
   if (key === 'sell') {
     const m = path.match(/^lines\.(\d+)\.(price|id)$/);
     if (m && m[2] === 'price') d.lines[+m[1]].priceEdited = true;
@@ -1444,7 +1474,14 @@ const A = {
   // sell
   addSellLine: (el) => { S.sell.lines.push({ t: el.dataset.t, id: '', qty: 1, price: 0, priceEdited: false }); renderView(); },
   step: (el) => { const l = S.sell.lines[+el.dataset.i]; l.qty = Math.max(1, n(l.qty) + +el.dataset.d); syncSell(); renderView(); },
-  setPack: (el) => { S.sell.pack = el.dataset.v; if (S.sell.pack === 'custom' && !S.sell.customPieces.length) S.sell.customPieces.push({ itemId: '', qty: 1 }); renderView(); },
+  packPreset: (el) => { const key = packKey(el), d = draftOf(key); if (!d) return; d.packQty = kitQty(el.dataset.v, packTimes(key)); key === 'sell' ? renderView() : renderSheet(); },
+  packTick: (el) => {
+    const key = packKey(el), d = draftOf(key), id = el.dataset.id; if (!d || !id) return;
+    d.packQty ||= {};
+    if (n(d.packQty[id]) > 0) d.packQty[id] = '';
+    else { const k = kitOf('gift').find((x) => x.itemId === id) || kitOf('pouch').find((x) => x.itemId === id); d.packQty[id] = String(k ? n(k.qty) * packTimes(key) : 1); }
+    key === 'sell' ? renderView() : renderSheet();
+  },
   resetSell: () => { S.sell = blankSell(); renderView(); },
   saveSale: async (el) => {
     const m = sellModel(S.sell);
@@ -1641,12 +1678,12 @@ const A = {
   saveOrderConfirm: async () => {
     const { id, draft: d } = S.sheet, o = S.orders.find((x) => x.id === id);
     if (!o || o.status !== 'new') return toast('This order has already been confirmed or cancelled.', true);
-    if (negative(d.shippingCharged, d.courierCost, d.kits)) return toast('Amounts and kit counts can’t be negative.', true);
+    if (negative(d.shippingCharged, d.courierCost, ...Object.values(d.packQty || {}))) return toast('Amounts and packaging counts can’t be negative.', true);
     const m = orderModel(o, d); if (m.unknown.length) return toast('Some lines are not in the Stockroom. Add them first.', true);
     // The sale id comes from the order id, so a retry or a second tap can never record it twice.
     const saleId = `web-${o.id}`, at = nowIso();
     if (!(await write(() => setDoc('sales', saleId, { ...m.sale, createdAt: at })))) return;
-    const ok = await write(() => S.db.collection('orders').doc(id).update({ status: 'confirmed', saleId, pack: m.pack, kits: m.kits, shippingCharged: n(d.shippingCharged), courierCost: n(d.courierCost),
+    const ok = await write(() => S.db.collection('orders').doc(id).update({ status: 'confirmed', saleId, pack: m.pack, packQty: m.packQty, shippingCharged: n(d.shippingCharged), courierCost: n(d.courierCost),
       updatedAt: at, history: [...(Array.isArray(o.history) ? o.history : []), { status: 'confirmed', at }] }), `Confirmed · stock updated · profit ${inr(m.totals.profit)}`);
     if (ok) { orderStepAt = Date.now(); S.sheet.orig = JSON.stringify(S.sheet.draft); renderAll(); afterOrderStep('Order confirmed. Stock updated. Website stock file is now out of date.'); }
   },
@@ -1721,6 +1758,12 @@ document.addEventListener('click', (e) => {
   }
   f(el, e);
 });
+// Which draft a packaging tick belongs to, and how many kits a preset fills (one per gift bag, plus one for loose items).
+const packKey = (el) => el.closest('[data-draft]')?.dataset.draft;
+function packTimes(key) {
+  if (key === 'sell') { const ls = (S.sell?.lines || []).filter((l) => l.id && n(l.qty) > 0); return Math.max(1, ls.reduce((a, l) => a + (l.t === 'bag' ? n(l.qty) : 0), 0) + (ls.some((l) => l.t !== 'bag') ? 1 : 0)); }
+  const o = S.orders.find((x) => x.id === S.sheet?.id); return Math.max(1, defaultKits(o?.lines || []));
+}
 // Leaving Settings without saving discards the draft, so later changes from elsewhere show up.
 function dropSettingsDraft() { S.setDraft = null; S.setDirty = false; }
 const sheetDirty = () => !!(S.sheet?.draft && S.sheet.orig && JSON.stringify(S.sheet.draft) !== S.sheet.orig);

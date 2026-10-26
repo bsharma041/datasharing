@@ -42,3 +42,10 @@ Fixed costs sheet and two extra Summary rows.
 
 New packaging (another box size, bubble wrap, tape): Stock → Packaging → **+ Add packaging**; use it in a
 sale or order under Packaging → Custom.
+
+## Packaging given (Sell and order confirmation)
+Each sale lists every packaging item with a tick and a quantity. "Gift kit" / "Pouch" fill it from the kits
+in Settings (one gift kit per gift bag, plus one for loose items); untick what was not given (e.g. no
+thank-you card) or tick extras (bookmark, a shipping box). Only ticked items leave stock. The sale stores
+`packaging: { mode: 'gift' | 'pouch' | 'custom' | 'none', pieces: [{ itemId, qty, cost }] }`; a confirmed
+order also stores `packQty`.
