@@ -42,6 +42,18 @@ export function avgCosts(items, purchases) {
   return out;
 }
 
+/** Packaging cost spread over products by value (like GST and shipping): packaging spend ÷ product spend,
+ *  both at landed cost, over all purchases. A product's full cost is its landed cost × (1 + share). */
+export function packShare(items, purchases) {
+  const type = Object.fromEntries((items || []).map((i) => [i.id, i.type]));
+  let pack = 0, prod = 0;
+  for (const p of purchases || []) for (const l of landedLines(p)) {
+    const v = l.qty * l.landed;
+    if (type[l.itemId] === 'packaging') pack += v; else prod += v;
+  }
+  return prod > 0 ? pack / prod : 0;
+}
+
 /** Item quantities a sale takes out of stock (bags expanded into contents). */
 export function expandSale(sale, bags) {
   const bagById = Object.fromEntries((bags || []).map((b) => [b.id, b]));
@@ -71,26 +83,32 @@ export function stockLevels(items, purchases, sales, adjustments, bags) {
   return s;
 }
 
-/** Money for one sale. Cost snapshots on the sale win; else current avg costs. */
-export function saleTotals(sale, costs, bags) {
+/** Money for one sale. Cost snapshots on the sale win; else current avg costs.
+ *  share (from packShare) given: packaging is built into item cost, so packCost is 0 and
+ *  packShare is the part of itemCost that is packaging. share null: packaging ticked on the sale is its cost. */
+export function saleTotals(sale, costs, bags, share = null) {
   const c = costs || {};
   const lineRevenue = sum(sale?.lines || [], (l) => num(l.price));
   const revenue = lineRevenue + num(sale?.shippingCharged);
   const itemCost = sum(consumedOf(sale, bags), (x) => num(x.qty) * (x.cost != null ? num(x.cost) : num(c[x.itemId])));
   const packCost = sum(sale?.packaging?.pieces || [], (x) => num(x.qty) * (x.cost != null ? num(x.cost) : num(c[x.itemId])));
   const courier = num(sale?.courierCost);
-  return { revenue, itemCost, packCost, courier, profit: revenue - itemCost - packCost - courier };
+  if (share != null) {
+    const packShare = itemCost * num(share), full = itemCost + packShare;
+    return { revenue, itemCost: full, packCost: 0, packShare, courier, profit: revenue - full - courier };
+  }
+  return { revenue, itemCost, packCost, packShare: 0, courier, profit: revenue - itemCost - packCost - courier };
 }
 
 /** Totals over sales whose date falls in [from, to] (inclusive, either optional). */
-export function summary(sales, costs, bags, range = {}) {
-  const t = { revenue: 0, itemCost: 0, packCost: 0, courier: 0, profit: 0, orders: 0 };
+export function summary(sales, costs, bags, range = {}, share = null) {
+  const t = { revenue: 0, itemCost: 0, packCost: 0, packShare: 0, courier: 0, profit: 0, orders: 0 };
   for (const s of sales || []) {
     if ((range.from || range.to) && !s.date) continue; // undated: all-time only
     if (range.from && s.date < range.from) continue;
     if (range.to && s.date > range.to) continue;
-    const x = saleTotals(s, costs, bags);
-    for (const k of ['revenue', 'itemCost', 'packCost', 'courier', 'profit']) t[k] += x[k];
+    const x = saleTotals(s, costs, bags, share);
+    for (const k of ['revenue', 'itemCost', 'packCost', 'packShare', 'courier', 'profit']) t[k] += x[k];
     t.orders++;
   }
   t.margin = t.revenue > 0 ? t.profit / t.revenue : 0;

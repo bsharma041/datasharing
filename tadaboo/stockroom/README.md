@@ -49,3 +49,12 @@ in Settings (one gift kit per gift bag, plus one for loose items); untick what w
 thank-you card) or tick extras (bookmark, a shipping box). Only ticked items leave stock. The sale stores
 `packaging: { mode: 'gift' | 'pouch' | 'custom' | 'none', pieces: [{ itemId, qty, cost }] }`; a confirmed
 order also stores `packQty`.
+
+## Packaging cost (More → Settings → Packaging cost)
+Default **Built into product cost**: everything spent on packaging (landed) is spread over products by
+value, like GST and shipping: `share = packaging spend ÷ product spend` over all purchases (`packShare` in
+calc.js). A product's full cost = landed cost × (1 + share); Stock margins, gift-bag cost and margin, and
+each sale's item cost use it, and a sale has no separate packaging cost (ticks only reduce packaging stock).
+Stock value keeps landed cost (packaging stock is counted on its own). **Charged per sale** (`settings/main.packCost
+= 'perSale'`) restores the old behaviour: product cost excludes packaging and each sale subtracts what was ticked.
+
