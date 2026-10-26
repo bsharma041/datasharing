@@ -1,7 +1,7 @@
 # TadaBoo Stockroom (source copy)
 
 The live Stockroom is a Claude artifact: https://claude.ai/artifact/LaZN37L8DS7RDsbxhM9inG
-Its data (items, bags, purchases, sales, adjustments, orders, settings) lives in the artifact's own
+Its data (items, bags, purchases, sales, adjustments, orders, expenses, settings) lives in the artifact's own
 database, not in this repository. These files are a copy of the published code, kept here for review
 and version history. Publish changes to the artifact with the Artifact tool (`url` = the link above,
 `file_path` = `index.html`, `files` = `app.js`, and `calc.js` if changed).
@@ -32,3 +32,13 @@ Orders reach the owner in one of two ways, and both carry the same order code:
 5. **Website stock file** saves `stock.json`; put it in `tadaboo/website/` so the site shows
    "Only N left" / "Sold out" and caps quantities. `scripts/sync_stock.py` builds the same file from a
    database dump.
+
+## Fixed costs (More → Fixed costs)
+One-time costs that are not stock or packaging (a receipt printer, a stall fee): `expenses/{id}` =
+`{ date, label, amount, note, createdAt }`. They don't touch stock or each sale's profit. Home shows profit
+after fixed costs for the period, and a "Fixed costs paid back" card: all-time profit against all-time
+fixed costs, with the orders still needed at the average profit per order. The Excel export has a
+Fixed costs sheet and two extra Summary rows.
+
+New packaging (another box size, bubble wrap, tape): Stock → Packaging → **+ Add packaging**; use it in a
+sale or order under Packaging → Custom.

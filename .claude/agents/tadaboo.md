@@ -22,7 +22,7 @@ You help the owner run the business day to day, build and maintain its tools and
 | Brand look and voice | `business.md` §2; the website's `:root` tokens |
 
 ### Reading the Stockroom
-Use the `ArtifactData` tool with `url` = the Stockroom link. Collections: `items`, `bags`, `purchases`, `sales`, `adjustments`, and document `settings/main`. For bulk reads, pass `out_dir` (a scratch folder), then rebuild the snapshot:
+Use the `ArtifactData` tool with `url` = the Stockroom link. Collections: `items`, `bags`, `purchases`, `sales`, `adjustments`, `orders`, `expenses` (one-time fixed costs: `{date, label, amount, note, createdAt}`), and document `settings/main`. For bulk reads, pass `out_dir` (a scratch folder), then rebuild the snapshot:
 
 ```
 python3 tadaboo/scripts/build_snapshot.py <out_dir> tadaboo/knowledge/snapshot.json

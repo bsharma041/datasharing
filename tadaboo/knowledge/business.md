@@ -57,7 +57,7 @@ Packaging per order is about **₹37.4** (paper bag ₹22.4 average landed + sti
 | `pk-box-medium` | 9 × 8.5 × 4 | up to 10 bags | 1.003 kg → may bill 1.5 kg; a 3.5–3.9 in height keeps it at 1 kg |
 | `pk-box-large` | 13 × 10.5 × 5.5 | up to 20 bags (items kept separate, white bags packed flat alongside) | 2.46 kg → 2.5 kg, or actual weight if heavier |
 
-A fourth size may be added if orders need it. Bubble wrap and tape are still to be costed (per box: up to ~0.10 / 0.19 / 0.34 m² of wrap; ~0.6 / 0.7 / 0.9 m of tape). Planned one-off cost: receipt printer ₹3,000 (fixed cost, not per order; the Stockroom has no place for fixed costs yet).
+A fourth size may be added if orders need it. Bubble wrap and tape are still to be costed (per box: up to ~0.10 / 0.19 / 0.34 m² of wrap; ~0.6 / 0.7 / 0.9 m of tape). Planned one-off cost: receipt printer ₹3,000 (fixed cost, not per order; record it under Stockroom → More → Fixed costs once paid).
 
 | Collection | Price | Item cost | Gross profit after packaging | Margin | Max bags from stock* | Limiting item |
 |---|---|---|---|---|---|---|
@@ -112,6 +112,7 @@ Payment methods seen: ICICI debit card, Amazon credit card, account transfer.
 - `purchases/{id}`: `date`, `supplier`, `ref`, `lines[{itemId, qty, unitPrice}]`, `extras{gst, shipping, other}`, `note`.
 - `sales/{id}`: `date`, `kind` (items | bag | custom), `lines[{itemId|bagId, qty, price}]`, `consumed[{itemId, qty, cost}]`, `packaging{pieces[]}`, `shippingCharged`, `courierCost`.
 - `bags/{id}`: `name`, `price`, `contents[{itemId, qty}]`.
+- `expenses/{id}`: one-time fixed costs (`date`, `label`, `amount`, `note`, `createdAt`), e.g. the receipt printer. Not per order; shown on Home as profit after fixed costs and how much is paid back.
 - `settings/main`: `giftKit`, `pouchKit`, `lowProduct` (5), `lowPackaging` (10), `threshold` (gift vs pouch order value; not set).
 
 ## 7. Open issues and data gaps (as of 13 Oct 2026)

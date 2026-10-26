@@ -7,10 +7,10 @@ import {
 } from './calc.js';
 
 // ---------------------------------------------------------------- state
-const COLLS = ['items', 'bags', 'purchases', 'sales', 'adjustments', 'orders'];
+const COLLS = ['items', 'bags', 'purchases', 'sales', 'adjustments', 'orders', 'expenses'];
 const S = {
   db: null, downloads: null, ready: false, conn: 'connecting', error: null,
-  items: [], bags: [], purchases: [], sales: [], adjustments: [], orders: [],
+  items: [], bags: [], purchases: [], sales: [], adjustments: [], orders: [], offers: [], customers: [], reviews: [], expenses: [], custFilter: 'all',
   settings: { giftKit: [], pouchKit: [], threshold: null, lowProduct: 5, lowPackaging: 10 },
   loaded: new Set(),
   tab: 'home', period: 'month',
@@ -56,8 +56,12 @@ function derive() {
   const spent = S.purchases.filter((p) => !range.from || (p.date >= range.from && p.date <= range.to)).reduce((a, p) => a + purchaseTotal(p), 0);
   const stockValue = active.reduce((a, i) => a + Math.max(0, stock[i.id] || 0) * (costs[i.id] || 0), 0);  const alerts = active.filter((i) => st(i) !== 'ok').sort((a, b) => (stock[a.id] || 0) - (stock[b.id] || 0));
   const capacity = bags.filter((b) => !b.archived).map((b) => ({ bag: b, ...bagCapacity(b, stock, itemsById) })).sort((a, b) => a.count - b.count);
-  D = { itemsById, bagsById, costs, stock, lowAt, st, active, sum, spent, stockValue, alerts, capacity, purchaseTotal };
+  const sumAll = S.period === 'all' ? sum : summary(S.sales, costs, bags, {});
+  D = { itemsById, bagsById, costs, stock, lowAt, st, active, sum, sumAll, spent, stockValue, alerts, capacity, purchaseTotal,
+    fixed: fixedTotal(range), fixedAll: fixedTotal({}) };
 }
+// One-time (fixed) costs such as a receipt printer: kept out of each sale's profit, shown against total profit.
+const fixedTotal = (r) => S.expenses.filter((x) => !r.from || (str(x.date) >= r.from && str(x.date) <= r.to)).reduce((a, x) => a + n(x.amount), 0);
 // Records can be written by Claude or another device, so a name may be missing.
 const nameOf = (x) => (x?.name ? String(x.name) : '(no name)');
 const byName = (a, b) => nameOf(a).localeCompare(nameOf(b));
@@ -72,7 +76,7 @@ async function connect() {
     catch (e) { console.error(e); db = null; }
   } else if (/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) {
     db = (await import('./devdb.js')).createDevDb(); // local testing only, never published
-    S.downloads = { save: async ({ filename }) => { console.log('download', filename); return { status: 'saved' }; } };
+    S.downloads = { save: async ({ filename, data }) => { console.log('download', filename); window.__lastDownload = data; return { status: 'saved' }; } };
   }
   if (!db) { S.conn = 'off'; renderAll(); return; }
   S.db = db;
@@ -82,6 +86,12 @@ async function connect() {
       S.loaded.add(c); S.conn = 'live'; onData();
     }, (e) => { S.conn = 'err'; S.error = e; S.loaded.add(c); onData(); }); // show what loaded, flagged, instead of spinning forever
   }
+  // Website offers (discounts for an occasion). Not needed for the rest of the app to open.
+  // Per-customer choices the owner sets (e.g. replied STOP to offers), keyed by 10-digit phone.
+  db.collection('customers').onSnapshot((snap) => { S.customers = snap.docs.map((d) => ({ id: d.id, ...d.data() })); onData(); }, () => {});
+  // Customer reviews for the website (photo, quote, what they bought, consent).
+  db.collection('reviews').onSnapshot((snap) => { S.reviews = snap.docs.map((d) => ({ id: d.id, ...d.data() })); onData(); }, () => {});
+  db.collection('offers').onSnapshot((snap) => { S.offers = snap.docs.map((d) => ({ id: d.id, ...d.data() })); onData(); }, () => {});
   db.doc('settings/web').onSnapshot((snap) => { S.web = snap.exists ? snap.data() : {}; onData(); }, () => {});
   db.doc('settings/main').onSnapshot((snap) => {
     if (snap.exists) S.settings = { ...S.settings, ...snap.data() };
@@ -220,7 +230,7 @@ const field = (label, bind, val, { type = 'text', ph = '', rupee = false, attrs 
 const kitLines = (draftKey, path, lines, type) => `${lines.map((l, i) => `<div class="row">
     <select class="input grow" data-bind="${path}.${i}.itemId" data-draft="${draftKey}" aria-label="Packaging item">${itemOptions(l.itemId, { type })}</select>
     <div class="qty"><input class="input" type="number" inputmode="numeric" min="1" data-bind="${path}.${i}.qty" value="${esc(l.qty)}" aria-label="Quantity"></div>
-    <button class="icon-btn" data-act="rmLine" data-path="${path}" data-i="${i}" aria-label="Remove">×</button></div>`).join('')}
+    <button class="icon-btn" data-act="rmLine" data-path="${path}" data-i="${i}" aria-label="Remove">×</button></div>${l.label ? `<div class="small muted">${esc(l.label)}</div>` : ''}`).join('')}
   <button class="btn ghost sm" data-act="addLine" data-path="${path}" data-kind="kit">+ Add piece</button>`;
 
 // ---------------------------------------------------------------- HOME
@@ -234,13 +244,14 @@ function viewHome() {
     <div class="seg" role="group" aria-label="Period"><button data-act="period" data-v="month" aria-pressed="${S.period === 'month'}">This month</button><button data-act="period" data-v="all" aria-pressed="${S.period === 'all'}">All time</button></div></div>
   ${S.orders.some((o) => o.status === 'new') ? `<button class="card li" data-act="tab" data-v="orders" style="border:0"><div class="grow"><div class="name">${S.orders.filter((o) => o.status === 'new').length} website order${S.orders.filter((o) => o.status === 'new').length === 1 ? '' : 's'} to confirm</div><div class="meta">Confirming updates stock and profit</div></div><span class="chip check">Orders</span></button>` : ''}
   <div class="kpis">
-    <div class="kpi hero"><span class="eyebrow">Profit</span><span class="v">${inr(s.profit)}</span><span class="small muted">${s.revenue > 0 ? `${pct(s.margin)} margin` : 'No sales yet'}</span></div>
+    <div class="kpi hero"><span class="eyebrow">Profit</span><span class="v">${inr(s.profit)}</span><span class="small muted">${s.revenue > 0 ? `${pct(s.margin)} margin` : 'No sales yet'}${D.fixed ? ` · ${inr(s.profit - D.fixed)} after ${inr(D.fixed)} fixed costs` : ''}</span></div>
     <div class="kpi"><span class="eyebrow">Revenue</span><span class="v">${inr(s.revenue)}</span><span class="small muted">${s.orders} order${s.orders === 1 ? '' : 's'}</span></div>
     <div class="kpi"><span class="eyebrow">Costs of sales</span><span class="v">${inr(costTotal)}</span><span class="small muted">items + packaging + courier</span></div>
     <div class="kpi"><span class="eyebrow">Stock value</span><span class="v">${inr(D.stockValue)}</span><span class="small muted">${inr(D.spent)} spent on stock ${S.period === 'month' ? 'this month' : 'so far'}</span></div>
   </div>
   ${costTotal > 0 ? `<div class="card stack"><div class="bars">${bar(s.itemCost, 'var(--accent)')}${bar(s.packCost, 'var(--teal)')}${bar(s.courier, 'var(--pink)')}</div>
     <div class="legend"><span><b style="background:var(--accent)"></b>Items ${inr(s.itemCost)}</span><span><b style="background:var(--teal)"></b>Packaging ${inr(s.packCost)}</span><span><b style="background:var(--pink)"></b>Courier ${inr(s.courier)}</span></div></div>` : ''}
+  ${D.fixedAll > 0 ? paybackCard() : ''}
   <div class="two-col">
     <div class="card stack"><div class="section-head"><h3>Needs a refill</h3><span class="small muted">${D.alerts.length} item${D.alerts.length === 1 ? '' : 's'}</span></div>
       ${alerts.length ? `<div class="tbl" id="refill-list"><div class="trow thead r4"><span class="l">Item</span><span class="l">Category</span><span>Refill at</span><span>Stock</span></div>
@@ -262,6 +273,19 @@ function viewHome() {
   </div></div>`;
 }
 
+// How much of the one-time costs the profit from sales (all time) has paid back.
+function paybackCard() {
+  const a = D.sumAll, total = D.fixedAll, paid = Math.max(0, Math.min(total, a.profit)), left = total - paid;
+  const per = a.orders ? a.profit / a.orders : 0;
+  const line = left <= 0 ? 'Fully paid back by profit from sales.'
+    : per > 0 ? `About ${Math.ceil(left / per)} more order${Math.ceil(left / per) === 1 ? '' : 's'} at your average profit of ${inr(per)} an order.`
+    : 'Profit from sales pays these back. No profit recorded yet.';
+  return `<div class="card stack"><div class="section-head"><h3>Fixed costs paid back</h3><button class="btn ghost sm" data-act="gotoExpenses">See costs</button></div>
+    <div class="bars" role="img" aria-label="${pct(paid / total)} paid back"><i style="width:${(paid / total) * 100}%;background:var(--teal)"></i></div>
+    <div class="sum-row"><span>${inr(paid)} of ${inr(total)} (${pct(paid / total)})</span><b>${left > 0 ? `${inr(left)} to go` : 'Done'}</b></div>
+    <p class="small muted">${line}</p></div>`;
+}
+
 // ---------------------------------------------------------------- STOCK
 function viewStock() {
   fixStockCat(); // e.g. after moving every item out of the chosen category
@@ -270,7 +294,7 @@ function viewStock() {
   const count = (k) => ofType.filter((i) => (k === 'check' ? i.check : D.st(i) === k)).length;
   return `<div class="stack">
   <div class="section-head"><div><div class="eyebrow">Inventory</div><h2>Stock</h2></div>
-    <div class="row">${S.bulk ? '' : '<button class="btn ghost sm" data-act="bulkStart">Select</button>'}<button class="btn primary" data-act="newItem">+ Add item</button></div></div>
+    <div class="row">${S.bulk ? '' : '<button class="btn ghost sm" data-act="bulkStart">Select</button>'}<button class="btn primary" data-act="newItem">+ Add ${f.type === 'packaging' ? 'packaging' : 'item'}</button></div></div>
   <div class="seg" role="group" aria-label="Item type"><button data-act="stockType" data-v="product" aria-pressed="${f.type === 'product'}">Products</button><button data-act="stockType" data-v="packaging" aria-pressed="${f.type === 'packaging'}">Packaging</button></div>
   <input class="input" type="search" id="stock-q" data-bind="q" data-draft="stockFilter" value="${esc(f.q)}" placeholder="Search by name, category or supplier" aria-label="Search stock">
   <div class="filters" role="group" aria-label="Filter">
@@ -405,8 +429,8 @@ function openItemSheet(id) {
   const it = id ? D.itemsById[id] : null;
   S.sheet = { kind: 'item', id, draft: it ? {
     name: it.name || '', type: it.type || 'product', category: str(it.category).trim(), newCat: '', unit: it.unit || 'pcs', sellPrice: it.sellPrice ?? '', lowAt: it.lowAt ?? '',
-    costOverride: it.costOverride ?? '', supplier: it.supplier || '', note: it.note || '', check: !!it.check, stockCount: D.stock[id] ?? 0, stockAtOpen: D.stock[id] ?? 0,
-  } : { name: '', type: S.stock.type, category: '', newCat: '', unit: 'pcs', sellPrice: '', lowAt: '', costOverride: '', supplier: '', note: '', check: false, stockCount: 0, stockAtOpen: 0 } };
+    costOverride: it.costOverride ?? '', supplier: it.supplier || '', note: it.note || '', check: !!it.check, best: !!it.best, salePrice: it.salePrice ?? '', stockCount: D.stock[id] ?? 0, stockAtOpen: D.stock[id] ?? 0,
+  } : { name: '', type: S.stock.type, category: '', newCat: '', unit: 'pcs', sellPrice: '', lowAt: '', costOverride: '', supplier: '', note: '', check: false, best: false, salePrice: '', stockCount: 0, stockAtOpen: 0 } };
   S.sheet.orig = JSON.stringify(S.sheet.draft);
   renderSheet();
 }
@@ -417,9 +441,10 @@ function sheetItem() {
   // purchases, sales, bags and kits do, because past money depends on them.
   const ownAdj = id ? S.adjustments.filter((a) => a.itemId === id).length : 0;
   const refs = id ? refsOf(id) - ownAdj : 0;
-  return `<div class="section-head"><h2>${it ? 'Edit item' : 'New item'}</h2><button class="icon-btn" data-act="closeSheet" aria-label="Close">×</button></div>
+  const pk = d.type === 'packaging';
+  return `<div class="section-head"><h2>${it ? 'Edit item' : pk ? 'New packaging' : 'New item'}</h2><button class="icon-btn" data-act="closeSheet" aria-label="Close">×</button></div>
   ${it?.check && it.note ? `<div class="warn">⚠ ${esc(it.note)}</div>` : ''}
-  ${field('Name', 'name', d.name, { ph: 'e.g. Rabbit Eraser', attrs: 'id="item-name" autocomplete="off"' })}
+  ${field('Name', 'name', d.name, { ph: pk ? 'e.g. Shipping box XL (14×12×6 in) or Bubble wrap' : 'e.g. Rabbit Eraser', attrs: 'id="item-name" autocomplete="off"' })}
   <div class="seg" role="group" aria-label="Type"><button data-act="setDraft" data-k="type" data-v="product" aria-pressed="${d.type === 'product'}">Product</button><button data-act="setDraft" data-k="type" data-v="packaging" aria-pressed="${d.type === 'packaging'}">Packaging</button></div>
   <label class="f catf">Category${categoryPicker('category', d.category, 'newCat', d.newCat)}</label>
   <div class="grid2">
@@ -428,11 +453,15 @@ function sheetItem() {
     ${field('Selling price', 'sellPrice', d.sellPrice, { type: 'number', rupee: true, ph: d.type === 'packaging' ? 'not sold' : 'not set' })}
     ${avg == null ? field('Cost per piece', 'costOverride', d.costOverride, { type: 'number', rupee: true, ph: 'not bought yet' })
       : `<label class="f">Cost per piece<span class="input num" aria-readonly="true">${inr(avg, 2)}</span></label>`}
-    ${field('Unit', 'unit', d.unit, { ph: 'pcs' })}
+    ${field('Unit', 'unit', d.unit, { ph: pk ? 'pcs, m or roll' : 'pcs' })}
   </div>
+  ${pk ? '<p class="small muted">Packaging is used when you pack orders, never sold. Pick the unit you count when packing: boxes in pcs, bubble wrap or tape in metres. Add it to a sale or order under Packaging → Custom.</p>' : ''}
   <p class="small muted">${avg == null ? 'Cost is used until you record a purchase of this item.' : 'Cost comes from your purchases, including GST and shipping.'} Changing the stock count saves a “Manual count” entry in History.</p>  ${field('Supplier', 'supplier', d.supplier, { ph: 'optional' })}
   <label class="f">Note<textarea class="input" rows="2" data-bind="note">${esc(d.note)}</textarea></label>
   <label class="switch"><input type="checkbox" data-bind="check" ${d.check ? 'checked' : ''}> Mark “⚠ check” (needs my review)</label>
+  ${d.type === 'product' ? `<label class="switch"><input type="checkbox" data-bind="best" ${d.best ? 'checked' : ''}> ★ Best seller on the website</label>
+  ${field('Sale price on the website (optional)', 'salePrice', d.salePrice, { type: 'number', rupee: true, ph: 'no sale' })}
+  <p class="small muted">The website shows the selling price struck through and this price instead. Clear it to end the sale.</p>` : ''}
   <button class="btn primary block" data-act="saveItem">Save item</button>
   ${it ? `<div class="row">
     <button class="btn ghost grow" data-act="archiveItem">${it.archived ? 'Restore from archive' : 'Archive (hide)'}</button>
@@ -504,7 +533,18 @@ function viewSell() {
       <label class="f">Note<input class="input" data-bind="note" value="${esc(d.note)}" placeholder="optional, e.g. Instagram order"></label></div>
    </div>
    <div class="card stack sticky" id="sell-preview">${sellPreview(m, t)}</div>
-  </div></div>`;
+  </div>${recentSales()}</div>`;
+}
+// Past sales, newest first, so what has been recorded is visible on the Sell screen itself.
+function recentSales() {
+  const all = [...S.sales].sort((a, b) => str(b.date).localeCompare(str(a.date)) || str(b.createdAt).localeCompare(str(a.createdAt)));
+  if (!all.length) return '';
+  const list = all.slice(0, 20);
+  return `<div class="card stack"><div class="section-head"><h3>Sales recorded</h3><span class="small muted">${all.length} sale${all.length === 1 ? '' : 's'}</span></div>
+    <div class="list">${list.map((d) => { const t = saleTotals(d, D.costs, S.bags); return `<button class="li" data-act="openEntry" data-k="sales" data-id="${esc(d.id)}">
+      <div class="grow"><div class="name">${esc(saleTitle(d))}</div><div class="meta">${fmtDate(d.date)}${d.customer ? ` · ${esc(d.customer)}` : ''}</div></div>
+      <div class="right"><span class="num">${inr(t.revenue)}</span><span class="small ${t.profit >= 0 ? 'pos' : 'neg'}">profit ${inr(t.profit)}</span></div></button>`; }).join('')}</div>
+    ${all.length > list.length ? `<button class="btn ghost block" data-act="gotoHistory">See all ${all.length} in History</button>` : ''}</div>`;
 }
 function sellPreview(m, t) {
   return `<h3>This sale</h3>
@@ -568,7 +608,8 @@ function parseOrder(text) {
   const line = (label) => (new RegExp(`^${label}:[ \\t]*(.+)$`, 'mi').exec(t)?.[1] || '').trim().slice(0, 300);
   return {
     id: m[1], code: m[0], lines,
-    customer: { name: line('Name'), phone: line('Phone'), delivery: /door/i.test(line('Delivery')) ? 'door' : 'collect', address: line('Address'), note: line('(?:Gift )?note') },
+    customer: { name: line('Name'), phone: line('Phone'), delivery: /door/i.test(line('Delivery')) ? 'door' : 'collect', address: line('Address'), note: line('(?:Gift )?note'),
+      offers: ((v) => (/^yes/i.test(v) ? 'yes' : /^no/i.test(v) ? 'no' : ''))(line('(?:Offers on WhatsApp|offers_whatsapp)')) },
     raw: t.slice(0, 4000),
   };
 }
@@ -604,7 +645,7 @@ const orderLinesHtml = (m) => `<div class="list">${m.lines.map((l) => `<div clas
     <div class="grow"><div class="name">${esc(l.qty)} × ${esc(l.name)}</div>
       <div class="meta">${l.kind === 'bag' ? 'Gift bag' : l.units > 1 ? `Box of ${esc(l.units)}` : 'Item'} · ${inr(l.price)} each${l.priceDiff != null ? ` · <span class="warnc">Stockroom price ${inr(l.priceDiff)}${l.units > 1 ? ` (₹${esc(n(l.priceDiff) / l.units)} a piece)` : ''}</span>` : ''}</div></div>
     <div class="right"><span class="num">${inr(l.total)}</span>${l.known ? '' : '<span class="chip out">Not found</span>'}</div></div>`).join('')}</div>`;
-const customerHtml = (c) => `<div class="small muted">${[c?.name && `<b>${esc(c.name)}</b>`, c?.phone && esc(c.phone), c?.delivery === 'door' ? `Door-to-door${c.address ? `: ${esc(c.address)}` : ''}` : 'Collect / discuss', c?.note && `Gift note: “${esc(c.note)}”`].filter(Boolean).join(' · ')}</div>`;
+const customerHtml = (c) => `<div class="small muted">${[c?.name && `<b>${esc(c.name)}</b>`, c?.phone && esc(c.phone), c?.delivery === 'door' ? `Door-to-door${c.address ? `: ${esc(c.address)}` : ''}` : 'Collect / discuss', c?.note && `Gift note: “${esc(c.note)}”`, c?.offers === 'yes' && 'OK to send offers', c?.offers === 'no' && 'No offers please'].filter(Boolean).join(' · ')}</div>`;
 
 function viewOrders() {
   const d = (S.ord ||= blankOrd());
@@ -635,13 +676,14 @@ function viewOrders() {
   <div class="filters" role="group" aria-label="Show orders">${[['active', 'Open'], ['delivered', 'Delivered'], ['cancelled', 'Cancelled'], ['all', 'All']].map(([k, l]) => `<button data-act="ordFilter" data-v="${k}" aria-pressed="${d.filter === k}">${l}</button>`).join('')}</div>
   ${list.length ? `<div class="card" style="padding-block:4px"><div class="list">${list.map((o) => `<button class="li" data-act="openOrder" data-id="${esc(o.id)}">
       <div class="grow"><div class="name">${esc(o.customer?.name || 'Customer')} · ${esc(o.id)}</div><div class="meta">${fmtDate(str(o.createdAt).slice(0, 10))} · ${orderCount(o.lines)}</div></div>
-      <div class="right"><span class="num">${inr(o.total)}</span>${orderChip(o.status)}</div></button>`).join('')}</div></div>`
+      <div class="right"><span class="num">${inr(o.total)}</span>${orderChip(o.status)}${o.status === 'cancelled' ? '' : o.payment?.paid ? '<span class="chip ok">Paid</span>' : '<span class="chip plain">Unpaid</span>'}</div></button>`).join('')}</div></div>`
     : `<div class="card empty"><h3>No ${d.filter === 'all' ? '' : esc({ active: 'open', delivered: 'delivered', cancelled: 'cancelled' }[d.filter] || '') + ' '}orders</h3><p>Paste an order above to add it.</p></div>`}
 </div>`;
 }
 function openOrderSheet(id) {
   const o = S.orders.find((x) => x.id === id); if (!o) return toast('This order was removed elsewhere.', true);
-  const draft = { shippingCharged: o.shippingCharged ?? '', courierCost: o.courierCost ?? '', pack: o.pack || 'gift', kits: o.kits ?? defaultKits(o.lines || []), tracking: o.tracking || '' };
+  const draft = { shippingCharged: o.shippingCharged ?? '', courierCost: o.courierCost ?? '', pack: o.pack || 'gift', kits: o.kits ?? defaultKits(o.lines || []), tracking: o.tracking || '',
+    payRef: o.payment?.ref || '', payAmt: o.payment?.amount ?? '', payDate: o.payment?.date || today() };
   S.sheet = { kind: 'order', id, draft, orig: JSON.stringify(draft) }; renderSheet();
 }
 function sheetOrder() {
@@ -670,8 +712,71 @@ function sheetOrder() {
     ${st === 'packed' ? field('Courier / tracking (optional)', 'tracking', d.tracking, { ph: 'e.g. DTDC 7X123…' }) : o.tracking ? `<p class="small muted">Tracking: ${esc(o.tracking)}</p>` : ''}
     ${ORDER_NEXT[st] ? `<button class="btn primary block" data-act="saveOrderStatus" data-v="${ORDER_NEXT[st][0]}">${ORDER_NEXT[st][1]}</button>` : ''}
     ${ORDER_PREV[st] ? `<button class="btn ghost sm" data-act="saveOrderBack">Undo: back to ${esc(ORDER_LABEL[ORDER_PREV[st]])}</button>` : ''}`}
+  ${st === 'cancelled' ? '' : paymentCard(o, d)}
   ${done ? '' : `<button class="btn danger block" data-act="deleteOrderCancel" data-confirm="${o.saleId ? 'Tap again to cancel and put the stock back' : 'Tap again to cancel this order'}">Cancel order</button>`}`;
 }
+// ---------------------------------------------------------------- PAYMENT + RECEIPT
+// Who issues receipts. Update after the company is registered (and add the GSTIN once there is one).
+const SELLER = { name: 'Upasana Negi, sole proprietor, trading as TadaBoo', place: 'Ghaziabad, Uttar Pradesh, India', phone: '97306 24700', email: 'hello@tadaboo.com', web: 'www.tadaboo.com' };
+// What the customer owes: items plus the delivery charge saved on the order.
+const due = (o) => n(o.total) + n(o.shippingCharged);
+function paymentCard(o, d) {
+  const p = o.payment;
+  if (p?.paid) return `<div class="card stack"><div class="section-head"><h3>Payment</h3><span class="chip ok">Paid</span></div>
+    <div class="sum-row"><span>Received ${fmtDate(p.date)}${p.ref ? ` · UPI ref ${esc(p.ref)}` : ''}</span><b>${inr(p.amount)}</b></div>
+    <button class="btn primary block" data-act="orderReceipt">Download receipt</button>
+    <p class="small muted">A picture you can send on WhatsApp. In the Claude phone app it opens the share sheet.</p>
+    <button class="btn ghost sm" data-act="orderUnpaid" data-confirm="Tap again to mark as not paid">Undo: not paid</button></div>`;
+  return `<div class="card stack"><div class="section-head"><h3>Payment</h3><span class="chip plain">Awaiting payment</span></div>
+    <p class="small muted">Check your UPI app for ${inr(due(o))} with note ${esc(o.id)}.</p>
+    <div class="grid3">${field('Amount received', 'payAmt', d.payAmt, { type: 'number', rupee: true, ph: String(due(o)) })}${field('UPI reference (optional)', 'payRef', d.payRef, { ph: 'e.g. 4321…' })}${field('Date', 'payDate', d.payDate, { type: 'date' })}</div>
+    <button class="btn primary block" data-act="orderPaid">Mark paid</button></div>`;
+}
+// Draws the receipt on a canvas (1080px wide) and returns a PNG Blob.
+async function receiptPng(o) {
+  try { await document.fonts.ready; } catch {}
+  const m = orderModel(o, {}), p = o.payment || {}, ship = n(o.shippingCharged), c = o.customer || {};
+  const W = 1080, P = 72, ink = '#2B2140', muted = '#6B6280', orange = '#E2541A';
+  const disp = (w, s) => `${w} ${s}px Fredoka, "Trebuchet MS", sans-serif`, body = (w, s) => `${w} ${s}px Quicksand, "Segoe UI", sans-serif`;
+  const cv = document.createElement('canvas'), x = cv.getContext('2d');
+  const wrap = (t, maxW, font) => { x.font = font; const words = str(t).split(/\s+/), out = []; let line = ''; for (const w of words) { const tryL = line ? line + ' ' + w : w; if (x.measureText(tryL).width > maxW && line) { out.push(line); line = w; } else line = tryL; } if (line) out.push(line); return out; };
+  // Lay out once to measure the height, then draw.
+  const ops = []; let y = P;
+  const text = (t, font, color, opts = {}) => { ops.push(() => { x.font = font; x.fillStyle = color; x.textAlign = opts.align || 'left'; x.fillText(t, opts.x ?? P, opts.y); }); };
+  const row = (l, r, font, color, gap = 46) => { const ly = y + 30; const lines = wrap(l, W - 2 * P - 220, font); lines.forEach((ln, i) => text(ln, font, color, { y: ly + i * 38 })); text(r, font, color, { align: 'right', x: W - P, y: ly }); y += Math.max(gap, lines.length * 38 + 8); };
+  const rule = (h = 2, color = '#EEDCC4') => { const ry = y + 10; ops.push(() => { x.fillStyle = color; x.fillRect(P, ry, W - 2 * P, h); }); y += 26; };
+  // header
+  ops.push(() => { x.font = disp('700', 64); x.textAlign = 'left'; x.fillStyle = '#FF7A45'; x.fillText('TADA', P, P + 56); const w = x.measureText('TADA').width; x.fillStyle = '#FFC93C'; x.font = disp('700', 32); x.fillText('✦', P + w + 4, P + 26); x.fillStyle = ink; x.font = disp('700', 64); x.fillText('BOO', P + w + 40, P + 56); });
+  text('RECEIPT', disp('600', 40), ink, { align: 'right', x: W - P, y: P + 52 }); y += 96;
+  text(`Receipt R-${o.id}`, body('700', 28), ink, { y: y + 10 }); text(`Paid ${fmtDate(p.date)}`, body('600', 28), muted, { align: 'right', x: W - P, y: y + 10 }); y += 50;
+  rule();
+  text('BILLED TO', body('700', 22), muted, { y: y + 20 }); text('FROM', body('700', 22), muted, { x: W / 2 + 20, y: y + 20 }); y += 34;
+  const left = [c.name, c.phone, ...wrap(c.address || '', W / 2 - P - 30, body('600', 26))].filter(Boolean);
+  const right = [...wrap(SELLER.name, W / 2 - P - 30, body('600', 26)), SELLER.place, SELLER.phone, SELLER.email];
+  const hh = Math.max(left.length, right.length);
+  left.forEach((t, i) => text(t, body(i ? '600' : '700', 26), ink, { y: y + 32 + i * 36 }));
+  right.forEach((t, i) => text(t, body('600', 26), ink, { x: W / 2 + 20, y: y + 32 + i * 36 }));
+  y += hh * 36 + 24; rule();
+  text('ITEM', body('700', 22), muted, { y: y + 20 }); text('AMOUNT', body('700', 22), muted, { align: 'right', x: W - P, y: y + 20 }); y += 30;
+  for (const l of m.lines) row(`${l.qty} × ${l.name}${l.units > 1 ? ` (box of ${l.units})` : ''}`, inr(l.total), body('600', 28), ink);
+  rule();
+  row('Items', inr(m.total), body('600', 28), ink, 42);
+  row('Delivery', ship ? inr(ship) : 'Free', body('600', 28), ink, 42);
+  rule(3, ink);
+  row('Total paid', inr(p.amount ?? m.total + ship), disp('600', 40), ink, 60);
+  text(`Paid by UPI${p.ref ? ` · ref ${p.ref}` : ''} · Order ${o.id}`, body('600', 24), muted, { y: y + 24 }); y += 60;
+  ops.push(() => { x.fillStyle = '#FFF0C7'; x.beginPath(); x.roundRect(P, yThanks, W - 2 * P, 110, 22); x.fill(); });
+  const yThanks = y + 10;
+  text('Thank you for shopping with TadaBoo!', disp('600', 32), orange, { align: 'center', x: W / 2, y: yThanks + 50 });
+  text('Little things that make you go TADA!', body('600', 24), ink, { align: 'center', x: W / 2, y: yThanks + 86 }); y += 140;
+  text(`${SELLER.web} · This is a payment receipt, not a GST tax invoice.`, body('600', 20), muted, { align: 'center', x: W / 2, y: y + 20 }); y += 50;
+  cv.width = W; cv.height = Math.ceil(y + P / 2);
+  x.fillStyle = '#FFFFFF'; x.fillRect(0, 0, cv.width, cv.height);
+  x.fillStyle = '#FF7A45'; x.fillRect(0, 0, W, 14);
+  for (const op of ops) op();
+  return await new Promise((res) => cv.toBlob(res, 'image/png'));
+}
+
 function orderPreview(m, t) {
   return `<h3>If you confirm</h3>
     <div class="sum-row"><span>Revenue</span><span>${inr(t.revenue)}</span></div>
@@ -686,7 +791,14 @@ function stockFileJson() {
   const items = {}, bags = {};
   for (const it of S.items) if (!it.archived) items[it.id] = Math.max(0, Math.floor(n(D.stock[it.id])));
   for (const c of D.capacity) bags[c.bag.id] = c.count;
-  return JSON.stringify({ asOf: nowIso(), items, bags });
+  // Prices and best sellers travel with the stock, so the website shows what the Stockroom says.
+  const prices = {}, bagPrices = {}, best = [], sale = {};
+  const onSale = (id, price, sp) => { const v = nOrNull(sp); if (v > 0 && v < n(price)) sale[id] = v; };
+  for (const it of S.items) if (!it.archived && (it.type || 'product') === 'product') { const v = nOrNull(it.sellPrice); if (v > 0) prices[it.id] = v; if (it.best) best.push(it.id); onSale(it.id, it.sellPrice, it.salePrice); }
+  for (const b of S.bags) if (!b.archived) { const v = nOrNull(b.price); if (v > 0) bagPrices[b.id] = v; if (b.best) best.push(b.id); onSale(b.id, b.price, b.salePrice); }
+  // Offers that are switched on and not over yet; the website checks the dates itself.
+  const offers = S.offers.filter((o) => o.on && n(o.pct) > 0 && str(o.to) >= today()).map((o) => ({ name: str(o.name), pct: n(o.pct), scope: o.scope || 'all', from: str(o.from), to: str(o.to) }));
+  return JSON.stringify({ asOf: nowIso(), items, bags, prices, bagPrices, best: best.sort(), sale, offers });
 }
 
 // ---------------------------------------------------------------- BUY
@@ -743,11 +855,171 @@ function buyPreview(d) {
 
 // ---------------------------------------------------------------- MORE
 function viewMore() {
-  const sub = [['history', 'History'], ['bags', 'Gift bags'], ['cats', 'Categories'], ['settings', 'Settings'], ['help', 'Ask Claude']];
+  const sub = [['history', 'History'], ['customers', 'Customers'], ['bags', 'Gift bags'], ['offers', 'Offers'], ['reviews', 'Reviews'], ['expenses', 'Fixed costs'], ['cats', 'Categories'], ['settings', 'Settings'], ['help', 'Ask Claude']];
   return `<div class="stack"><div class="section-head"><div><div class="eyebrow">Manage</div><h2>More</h2></div>
     <button class="btn ghost sm" data-act="export" ${S.downloads ? '' : 'hidden'}>Export to Excel</button></div>
   <div class="seg" role="group" aria-label="Section">${sub.map(([k, l]) => `<button data-act="more" data-v="${k}" aria-pressed="${S.more === k}">${l}</button>`).join('')}</div>
-  ${({ history: moreHistory, bags: moreBags, cats: moreCats, settings: moreSettings, help: moreHelp })[S.more]()}</div>`;
+  ${({ history: moreHistory, customers: moreCustomers, bags: moreBags, offers: moreOffers, reviews: moreReviews, expenses: moreExpenses, cats: moreCats, settings: moreSettings, help: moreHelp })[S.more]()}</div>`;
+}
+// ---- More → Fixed costs: one-time costs (printer, stall fee, logo design) with a label and an amount
+function moreExpenses() {
+  const rows = [...S.expenses].sort((a, b) => str(b.date).localeCompare(str(a.date)) || str(b.createdAt).localeCompare(str(a.createdAt)));
+  return `<div class="row between"><p class="muted small grow">One-time costs that aren’t stock or packaging, like a receipt printer. They don’t change stock or the profit on each sale; Home shows how much of them your sales have paid back.</p><button class="btn primary sm" data-act="newExpense">+ Add cost</button></div>
+  <div class="card" style="padding-block:4px"><div class="list">${rows.map((x) => `<button class="li" data-act="editExpense" data-id="${esc(x.id)}"><div class="grow"><div class="name">${esc(str(x.label) || '(no label)')}</div>
+    <div class="meta">${fmtDate(x.date)}${x.note ? ` · ${esc(x.note)}` : ''}</div></div><div class="right"><span class="stockno">${inr(n(x.amount))}</span></div></button>`).join('')
+    || '<div class="empty"><h3>No fixed costs yet</h3><p>Add one-time costs, for example a receipt printer.</p></div>'}</div></div>
+  ${rows.length ? `<div class="card"><div class="sum-row"><span>Total fixed costs</span><b>${inr(D.fixedAll)}</b></div></div>` : ''}`;
+}
+function openExpenseSheet(id) {
+  const x = id ? S.expenses.find((e) => e.id === id) : null;
+  S.sheet = { kind: 'expense', id, draft: x ? { label: str(x.label), amount: x.amount ?? '', date: str(x.date) || today(), note: str(x.note) } : { label: '', amount: '', date: today(), note: '' } };
+  S.sheet.orig = JSON.stringify(S.sheet.draft);
+  renderSheet();
+}
+function sheetExpense() {
+  const { id, draft: d } = S.sheet, x = id ? S.expenses.find((e) => e.id === id) : null;
+  return `<div class="section-head"><h2>${x ? 'Edit fixed cost' : 'New fixed cost'}</h2><button class="icon-btn" data-act="closeSheet" aria-label="Close">×</button></div>
+  ${field('What it was for', 'label', d.label, { ph: 'e.g. Receipt printer', attrs: 'id="exp-label" autocomplete="off" maxlength="120"' })}
+  <div class="grid2">${field('Cost', 'amount', d.amount, { type: 'number', rupee: true })}${field('Date paid', 'date', d.date, { type: 'date' })}</div>
+  <label class="f">Note<textarea class="input" rows="2" data-bind="note">${esc(d.note)}</textarea></label>
+  <p class="small muted">Counted once, not per order.</p>
+  <button class="btn primary block" data-act="saveExpense">Save cost</button>
+  ${x ? '<button class="btn danger block" data-act="deleteExpense" data-confirm="Tap again to delete">Delete</button>' : ''}`;
+}
+// ---------------------------------------------------------------- CUSTOMERS (from website and WhatsApp orders)
+const phone10 = (v) => str(v).replace(/\D/g, '').replace(/^(?:91|0)(?=\d{10}$)/, '');
+function customerList() {
+  const by = {};
+  for (const o of S.orders) {
+    const ph = phone10(o.customer?.phone); if (ph.length !== 10) continue;
+    const c = (by[ph] ||= { phone: ph, name: '', orders: [], spent: 0, last: '', offers: '', offersAt: '', note: '' });
+    const at = str(o.createdAt);
+    c.orders.push(o);
+    if (o.status !== 'cancelled') c.spent += n(o.total);
+    if (at >= c.last) { c.last = at; c.name = str(o.customer?.name).trim() || c.name; }
+    const of = o.customer?.offers; if (of && at >= c.offersAt) { c.offers = of; c.offersAt = at; }
+  }
+  // The owner's own choice (e.g. they replied STOP) wins over an older order's tick-box.
+  for (const x of S.customers) { const c = by[x.id]; if (!c) continue; if (typeof x.offers === 'boolean' && str(x.updatedAt) >= c.offersAt) { c.offers = x.offers ? 'yes' : 'no'; c.offersAt = str(x.updatedAt); } c.note = str(x.note); }
+  for (const c of Object.values(by)) c.orders.sort((a, b) => str(b.createdAt).localeCompare(str(a.createdAt)));
+  return Object.values(by).sort((a, b) => b.last.localeCompare(a.last));
+}
+const offerChip = (c) => (c.offers === 'yes' ? '<span class="chip ok">Offers: yes</span>' : c.offers === 'no' ? '<span class="chip plain">No offers</span>' : '<span class="chip plain">Not asked</span>');
+function moreCustomers() {
+  const all = customerList(), yes = all.filter((c) => c.offers === 'yes');
+  const list = S.custFilter === 'offers' ? yes : S.custFilter === 'repeat' ? all.filter((c) => c.orders.filter((o) => o.status !== 'cancelled').length > 1) : all;
+  return `<div class="tip"><b>Customers from website and WhatsApp orders</b><span class="small">Grouped by phone number. “Offers: yes” means they ticked “Send me offers on WhatsApp” at checkout. Only message those people with offers, and stop if anyone asks (open them and switch it off). Sales typed on the Sell screen have no phone number, so they don’t appear here.</span></div>
+  <div class="filters" role="group" aria-label="Show"><button data-act="custFilter" data-v="all" aria-pressed="${S.custFilter === 'all'}">All (${all.length})</button><button data-act="custFilter" data-v="offers" aria-pressed="${S.custFilter === 'offers'}">OK to send offers (${yes.length})</button><button data-act="custFilter" data-v="repeat" aria-pressed="${S.custFilter === 'repeat'}">Bought more than once</button></div>
+  ${yes.length ? `<button class="btn ghost block" data-act="copyOfferPhones">Copy the ${yes.length} number${yes.length === 1 ? '' : 's'} that said yes to offers</button>` : ''}
+  ${list.length ? `<div class="card" style="padding-block:4px"><div class="list">${list.map((c) => `<button class="li" data-act="openCustomer" data-id="${c.phone}">
+    <div class="grow"><div class="name">${esc(c.name || 'Customer')}</div><div class="meta">${esc(c.phone)} · ${c.orders.length} order${c.orders.length === 1 ? '' : 's'} · last ${fmtDate(c.last.slice(0, 10))}</div></div>
+    <div class="right"><span class="num">${inr(c.spent)}</span>${offerChip(c)}</div></button>`).join('')}</div></div>`
+  : `<div class="card empty"><h3>${all.length ? 'Nobody here yet' : 'No customers yet'}</h3><p>${all.length ? 'Try another filter.' : 'Customers appear when you save website or WhatsApp orders in Orders.'}</p></div>`}`;
+}
+function openCustomerSheet(phone) {
+  const c = customerList().find((x) => x.phone === phone); if (!c) return toast('This customer has no saved orders any more.', true);
+  S.sheet = { kind: 'customer', id: phone, draft: { offers: c.offers === 'yes', note: c.note } };
+  S.sheet.orig = JSON.stringify(S.sheet.draft); renderSheet();
+}
+function sheetCustomer() {
+  const c = customerList().find((x) => x.phone === S.sheet.id), d = S.sheet.draft;
+  if (!c) return `<div class="section-head"><h2>Customer</h2><button class="icon-btn" data-act="closeSheet" aria-label="Close">×</button></div><p class="muted">No saved orders for this number any more.</p>`;
+  return `<div class="section-head"><h2>${esc(c.name || 'Customer')}</h2><button class="icon-btn" data-act="closeSheet" aria-label="Close">×</button></div>
+  <div class="row"><span class="num">${esc(c.phone)}</span>${offerChip(c)}<a class="btn ghost sm" href="https://wa.me/91${c.phone}" target="_blank" rel="noopener">WhatsApp</a><a class="btn ghost sm" href="tel:+91${c.phone}">Call</a></div>
+  <div class="kpis"><div class="kpi"><span class="eyebrow">Orders</span><span class="v">${c.orders.filter((o) => o.status !== 'cancelled').length}</span></div><div class="kpi"><span class="eyebrow">Spent</span><span class="v">${inr(c.spent)}</span></div></div>
+  <h3>Orders</h3>
+  <div class="card" style="padding-block:4px"><div class="list">${c.orders.map((o) => `<button class="li" data-act="openOrder" data-id="${esc(o.id)}">
+    <div class="grow"><div class="name">${esc(o.id)}</div><div class="meta">${fmtDate(str(o.createdAt).slice(0, 10))} · ${orderCount(o.lines)} · ${esc(ORDER_LABEL[o.status] || o.status || '')}</div></div>
+    <div class="right"><span class="num">${inr(o.total)}</span></div></button>`).join('')}</div></div>
+  <label class="switch"><input type="checkbox" data-bind="offers" ${d.offers ? 'checked' : ''}> OK to send them offers on WhatsApp</label>
+  <p class="small muted">${c.offersAt ? `Last set ${fmtDate(c.offersAt.slice(0, 10))}.` : 'They have not been asked yet.'} Switch it off if they ask you to stop.</p>
+  <label class="f">Note about this customer<textarea class="input" rows="2" data-bind="note" placeholder="e.g. birthday parties every March">${esc(d.note)}</textarea></label>
+  <button class="btn primary block" data-act="saveCustomer">Save</button>`;
+}
+
+// ---------------------------------------------------------------- REVIEWS (testimonials on the website)
+const boughtOptions = (sel) => `<option value="" ${!sel ? 'selected' : ''}>Not linked to an item</option>
+  <optgroup label="Gift bags">${S.bags.filter((b) => !b.archived && b.id.startsWith('cat-')).sort(byName).map((b) => `<option value="b:${esc(b.id)}" ${sel === 'b:' + b.id ? 'selected' : ''}>${esc(nameOf(b))}</option>`).join('')}</optgroup>
+  <optgroup label="Items">${S.items.filter((i) => !i.archived && (i.type || 'product') === 'product').sort(byName).map((i) => `<option value="i:${esc(i.id)}" ${sel === 'i:' + i.id ? 'selected' : ''}>${esc(nameOf(i))}</option>`).join('')}</optgroup>`;
+const boughtName = (v) => (str(v).startsWith('b:') ? bagName(str(v).slice(2)) : str(v).startsWith('i:') ? itemName(str(v).slice(2)) : '');
+const stars = (r) => (n(r) > 0 ? '★'.repeat(Math.round(n(r))) + '☆'.repeat(5 - Math.round(n(r))) : '');
+const reviewPhoto = (src, size = 44) => src ? `<img src="${esc(src)}" alt="" width="${size}" height="${size}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;flex:none">` : `<span style="width:${size}px;height:${size}px;border-radius:50%;background:var(--surface-2);display:grid;place-items:center;flex:none" aria-hidden="true">🙂</span>`;
+function moreReviews() {
+  const list = [...S.reviews].sort((a, b) => str(b.createdAt).localeCompare(str(a.createdAt)));
+  const live = list.filter((r) => r.show && r.consent).length;
+  return `<div class="tip"><b>Customer reviews for the website</b><span class="small">Add what a customer told you (WhatsApp, Instagram, in person) with a small photo. Only add a photo and name if the customer agreed; tick that box. Reviews marked “Show on website” appear in the Happy customers section after the next website update. ${live} showing now.</span></div>
+  <button class="btn primary block" data-act="newReview">+ Add a review</button>
+  ${list.length ? `<div class="card" style="padding-block:4px"><div class="list">${list.map((r) => `<button class="li" data-act="openReview" data-id="${esc(r.id)}">
+    ${reviewPhoto(r.photo)}<div class="grow"><div class="name">${esc(r.name || 'Customer')}${r.city ? ` · ${esc(r.city)}` : ''}</div><div class="meta">${stars(r.rating) ? stars(r.rating) + ' · ' : ''}“${esc(str(r.quote).slice(0, 70))}${str(r.quote).length > 70 ? '…' : ''}”</div></div>
+    <div class="right">${r.show && r.consent ? '<span class="chip ok">On website</span>' : '<span class="chip plain">Hidden</span>'}</div></button>`).join('')}</div></div>`
+  : '<div class="card empty"><h3>No reviews yet</h3><p>When a happy customer messages you, add their words here.</p></div>'}`;
+}
+function openReviewSheet(id) {
+  const r = id ? S.reviews.find((x) => x.id === id) : null;
+  S.sheet = { kind: 'review', id, draft: r ? { name: r.name || '', city: r.city || '', quote: r.quote || '', bought: r.bought || '', rating: r.rating ?? '', photo: r.photo || '', consent: !!r.consent, show: !!r.show }
+    : { name: '', city: '', quote: '', bought: '', rating: '', photo: '', consent: false, show: true } };
+  S.sheet.orig = JSON.stringify(S.sheet.draft); renderSheet();
+}
+function sheetReview() {
+  const { id, draft: d } = S.sheet;
+  return `<div class="section-head"><h2>${id ? 'Edit review' : 'Add a review'}</h2><button class="icon-btn" data-act="closeSheet" aria-label="Close">×</button></div>
+  <div class="row">${reviewPhoto(d.photo, 72)}<label class="btn ghost sm" style="cursor:pointer">${d.photo ? 'Change photo' : 'Add photo'}<input type="file" id="rv-photo" accept="image/*" class="sr-only"></label>${d.photo ? '<button class="btn ghost sm" data-act="rvNoPhoto">Remove photo</button>' : ''}</div>
+  <p class="small muted">A face or the gift in their hands both work. It is shrunk to a small round picture.</p>
+  <div class="grid2">${field('Name shown', 'name', d.name, { ph: 'e.g. Priya S.' })}${field('City (optional)', 'city', d.city, { ph: 'e.g. Pune' })}</div>
+  <label class="f">What they said<textarea class="input" rows="4" maxlength="320" data-bind="quote" placeholder="e.g. The return-gift bags were a hit at Aanya’s party. Lovely packing and quick replies on WhatsApp!">${esc(d.quote)}</textarea></label>
+  <label class="f">What they bought<select class="input" data-bind="bought">${boughtOptions(d.bought)}</select></label>
+  <div class="seg" role="group" aria-label="Stars">${['', 5, 4, 3].map((v) => `<button data-act="setDraft" data-k="rating" data-v="${v}" aria-pressed="${String(d.rating) === String(v)}">${v ? '★'.repeat(v) : 'No stars'}</button>`).join('')}</div>
+  <label class="switch"><input type="checkbox" data-bind="consent" ${d.consent ? 'checked' : ''}> The customer agreed to show this${d.photo ? ', with their photo,' : ''} on the website</label>
+  <label class="switch"><input type="checkbox" data-bind="show" ${d.show ? 'checked' : ''}> Show on the website</label>
+  <button class="btn primary block" data-act="saveReview">Save review</button>
+  ${id ? `<button class="btn danger block" data-act="deleteReview" data-confirm="Tap again to delete this review">Delete review</button>` : ''}`;
+}
+// A chosen photo is cropped to a square and shrunk to 240px so it stays small in the database and on the website.
+document.addEventListener('change', (e) => {
+  if (e.target.id !== 'rv-photo' || S.sheet?.kind !== 'review') return;
+  const f = e.target.files?.[0]; if (!f) return;
+  if (!/^image\//.test(f.type)) return toast('Choose a photo file.', true);
+  const img = new Image(), url = URL.createObjectURL(f);
+  img.onload = () => {
+    const side = Math.min(img.naturalWidth, img.naturalHeight), c = document.createElement('canvas'); c.width = c.height = 240;
+    c.getContext('2d').drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, 240, 240);
+    URL.revokeObjectURL(url);
+    S.sheet.draft.photo = c.toDataURL('image/jpeg', 0.82); renderSheet();
+  };
+  img.onerror = () => { URL.revokeObjectURL(url); toast('That photo could not be opened. Try a JPG or PNG.', true); };
+  img.src = url;
+});
+
+// ---------------------------------------------------------------- OFFERS (website discounts)
+const OFFER_SCOPES = [['all', 'Everything'], ['bags', 'Gift bags only'], ['items', 'Single items only']];
+const offerState = (o) => (!o.on ? ['Off', 'plain'] : str(o.to) < today() ? ['Ended', 'plain'] : str(o.from) > today() ? [`Starts ${fmtDate(o.from)}`, 'low'] : ['Live on the website', 'ok']);
+function moreOffers() {
+  const list = [...S.offers].sort((a, b) => str(b.from).localeCompare(str(a.from)));
+  return `<div class="tip"><b>Offers for an occasion</b><span class="small">An offer takes a percentage off on the website between two dates, e.g. Diwali: 10% off gift bags. For a single item or bag, set its sale price instead (edit it in Stock or Gift bags). If an item has both, the lower price wins. Offers reach the website with the next stock refresh.</span></div>
+  <button class="btn primary block" data-act="newOffer">+ New offer</button>
+  ${list.length ? `<div class="card" style="padding-block:4px"><div class="list">${list.map((o) => { const [st, cls] = offerState(o); return `<button class="li" data-act="openOffer" data-id="${esc(o.id)}">
+    <div class="grow"><div class="name">${esc(o.name || 'Offer')} · ${esc(n(o.pct))}% off</div><div class="meta">${esc((OFFER_SCOPES.find((x) => x[0] === o.scope) || OFFER_SCOPES[0])[1])} · ${fmtDate(o.from)} – ${fmtDate(o.to)}</div></div>
+    <div class="right"><span class="chip ${cls}">${esc(st)}</span></div></button>`; }).join('')}</div></div>`
+  : '<div class="card empty"><h3>No offers yet</h3><p>Create one for a festival, birthday season or back-to-school.</p></div>'}`;
+}
+function openOfferSheet(id) {
+  const o = id ? S.offers.find((x) => x.id === id) : null;
+  S.sheet = { kind: 'offer', id, draft: o ? { name: o.name || '', pct: o.pct ?? '', scope: o.scope || 'all', from: o.from || today(), to: o.to || today(), on: o.on !== false }
+    : { name: '', pct: '', scope: 'all', from: today(), to: today(), on: true } };
+  S.sheet.orig = JSON.stringify(S.sheet.draft);
+  renderSheet();
+}
+function sheetOffer() {
+  const { id, draft: d } = S.sheet;
+  return `<div class="section-head"><h2>${id ? 'Edit offer' : 'New offer'}</h2><button class="icon-btn" data-act="closeSheet" aria-label="Close">×</button></div>
+  ${field('Offer name (shown to buyers)', 'name', d.name, { ph: 'e.g. Diwali Sale' })}
+  ${field('Percent off', 'pct', d.pct, { type: 'number', ph: 'e.g. 10' })}
+  <div class="seg" role="group" aria-label="Applies to">${OFFER_SCOPES.map(([k, l]) => `<button data-act="setDraft" data-k="scope" data-v="${k}" aria-pressed="${d.scope === k}">${l}</button>`).join('')}</div>
+  <div class="grid2">${field('From', 'from', d.from, { type: 'date' })}${field('To (last day)', 'to', d.to, { type: 'date' })}</div>
+  <label class="switch"><input type="checkbox" data-bind="on" ${d.on ? 'checked' : ''}> Offer is on</label>
+  <p class="small muted">Prices are rounded to the nearest rupee. Pencil boxes and the Reward Stamp Set (set prices) are included only through the website's own price.</p>
+  <button class="btn primary block" data-act="saveOffer">Save offer</button>
+  ${id ? `<button class="btn danger block" data-act="deleteOffer" data-confirm="Tap again to delete this offer">Delete offer</button>` : ''}`;
 }
 function historyEntries() {
   const e = [
@@ -859,7 +1131,7 @@ function moreBags() {
 }
 function openBagSheet(id) {
   const b = id ? D.bagsById[id] : null;
-  S.sheet = { kind: 'bag', id, draft: b ? { name: b.name || '', price: b.price ?? '', contents: clone(b.contents || []) } : { name: '', price: '', contents: [{ itemId: '', qty: 1 }] } };
+  S.sheet = { kind: 'bag', id, draft: b ? { name: b.name || '', price: b.price ?? '', best: !!b.best, salePrice: b.salePrice ?? '', contents: clone(b.contents || []) } : { name: '', price: '', best: false, salePrice: '', contents: [{ itemId: '', qty: 1 }] } };
   S.sheet.orig = JSON.stringify(S.sheet.draft);
   renderSheet();
 }
@@ -871,6 +1143,8 @@ function sheetBag() {
   <div class="grid2">${field('Bag name', 'name', d.name, { ph: 'e.g. Sweet Treats' })}${field('Selling price', 'price', d.price, { type: 'number', rupee: true })}</div>
   <h3>Contents</h3>${kitLines('sheet', 'contents', d.contents, 'product')}
   <div class="tip" id="bag-preview"><div class="sum-row"><span>Cost of contents</span><b>${inr(cost)}</b></div><div class="sum-row"><span>Margin</span><b>${n(d.price) ? `${inr(n(d.price) - cost)} (${pct((n(d.price) - cost) / n(d.price))})` : '–'}</b></div><div class="sum-row"><span>Can make now</span><b>${cap.count}</b></div></div>
+  <label class="switch"><input type="checkbox" data-bind="best" ${d.best ? 'checked' : ''}> ★ Best seller on the website</label>
+  ${field('Sale price on the website (optional)', 'salePrice', d.salePrice, { type: 'number', rupee: true, ph: 'no sale' })}
   <button class="btn primary block" data-act="saveBag">Save bag</button>
   ${b ? `<button class="btn ghost block" data-act="archiveBag">${b.archived ? 'Restore bag' : 'Archive bag'}</button>` : ''}`;
 }
@@ -944,6 +1218,7 @@ function moreHelp() {
     <p>This stockroom is stored in your Claude account, so Claude can read and update it. In the Claude app on your computer, say things like:</p>
     <div class="tip"><span>“<b>TadaBoo:</b> sold 2 Sweet Treats bags to Riya, she paid ₹60 shipping, courier was ₹70, gift kit”</span></div>
     <div class="tip"><span>“<b>TadaBoo:</b> bought 100 paper bags for ₹450 from Amazon”</span></div>
+    <div class="tip"><span>“<b>TadaBoo:</b> add a fixed cost: receipt printer ₹3,000, paid today”</span></div>
     <div class="tip"><span>“<b>TadaBoo:</b> what’s running low?” or “how much profit this month?”</span></div>
     <div class="tip"><span>“<b>TadaBoo:</b> here’s a WhatsApp order, record it” or “refresh the website stock”</span></div>
     <p class="small muted">Claude shows you what it is about to record and waits for your OK before saving. Everything it adds appears in History and can be deleted.</p></div>`;
@@ -966,7 +1241,7 @@ function renderSheetNow() {
   const same = host.dataset.key === key, prevTop = same ? host.querySelector('.sheet')?.scrollTop || 0 : 0;
   if (!host.dataset.key) sheetOpener = focusKey();
   $('.app').inert = true; // the page behind an open panel can't be reached by keyboard or screen reader
-  const body = { item: sheetItem, bag: sheetBag, entry: sheetEntry, purchase: sheetPurchase, cat: sheetCat, order: sheetOrder }[S.sheet.kind]();
+  const body = { item: sheetItem, bag: sheetBag, entry: sheetEntry, purchase: sheetPurchase, cat: sheetCat, order: sheetOrder, offer: sheetOffer, customer: sheetCustomer, review: sheetReview, expense: sheetExpense }[S.sheet.kind]();
   host.innerHTML = `<div class="scrim" data-act="scrim"><div class="sheet${same ? ' still' : ''}" role="dialog" aria-modal="true" aria-labelledby="sheet-title" tabindex="-1" data-draft="sheet">${body}</div></div>`;
   const h = host.querySelector('.sheet h2'); if (h) h.id = 'sheet-title';
   host.dataset.key = key;
@@ -1123,6 +1398,7 @@ const A = {
   editPurchase: (el) => openPurchaseSheet(el.dataset.id),
   histSupplier: (el) => { S.histSupplier = el.dataset.v; S.historyLimit = 60; renderAll(); },
   // "See all" on Home: everything Low or Out, starting with products (packaging if only packaging needs a refill).
+  gotoHistory: () => { S.tab = 'more'; S.more = 'history'; S.histSupplier = ''; renderAll(); window.scrollTo(0, 0); },
   gotoLow: () => {
     const prod = D.alerts.some((i) => i.type === 'product');
     Object.assign(S.stock, { type: prod ? 'product' : 'packaging', q: '', archived: false, filter: 'refill', sort: 'stock', dir: 'asc', cat: '' });
@@ -1144,6 +1420,9 @@ const A = {
   newItem: () => openItemSheet(null),
   editItem: (el) => openItemSheet(el.dataset.id),
   newBag: () => openBagSheet(null),
+  newExpense: () => openExpenseSheet(null),
+  editExpense: (el) => openExpenseSheet(el.dataset.id),
+  gotoExpenses: () => { dropSettingsDraft(); S.tab = 'more'; S.more = 'expenses'; S.sheet = null; renderAll(); window.scrollTo(0, 0); },
   editBag: (el) => openBagSheet(el.dataset.id),
   openEntry: (el) => { S.sheet = { kind: 'entry', k: el.dataset.k, id: el.dataset.id }; renderSheet(); },
   closeSheet: () => { S.sheet = null; armed = { key: null, at: 0 }; $('#sr').textContent = ''; renderSheet(); },
@@ -1213,12 +1492,13 @@ const A = {
   saveItem: async (el) => {
     const { id, draft: d } = S.sheet;
     if (!d.name.trim()) return toast('Give the item a name.', true);
-    if (negative(d.sellPrice, d.costOverride, d.lowAt)) return toast('Prices, cost and refill level can’t be negative.', true);
+    if (negative(d.sellPrice, d.costOverride, d.lowAt, d.salePrice)) return toast('Prices, cost and refill level can’t be negative.', true);
+    if (nOrNull(d.salePrice) != null && !(nOrNull(d.salePrice) < n(d.sellPrice))) return toast('The sale price must be lower than the selling price.', true);
     if (d.category === '__new' && !str(d.newCat).trim()) return toast('Type a name for the new category, or pick one from the list.', true);
     el.disabled = true;
     const iid = id || newId('items');
     const fields = (x) => ({ name: x.name.trim(), type: x.type, category: resolveCategory(x.category, x.newCat), unit: x.unit.trim() || 'pcs', sellPrice: nOrNull(x.sellPrice), lowAt: nOrNull(x.lowAt),
-      costOverride: nOrNull(x.costOverride), supplier: x.supplier.trim(), note: x.note.trim(), check: !!x.check });
+      costOverride: nOrNull(x.costOverride), supplier: x.supplier.trim(), note: x.note.trim(), check: !!x.check, best: x.type === 'product' && !!x.best, salePrice: x.type === 'product' ? nOrNull(x.salePrice) : null });
     if (id) {
       // Write only what the owner changed, so edits made meanwhile by Claude or another device survive.
       const changed = changedFields(fields(d), fields(JSON.parse(S.sheet.orig)));
@@ -1248,18 +1528,79 @@ const A = {
     if (await write(() => delDoc('items', id), 'Item deleted')) { S.sheet = null; renderAll(); }
   },
   // bags
+  custFilter: (el) => { S.custFilter = el.dataset.v; renderAll(); },
+  openCustomer: (el) => openCustomerSheet(el.dataset.id),
+  copyOfferPhones: async () => {
+    const nums = customerList().filter((c) => c.offers === 'yes').map((c) => `+91 ${c.phone}`).join('\n');
+    try { await navigator.clipboard.writeText(nums); toast('Numbers copied. Paste them into a WhatsApp Business broadcast list.'); } catch { toast('Couldn’t copy here. Open each customer instead.', true); }
+  },
+  saveCustomer: async (el) => {
+    const { id, draft: d } = S.sheet, before = JSON.parse(S.sheet.orig);
+    if (d.offers === before.offers && d.note === before.note) { S.sheet = null; return renderAll(); }
+    el.disabled = true;
+    const body = { note: str(d.note).trim(), updatedAt: nowIso(), ...(d.offers !== before.offers ? { offers: !!d.offers } : {}) };
+    const ref = S.db.collection('customers').doc(id), exists = S.customers.some((x) => x.id === id);
+    if (await write(() => (exists ? ref.update(body) : ref.set(body)), 'Customer saved')) { S.sheet = null; renderAll(); } else el.disabled = false;
+  },
+  newReview: () => openReviewSheet(null),
+  openReview: (el) => openReviewSheet(el.dataset.id),
+  rvNoPhoto: () => { S.sheet.draft.photo = ''; renderSheet(); },
+  saveReview: async (el) => {
+    const { id, draft: d } = S.sheet;
+    if (!d.name.trim()) return toast('Add the name to show, e.g. Priya S.', true);
+    if (!d.quote.trim()) return toast('Add what the customer said.', true);
+    if (d.show && !d.consent) return toast('Tick that the customer agreed before showing it on the website.', true);
+    el.disabled = true;
+    const body = { name: d.name.trim().slice(0, 60), city: d.city.trim().slice(0, 40), quote: d.quote.trim().slice(0, 320), bought: d.bought || '', rating: d.rating === '' ? null : n(d.rating), photo: d.photo || '', consent: !!d.consent, show: !!d.show, updatedAt: nowIso() };
+    const save = id ? () => S.db.collection('reviews').doc(id).update(body) : () => setDoc('reviews', S.sheet.newId ||= newId('reviews'), { ...body, createdAt: nowIso() });
+    if (await write(save, d.show ? 'Review saved. It appears on the website after the next update.' : 'Review saved (hidden).')) { S.sheet = null; renderAll(); } else el.disabled = false;
+  },
+  deleteReview: async (el) => {
+    if (needsConfirm(el)) return;
+    if (await write(() => delDoc('reviews', S.sheet.id), 'Review deleted')) { S.sheet = null; renderAll(); }
+  },
+  newOffer: () => openOfferSheet(null),
+  openOffer: (el) => openOfferSheet(el.dataset.id),
+  saveOffer: async (el) => {
+    const { id, draft: d } = S.sheet, pct = n(d.pct);
+    if (!d.name.trim()) return toast('Give the offer a name buyers will see, e.g. Diwali Sale.', true);
+    if (!(pct > 0 && pct < 90)) return toast('Percent off must be between 1 and 89.', true);
+    if (!d.from || !d.to || d.to < d.from) return toast('The last day must be on or after the first day.', true);
+    el.disabled = true;
+    const body = { name: d.name.trim(), pct, scope: d.scope, from: d.from, to: d.to, on: !!d.on };
+    const save = id ? () => S.db.collection('offers').doc(id).update(body) : () => setDoc('offers', S.sheet.newId ||= newId('offers'), { ...body, createdAt: nowIso() });
+    if (await write(save, 'Offer saved. It reaches the website with the next stock refresh.')) { S.sheet = null; renderAll(); } else el.disabled = false;
+  },
+  deleteOffer: async (el) => {
+    if (needsConfirm(el)) return;
+    if (await write(() => delDoc('offers', S.sheet.id), 'Offer deleted')) { S.sheet = null; renderAll(); }
+  },
   saveBag: async (el) => {
     const { id, draft: d } = S.sheet, prev = id ? D.bagsById[id] : null;
     if (!d.name.trim()) return toast('Give the bag a name.', true);
     if (!d.contents.some((c) => c.itemId && n(c.qty) > 0)) return toast('Add at least one item to the bag.', true);
-    if (negative(d.price)) return toast('The price can’t be negative.', true);
+    if (negative(d.price, d.salePrice)) return toast('The price can’t be negative.', true);
+    if (nOrNull(d.salePrice) != null && !(nOrNull(d.salePrice) < n(d.price))) return toast('The sale price must be lower than the selling price.', true);
     el.disabled = true;
-    const fields = (x) => ({ name: x.name.trim(), price: n(x.price), contents: x.contents.filter((c) => c.itemId && n(c.qty) > 0).map((c) => ({ itemId: c.itemId, qty: n(c.qty) })) });
+    const fields = (x) => ({ name: x.name.trim(), price: n(x.price), best: !!x.best, salePrice: nOrNull(x.salePrice), contents: x.contents.filter((c) => c.itemId && n(c.qty) > 0).map((c) => ({ itemId: c.itemId, qty: n(c.qty), ...(c.label ? { label: String(c.label) } : {}) })) });
     const save = id && prev
       ? (() => { const changed = changedFields(fields(d), fields(JSON.parse(S.sheet.orig))); return Object.keys(changed).length ? S.db.collection('bags').doc(id).update(changed) : Promise.resolve(); })
       : (() => setDoc('bags', id || (S.sheet.newId ||= newId('bags')), { ...fields(d), archived: false, createdAt: nowIso() }));
     if (await write(save, 'Bag saved')) { S.sheet = null; renderAll(); } else el.disabled = false;
   },
+  saveExpense: async (el) => {
+    const { id, draft: d } = S.sheet;
+    if (!str(d.label).trim()) return toast('Say what the cost was for.', true);
+    if (!(n(d.amount) > 0)) return toast('Enter the cost in rupees.', true);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(str(d.date))) return toast('Pick the date you paid.', true);
+    el.disabled = true;
+    const body = { label: str(d.label).trim().slice(0, 120), amount: n(d.amount), date: d.date, note: str(d.note).trim() };
+    const save = id && S.expenses.some((x) => x.id === id)
+      ? () => S.db.collection('expenses').doc(id).update(body)
+      : () => setDoc('expenses', S.sheet.newId ||= newId('expenses'), { ...body, createdAt: nowIso() });
+    if (await write(save, 'Fixed cost saved')) { S.sheet = null; renderAll(); } else el.disabled = false;
+  },
+  deleteExpense: async (el) => { if (needsConfirm(el)) return; if (await write(() => delDoc('expenses', S.sheet.id), 'Fixed cost deleted')) { S.sheet = null; renderAll(); } },
   archiveBag: async () => { const b = D.bagsById[S.sheet.id]; if (!b) return toast('This bag was removed elsewhere.', true); if (await write(() => S.db.collection('bags').doc(b.id).update({ archived: !b.archived }), b.archived ? 'Bag restored' : 'Bag archived')) { S.sheet = null; renderAll(); } },
   savePurchase: async (el) => {
     const { id, draft: d } = S.sheet;
@@ -1308,6 +1649,31 @@ const A = {
     const ok = await write(() => S.db.collection('orders').doc(id).update({ status: 'confirmed', saleId, pack: m.pack, kits: m.kits, shippingCharged: n(d.shippingCharged), courierCost: n(d.courierCost),
       updatedAt: at, history: [...(Array.isArray(o.history) ? o.history : []), { status: 'confirmed', at }] }), `Confirmed · stock updated · profit ${inr(m.totals.profit)}`);
     if (ok) { orderStepAt = Date.now(); S.sheet.orig = JSON.stringify(S.sheet.draft); renderAll(); afterOrderStep('Order confirmed. Stock updated. Website stock file is now out of date.'); }
+  },
+  orderPaid: async (el) => {
+    const { id, draft: d } = S.sheet, o = S.orders.find((x) => x.id === id);
+    if (!o) return toast('This order was removed elsewhere.', true);
+    const amount = str(d.payAmt).trim() === '' ? due(o) : n(d.payAmt);
+    if (!(amount > 0)) return toast('Enter the amount you received.', true);
+    el.disabled = true;
+    const payment = { paid: true, amount, ref: str(d.payRef).trim().slice(0, 40), date: d.payDate || today(), at: nowIso() };
+    if (await write(() => S.db.collection('orders').doc(id).update({ payment, updatedAt: nowIso() }), 'Marked paid. You can download the receipt now.')) { S.sheet.orig = JSON.stringify(S.sheet.draft); renderAll(); } else el.disabled = false;
+  },
+  orderUnpaid: async (el) => {
+    if (needsConfirm(el)) return;
+    const { id } = S.sheet;
+    if (await write(() => S.db.collection('orders').doc(id).update({ payment: { paid: false }, updatedAt: nowIso() }), 'Marked as not paid')) { S.sheet.draft.payAmt = ''; renderAll(); }
+  },
+  orderReceipt: async (el) => {
+    const o = S.orders.find((x) => x.id === S.sheet?.id); if (!o?.payment?.paid) return;
+    if (!S.downloads) return toast('Downloads are not available here.', true);
+    el.disabled = true;
+    try {
+      const png = await receiptPng(o);
+      await S.downloads.save({ filename: `TadaBoo receipt ${o.id}.png`, data: png });
+      toast('Receipt ready. Send it to the customer on WhatsApp.');
+    } catch (e) { if (e?.code !== 'declined') toast('Couldn’t make the receipt here. Try again.', true); }
+    el.disabled = false;
   },
   saveOrderStatus: async (el) => {
     if (Date.now() - orderStepAt < 1200) return; // the tap that confirmed or moved the order, landing on the new button
@@ -1392,8 +1758,11 @@ async function exportXlsx() {
   add('Purchases', S.purchases.flatMap((p) => landedLines(p).map((l) => ({ Date: p.date, Supplier: p.supplier, Ref: p.ref, Item: itemName(l.itemId), Qty: l.qty, 'Unit price': r2(l.unitPrice), 'Landed cost': r2(l.landed), 'Line total': r2(l.qty * l.landed) }))));
   add('Stock corrections', S.adjustments.map((a) => ({ Date: a.date, Item: itemName(a.itemId), Change: a.qty, Reason: a.reason })));
   add('Gift bags', S.bags.map((b) => { const c = (b.contents || []).reduce((a, x) => a + n(x.qty) * (D.costs[x.itemId] || 0), 0); return { Bag: nameOf(b), Price: n(b.price), Cost: r2(c), Margin: r2(n(b.price) - c), 'Can make': bagCapacity(b, D.stock, D.itemsById).count, Contents: (b.contents || []).map((x) => `${x.qty} × ${itemName(x.itemId)}`).join('; '), Archived: b.archived ? 'yes' : '' }; }));
-  const mon = summary(S.sales, D.costs, S.bags, { from: today().slice(0, 8) + '01', to: today().slice(0, 8) + '31' }), all = summary(S.sales, D.costs, S.bags, {});
-  add('Summary', ['revenue', 'itemCost', 'packCost', 'courier', 'profit', 'orders'].map((k) => ({ Measure: { revenue: 'Revenue', itemCost: 'Item cost', packCost: 'Packaging cost', courier: 'Courier', profit: 'Profit', orders: 'Orders' }[k], 'This month': r2(mon[k]), 'All time': r2(all[k]) })));
+  add('Fixed costs', [...S.expenses].sort((a, b) => str(a.date).localeCompare(str(b.date))).map((x) => ({ Date: x.date, 'What for': x.label, Cost: n(x.amount), Note: x.note })));
+  const monR = { from: today().slice(0, 8) + '01', to: today().slice(0, 8) + '31' };
+  const mon = summary(S.sales, D.costs, S.bags, monR), all = summary(S.sales, D.costs, S.bags, {});
+  mon.fixed = fixedTotal(monR); all.fixed = fixedTotal({}); mon.net = mon.profit - mon.fixed; all.net = all.profit - all.fixed;
+  add('Summary', ['revenue', 'itemCost', 'packCost', 'courier', 'profit', 'fixed', 'net', 'orders'].map((k) => ({ Measure: { revenue: 'Revenue', itemCost: 'Item cost', packCost: 'Packaging cost', courier: 'Courier', profit: 'Profit', fixed: 'Fixed costs', net: 'Profit after fixed costs', orders: 'Orders' }[k], 'This month': r2(mon[k]), 'All time': r2(all[k]) })));
   const data = X.write(wb, { bookType: 'xlsx', type: 'array' });
   try { await S.downloads.save({ filename: `TadaBoo-stockroom-${today()}.xlsx`, data }); toast('Excel file saved'); }
   catch (e) { if (e?.code !== 'declined') toast('Could not save the Excel file.', true); }
