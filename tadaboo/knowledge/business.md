@@ -81,7 +81,7 @@ A fourth size may be added if orders need it. Bubble wrap and tape are still to 
 - **Median item margin** at catalogue price: **~56%**.
 - **Thinnest margins**: Chocolate Bar Squishy 35%, 7 Pcs Aesthetic Set 42%, Dumpling Bun Squishy 43%, Butterfly Pen 49%, 2-in-1 Sharpener + Eraser 49%, 6-in-1 Set 50%.
 - **Richest margins**: 2B pencils (~56% per box at ₹109; 74% as singles at ₹15), Plane Sharpener 67%, Rabbit Eraser 66%, Clipboard Diary 65%, Shuttlecock Sharpener 65%, Diamond Bracelet Kit 63%.
-- **Packaging in product cost** (owner's choice, 26 Oct 2026): packaging is not a separate cost per sale. The Stockroom spreads all packaging spend over products by value (≈29% on purchases to date: ₹7,600 packaging vs ~₹25,800 products), so product and gift-bag costs and margins include it; ticking packaging on a sale only reduces packaging stock. The share falls as more products are bought against the same packaging stock.
+- **Packaging in product cost** (owner's choice, 26 Oct 2026): packaging is costed when used, at its cost per piece, inside the item cost of the sale it went with (no separate packaging line, never charged to customers). Unused packaging stays in stock, so bulk packaging purchases don't move margins. Gift-bag margins include one gift kit (≈₹32 today: paper bag + sticker + card; ≈₹37 if a bookmark is given). A spread-by-value method was tried and dropped because the share jumped with each packaging purchase.
 - **Packaging drag**: ₹37.4 per order is 19% of a ₹199 bag but under 4% of a ₹999 hamper. Low-ticket bags carry the lowest margins (39–40%).
 - **Stock on hand** (catalogue products, purchases only): ~₹25,800 at landed cost, ~₹57,900 at catalogue prices.
 

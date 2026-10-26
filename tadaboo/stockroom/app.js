@@ -3,7 +3,7 @@
 // Stock and costs are derived from those events in calc.js on every snapshot.
 import {
   landedLines, avgCosts, stockLevels, expandSale, saleTotals, summary,
-  status, bagCapacity, kitPieces, suggestPackaging, inr, packShare,
+  status, bagCapacity, kitPieces, suggestPackaging, inr,
 } from './calc.js';
 
 // ---------------------------------------------------------------- state
@@ -45,24 +45,24 @@ function derive() {
   const itemsById = Object.fromEntries(items.map((i) => [i.id, i]));
   const bagsById = Object.fromEntries(bags.map((b) => [b.id, b]));
   const costs = avgCosts(items, S.purchases);
-  // Packaging is built into product cost (spread by value) unless Settings says to charge it per sale.
-  const share = S.settings.packCost === 'perSale' ? null : packShare(items, S.purchases);
-  const typeOf = Object.fromEntries(items.map((i) => [i.id, i.type]));
-  // A product's full cost: landed cost plus its share of packaging. Stock value keeps landed cost, since packaging stock is counted on its own.
-  const full = (id) => (costs[id] == null ? null : typeOf[id] === 'packaging' || share == null ? costs[id] : costs[id] * (1 + share));
+  // Packaging counts when it is used: what is ticked on a sale, at its cost per piece, goes into that sale's
+  // item cost (no separate line) unless Settings says to show it as its own cost. Unused packaging stays in stock.
+  const packIn = S.settings.packCost !== 'perSale';
+  // One gift kit at today's cost per piece: part of each gift bag's cost and margin.
+  const kitCost = (S.settings.giftKit || []).reduce((a, k) => a + n(k.qty) * (costs[k.itemId] || 0), 0);
   const stock = stockLevels(items, S.purchases, S.sales, S.adjustments, bags);
   const lowAt = (it) => it.lowAt ?? (it.type === 'packaging' ? S.settings.lowPackaging ?? 10 : S.settings.lowProduct ?? 5);
   const st = (it) => status(stock[it.id], lowAt(it));
   const active = items.filter((i) => !i.archived);
   const t = today();
   const range = S.period === 'month' ? { from: t.slice(0, 8) + '01', to: t.slice(0, 8) + '31' } : {};
-  const sum = summary(S.sales, costs, bags, range, share);
+  const sum = summary(S.sales, costs, bags, range, packIn);
   const purchaseTotal = (p) => landedLines(p).reduce((a, l) => a + l.qty * l.landed, 0);
   const spent = S.purchases.filter((p) => !range.from || (p.date >= range.from && p.date <= range.to)).reduce((a, p) => a + purchaseTotal(p), 0);
   const stockValue = active.reduce((a, i) => a + Math.max(0, stock[i.id] || 0) * (costs[i.id] || 0), 0);  const alerts = active.filter((i) => st(i) !== 'ok').sort((a, b) => (stock[a.id] || 0) - (stock[b.id] || 0));
   const capacity = bags.filter((b) => !b.archived).map((b) => ({ bag: b, ...bagCapacity(b, stock, itemsById) })).sort((a, b) => a.count - b.count);
-  const sumAll = S.period === 'all' ? sum : summary(S.sales, costs, bags, {}, share);
-  D = { itemsById, bagsById, costs, share, full, stock, lowAt, st, active, sum, sumAll, spent, stockValue, alerts, capacity, purchaseTotal,
+  const sumAll = S.period === 'all' ? sum : summary(S.sales, costs, bags, {}, packIn);
+  D = { itemsById, bagsById, costs, packIn, kitCost, stock, lowAt, st, active, sum, sumAll, spent, stockValue, alerts, capacity, purchaseTotal,
     fixed: fixedTotal(range), fixedAll: fixedTotal({}) };
 }
 // One-time (fixed) costs such as a receipt printer: kept out of each sale's profit, shown against total profit.
@@ -260,6 +260,8 @@ function packMode(q) {
   return 'custom';
 }
 const packPieces = (q, snap) => Object.entries(packGiven(q)).map(([itemId, qty]) => ({ itemId, qty, cost: snap(D.costs[itemId] ?? null) }));
+// A gift bag sold with no packaging ticked is most likely a missed tick: its cost would be understated.
+const noPackWarn = (sale) => ((sale?.lines || []).some((l) => l.bagId) && !(sale.packaging?.pieces || []).length ? '<div class="warn">No packaging ticked for a gift bag. Tap “Gift kit” if you packed one.</div>' : '');
 const packSummary = (pieces) => (pieces || []).map((x) => `${x.qty} × ${itemName(x.itemId)}`).join(', ');
 function packChecklist(d, presets) {
   const mode = packMode(d.packQty), rows = packItems();
@@ -268,7 +270,7 @@ function packChecklist(d, presets) {
       <label class="switch grow"><input type="checkbox" data-act="packTick" data-id="${esc(it.id)}" ${on ? 'checked' : ''}><span><span class="name">${esc(nameOf(it))}</span> <span class="meta">${esc(n(D.stock[it.id]))} in stock</span></span></label>
       <input class="input num" style="width:76px;text-align:center" type="number" inputmode="decimal" min="0" step="any" data-bind="packQty.${esc(it.id)}" value="${esc(q)}" placeholder="0" aria-label="How many ${esc(nameOf(it))}"></div>`; }).join('')}</div>`
       : '<p class="small muted">No packaging items yet. Add them in Stock → Packaging.</p>'}
-    <p class="small muted">Tick only what went in with this order. Ticked items come out of stock${D.share != null ? '; their cost is already built into product cost' : ' and count in the packaging cost'}.</p>`;
+    <p class="small muted">Tick only what went in with this order. Ticked items come out of stock${D.packIn ? ' and their cost goes into this sale’s item cost' : ' and count as this sale’s packaging cost'}.</p>`;
 }
 
 // ---------------------------------------------------------------- HOME
@@ -284,11 +286,11 @@ function viewHome() {
   <div class="kpis">
     <div class="kpi hero"><span class="eyebrow">Profit</span><span class="v">${inr(s.profit)}</span><span class="small muted">${s.revenue > 0 ? `${pct(s.margin)} margin` : 'No sales yet'}${D.fixed ? ` · ${inr(s.profit - D.fixed)} after ${inr(D.fixed)} fixed costs` : ''}</span></div>
     <div class="kpi"><span class="eyebrow">Revenue</span><span class="v">${inr(s.revenue)}</span><span class="small muted">${s.orders} order${s.orders === 1 ? '' : 's'}</span></div>
-    <div class="kpi"><span class="eyebrow">Costs of sales</span><span class="v">${inr(costTotal)}</span><span class="small muted">${D.share != null ? 'items incl. packaging + courier' : 'items + packaging + courier'}</span></div>
+    <div class="kpi"><span class="eyebrow">Costs of sales</span><span class="v">${inr(costTotal)}</span><span class="small muted">${D.packIn ? 'items incl. packaging + courier' : 'items + packaging + courier'}</span></div>
     <div class="kpi"><span class="eyebrow">Stock value</span><span class="v">${inr(D.stockValue)}</span><span class="small muted">${inr(D.spent)} spent on stock ${S.period === 'month' ? 'this month' : 'so far'}</span></div>
   </div>
   ${costTotal > 0 ? `<div class="card stack"><div class="bars">${bar(s.itemCost - s.packShare, 'var(--accent)')}${bar(s.packCost + s.packShare, 'var(--teal)')}${bar(s.courier, 'var(--pink)')}</div>
-    <div class="legend"><span><b style="background:var(--accent)"></b>Items ${inr(s.itemCost - s.packShare)}</span><span><b style="background:var(--teal)"></b>Packaging ${inr(s.packCost + s.packShare)}${D.share != null ? ' (built into item cost)' : ''}</span><span><b style="background:var(--pink)"></b>Courier ${inr(s.courier)}</span></div></div>` : ''}
+    <div class="legend"><span><b style="background:var(--accent)"></b>Items ${inr(s.itemCost - s.packShare)}</span><span><b style="background:var(--teal)"></b>Packaging ${inr(s.packCost + s.packShare)}${D.packIn ? ' (in item cost)' : ''}</span><span><b style="background:var(--pink)"></b>Courier ${inr(s.courier)}</span></div></div>` : ''}
   ${D.fixedAll > 0 ? paybackCard() : ''}
   <div class="two-col">
     <div class="card stack"><div class="section-head"><h3>Needs a refill</h3><span class="small muted">${D.alerts.length} item${D.alerts.length === 1 ? '' : 's'}</span></div>
@@ -387,7 +389,7 @@ const TEXT_SORT = { category: true, name: true };
 const dirWords = (key, dir) => (TEXT_SORT[key] ? (dir === 'asc' ? 'A–Z' : 'Z–A') : dir === 'asc' ? 'lowest first' : 'highest first');
 // The numbers shown in an item's row; null means not set. Values written elsewhere may be text, so coerce.
 function rowVals(it) {
-  const c = D.full(it.id), cost = Number.isFinite(c) ? c : null, sell = nOrNull(it.sellPrice);
+  const c = D.costs[it.id], cost = Number.isFinite(c) ? c : null, sell = nOrNull(it.sellPrice);
   return { cost, sell, margin: sell > 0 && cost != null ? (sell - cost) / sell : null, stock: n(D.stock[it.id]) };
 }
 function sortItems(list, key, dir) {
@@ -490,11 +492,11 @@ function sheetItem() {
     ${field(`Refill when at or below`, 'lowAt', d.lowAt, { type: 'number', ph: `default ${d.type === 'packaging' ? S.settings.lowPackaging ?? 10 : S.settings.lowProduct ?? 5}` })}
     ${field('Selling price', 'sellPrice', d.sellPrice, { type: 'number', rupee: true, ph: d.type === 'packaging' ? 'not sold' : 'not set' })}
     ${avg == null ? field('Cost per piece', 'costOverride', d.costOverride, { type: 'number', rupee: true, ph: 'not bought yet' })
-      : `<label class="f">Cost per piece${D.share && d.type === 'product' ? ' (incl. packaging)' : ''}<span class="input num" aria-readonly="true">${inr(D.share && d.type === 'product' ? avg * (1 + D.share) : avg, 2)}</span></label>`}
+      : `<label class="f">Cost per piece<span class="input num" aria-readonly="true">${inr(avg, 2)}</span></label>`}
     ${field('Unit', 'unit', d.unit, { ph: pk ? 'pcs, m or roll' : 'pcs' })}
   </div>
   ${pk ? '<p class="small muted">Packaging is used when you pack orders, never sold. Pick the unit you count when packing: boxes in pcs, bubble wrap or tape in metres. Tick it under “Packaging given” when you record a sale or confirm an order.</p>' : ''}
-  <p class="small muted">${avg == null ? 'Cost is used until you record a purchase of this item.' : `Cost comes from your purchases, including GST and shipping${D.share && d.type === 'product' ? `, plus ${pct(D.share)} for packaging (${inr(avg, 2)} landed + ${inr(avg * D.share, 2)} packaging)` : ''}.`} Changing the stock count saves a “Manual count” entry in History.</p>  ${field('Supplier', 'supplier', d.supplier, { ph: 'optional' })}
+  <p class="small muted">${avg == null ? 'Cost is used until you record a purchase of this item.' : 'Cost comes from your purchases, including GST and shipping.'} Changing the stock count saves a “Manual count” entry in History.</p>  ${field('Supplier', 'supplier', d.supplier, { ph: 'optional' })}
   <label class="f">Note<textarea class="input" rows="2" data-bind="note">${esc(d.note)}</textarea></label>
   <label class="switch"><input type="checkbox" data-bind="check" ${d.check ? 'checked' : ''}> Mark “⚠ check” (needs my review)</label>
   ${d.type === 'product' ? `<label class="switch"><input type="checkbox" data-bind="best" ${d.best ? 'checked' : ''}> ★ Best seller on the website</label>
@@ -528,7 +530,7 @@ function sellModel(d) {
   const snap = (c) => (c == null ? null : +(+c).toFixed(4));
   const consumed = expandSale({ lines }, S.bags).map((c) => ({ ...c, cost: snap(D.costs[c.itemId]) }));
   const pieces = packPieces(d.packQty, snap);
-  const noCost = [...new Set([...consumed, ...(D.share != null ? [] : pieces)].filter((c) => c.cost == null).map((c) => itemName(c.itemId)))];
+  const noCost = [...new Set([...consumed, ...pieces].filter((c) => c.cost == null).map((c) => itemName(c.itemId)))];
   const kinds = new Set(lines.map((l) => (l.bagId ? 'bag' : 'item')));
   const sale = { date: d.date || today(), kind: kinds.size > 1 ? 'custom' : kinds.has('bag') ? 'bag' : 'items', lines, consumed,
     packaging: { mode: packMode(d.packQty), pieces }, shippingCharged: n(d.shippingCharged), courierCost: n(d.courierCost), customer: d.customer.trim(), note: d.note.trim() };
@@ -536,7 +538,7 @@ function sellModel(d) {
   for (const c of [...consumed, ...pieces]) need[c.itemId] = (need[c.itemId] || 0) + c.qty;
   const short = Object.entries(need).filter(([id, q]) => (D.stock[id] ?? 0) < q).map(([id, q]) => `${itemName(id)} (need ${q}, have ${D.stock[id] ?? 0})`);
   const noPrice = d.lines.filter((l) => l.t === 'item' && l.id && !l.priceEdited && D.itemsById[l.id]?.sellPrice == null).map((l) => itemName(l.id));
-  return { sale, totals: saleTotals(sale, D.costs, S.bags, D.share), short, noCost, noPrice, orderValue: lines.reduce((a, l) => a + l.price, 0) };
+  return { sale, totals: saleTotals(sale, D.costs, S.bags, D.packIn), short, noCost, noPrice, orderValue: lines.reduce((a, l) => a + l.price, 0) };
 }
 function viewSell() {
   const d = (S.sell ||= blankSell());
@@ -575,7 +577,7 @@ function recentSales() {
   if (!all.length) return '';
   const list = all.slice(0, 20);
   return `<div class="card stack"><div class="section-head"><h3>Sales recorded</h3><span class="small muted">${all.length} sale${all.length === 1 ? '' : 's'}</span></div>
-    <div class="list">${list.map((d) => { const t = saleTotals(d, D.costs, S.bags, D.share); return `<button class="li" data-act="openEntry" data-k="sales" data-id="${esc(d.id)}">
+    <div class="list">${list.map((d) => { const t = saleTotals(d, D.costs, S.bags, D.packIn); return `<button class="li" data-act="openEntry" data-k="sales" data-id="${esc(d.id)}">
       <div class="grow"><div class="name">${esc(saleTitle(d))}</div><div class="meta">${fmtDate(d.date)}${d.customer ? ` · ${esc(d.customer)}` : ''}</div></div>
       <div class="right"><span class="num">${inr(t.revenue)}</span><span class="small ${t.profit >= 0 ? 'pos' : 'neg'}">profit ${inr(t.profit)}</span></div></button>`; }).join('')}</div>
     ${all.length > list.length ? `<button class="btn ghost block" data-act="gotoHistory">See all ${all.length} in History</button>` : ''}</div>`;
@@ -583,8 +585,9 @@ function recentSales() {
 function sellPreview(m, t) {
   return `<h3>This sale</h3>
     <div class="sum-row"><span>Revenue</span><span>${inr(t.revenue)}</span></div>
-    <div class="sum-row muted"><span>Item cost${D.share != null ? ' (incl. packaging)' : ''}</span><span>−${inr(t.itemCost)}</span></div>
-    ${D.share != null ? '' : `<div class="sum-row muted"><span>Packaging</span><span>−${inr(t.packCost)}</span></div>`}
+    <div class="sum-row muted"><span>Item cost${D.packIn ? ` (incl. ${inr(t.packShare)} packaging)` : ''}</span><span>−${inr(t.itemCost)}</span></div>
+    ${D.packIn ? '' : `<div class="sum-row muted"><span>Packaging</span><span>−${inr(t.packCost)}</span></div>`}
+    ${noPackWarn(m.sale)}
     <div class="sum-row muted"><span>Courier</span><span>−${inr(t.courier)}</span></div>
     <div class="sum-row total"><span>Profit</span><span class="${t.profit >= 0 ? 'pos' : 'neg'}">${inr(t.profit)}</span></div>
     ${t.revenue > 0 ? `<p class="small muted">${pct(t.profit / t.revenue)} margin</p>` : ''}
@@ -673,7 +676,7 @@ function orderModel(o, opts = {}) {
   const need = {};
   for (const c of [...consumed, ...pieces]) need[c.itemId] = (need[c.itemId] || 0) + c.qty;
   const short = Object.entries(need).filter(([id, q]) => (D.stock[id] ?? 0) < q).map(([id, q]) => `${itemName(id)} (need ${q}, have ${D.stock[id] ?? 0})`);
-  return { lines, sale, totals: saleTotals(sale, D.costs, S.bags, D.share), short, unknown: lines.filter((l) => !l.known), total: lines.reduce((a, l) => a + l.total, 0), pack, pieces, packQty: packGiven(packQty) };
+  return { lines, sale, totals: saleTotals(sale, D.costs, S.bags, D.packIn), short, unknown: lines.filter((l) => !l.known), total: lines.reduce((a, l) => a + l.total, 0), pack, pieces, packQty: packGiven(packQty) };
 }
 const orderLinesHtml = (m) => `<div class="list">${m.lines.map((l) => `<div class="li" style="cursor:default">
     <div class="grow"><div class="name">${esc(l.qty)} × ${esc(l.name)}</div>
@@ -814,8 +817,9 @@ async function receiptPng(o) {
 function orderPreview(m, t) {
   return `<h3>If you confirm</h3>
     <div class="sum-row"><span>Revenue</span><span>${inr(t.revenue)}</span></div>
-    <div class="sum-row muted"><span>Item cost${D.share != null ? ' (incl. packaging)' : ''}</span><span>−${inr(t.itemCost)}</span></div>
-    ${D.share != null ? `<div class="sum-row muted"><span>Packaging given: ${m.pieces.length ? esc(packSummary(m.pieces)) : 'none'}</span><span>stock only</span></div>` : `<div class="sum-row muted"><span>Packaging${m.pieces.length ? ` (${esc(packSummary(m.pieces))})` : ': none'}</span><span>−${inr(t.packCost)}</span></div>`}
+    <div class="sum-row muted"><span>Item cost${D.packIn ? ` (incl. ${inr(t.packShare)} packaging: ${m.pieces.length ? esc(packSummary(m.pieces)) : 'none'})` : ''}</span><span>−${inr(t.itemCost)}</span></div>
+    ${noPackWarn(m.sale)}
+    ${D.packIn ? '' : `<div class="sum-row muted"><span>Packaging${m.pieces.length ? ` (${esc(packSummary(m.pieces))})` : ': none'}</span><span>−${inr(t.packCost)}</span></div>`}
     <div class="sum-row muted"><span>Courier</span><span>−${inr(t.courier)}</span></div>
     <div class="sum-row total"><span>Profit</span><span class="${t.profit >= 0 ? 'pos' : 'neg'}">${inr(t.profit)}</span></div>
     <p class="small muted">Confirming records this as a sale: stock goes down and it appears in History and on Home.</p>`;
@@ -1076,7 +1080,7 @@ function moreHistory() {
   if (!all.length) return supHead + supSum + '<div class="card empty"><h3>No history yet</h3><p>Sales, purchases and stock corrections will be listed here.</p></div>';
   return supHead + supSum + `<div class="card" style="padding-block:4px"><div class="list">${list.map((e) => {
     const d = e.doc;
-    if (e.kind === 'sale') { const t = saleTotals(d, D.costs, S.bags, D.share); return `<button class="li" data-act="openEntry" data-k="sales" data-id="${esc(d.id)}">
+    if (e.kind === 'sale') { const t = saleTotals(d, D.costs, S.bags, D.packIn); return `<button class="li" data-act="openEntry" data-k="sales" data-id="${esc(d.id)}">
       <div class="grow"><div class="name">${esc(saleTitle(d))}</div><div class="meta">Sale · ${fmtDate(d.date)}${d.customer ? ` · ${esc(d.customer)}` : ''}</div></div>
       <div class="right"><span class="num">${inr(t.revenue)}</span><span class="small ${t.profit >= 0 ? 'pos' : 'neg'}">profit ${inr(t.profit)}</span></div></button>`; }
     if (e.kind === 'purchase') return `<button class="li" data-act="openEntry" data-k="purchases" data-id="${esc(d.id)}">
@@ -1092,12 +1096,12 @@ function sheetEntry() {
   if (!d) return `<div class="section-head"><h2>Entry removed</h2><button class="icon-btn" data-act="closeSheet" aria-label="Close">×</button></div>`;
   let body = '';
   if (k === 'sales') {
-    const t = saleTotals(d, D.costs, S.bags, D.share);
+    const t = saleTotals(d, D.costs, S.bags, D.packIn);
     body = `<p class="muted">${fmtDate(d.date)}${d.customer ? ` · ${esc(d.customer)}` : ''}${d.note ? ` · ${esc(d.note)}` : ''}</p>
       ${(d.lines || []).map((l) => `<div class="sum-row"><span>${esc(l.qty)} × ${esc(l.name || (l.bagId ? bagName(l.bagId) : itemName(l.itemId)))}</span><span>${inr(l.price)}</span></div>`).join('')}
       <div class="sum-row muted"><span>Shipping charged</span><span>${inr(d.shippingCharged)}</span></div>
-      <div class="sum-row muted"><span>Item cost${D.share != null ? ' (incl. packaging)' : ''}</span><span>−${inr(t.itemCost)}</span></div>
-      ${D.share != null ? `<div class="sum-row muted"><span>Packaging given: ${d.packaging?.pieces?.length ? esc(packSummary(d.packaging.pieces)) : 'none'}</span><span>stock only</span></div>` : `<div class="sum-row muted"><span>Packaging${d.packaging?.pieces?.length ? ` (${esc(packSummary(d.packaging.pieces))})` : ': none'}</span><span>−${inr(t.packCost)}</span></div>`}
+      <div class="sum-row muted"><span>Item cost${D.packIn ? ` (incl. ${inr(t.packShare)} packaging: ${d.packaging?.pieces?.length ? esc(packSummary(d.packaging.pieces)) : 'none'})` : ''}</span><span>−${inr(t.itemCost)}</span></div>
+      ${D.packIn ? '' : `<div class="sum-row muted"><span>Packaging${d.packaging?.pieces?.length ? ` (${esc(packSummary(d.packaging.pieces))})` : ': none'}</span><span>−${inr(t.packCost)}</span></div>`}
       <div class="sum-row muted"><span>Courier</span><span>−${inr(t.courier)}</span></div>
       <div class="sum-row total"><span>Profit</span><span class="${t.profit >= 0 ? 'pos' : 'neg'}">${inr(t.profit)}</span></div>
       <p class="small muted">Deleting this sale puts its items and packaging back in stock.</p>`;
@@ -1155,11 +1159,11 @@ function sheetPurchase() {
 }
 function moreBags() {
   const rows = S.bags.filter((b) => !b.archived).sort((a, b) => byName(a, b)), archived = S.bags.filter((b) => b.archived);
-  const bagCost = (b) => (b.contents || []).reduce((a, c) => a + n(c.qty) * (D.full(c.itemId) || 0), 0);
+  const bagCost = (b) => (b.contents || []).reduce((a, c) => a + n(c.qty) * (D.costs[c.itemId] || 0), D.kitCost);
   return `<div class="row between"><p class="muted small grow">Price, contents and cost of each gift bag. Selling a bag takes its contents out of stock.</p><button class="btn primary sm" data-act="newBag">+ New bag</button></div>
   <div class="card" style="padding-block:4px"><div class="list">${rows.map((b) => { const c = bagCost(b), cap = D.capacity.find((x) => x.bag.id === b.id);
     return `<button class="li" data-act="editBag" data-id="${esc(b.id)}"><div class="grow"><div class="name">${esc(nameOf(b))}</div>
-      <div class="meta">${(b.contents || []).length} items · cost ${inr(c)} · ${b.price ? pct((b.price - c) / b.price) : '–'} margin · can make ${cap?.count ?? 0}</div></div>
+      <div class="meta">${(b.contents || []).length} items · cost ${inr(c)} incl. ${inr(D.kitCost)} gift kit · ${b.price ? pct((b.price - c) / b.price) : '–'} margin · can make ${cap?.count ?? 0}</div></div>
       <div class="right"><span class="stockno">${inr(b.price)}</span></div></button>`; }).join('') || '<div class="empty"><h3>No gift bags yet</h3></div>'}
     ${archived.map((b) => `<button class="li" data-act="editBag" data-id="${esc(b.id)}"><div class="grow"><div class="name muted">${esc(nameOf(b))}</div><div class="meta">Archived</div></div></button>`).join('')}</div></div>`;
 }
@@ -1171,7 +1175,7 @@ function openBagSheet(id) {
 }
 function sheetBag() {
   const { id, draft: d } = S.sheet, b = id ? D.bagsById[id] : null;
-  const cost = d.contents.reduce((a, c) => a + n(c.qty) * (D.full(c.itemId) || 0), 0);
+  const cost = d.contents.reduce((a, c) => a + n(c.qty) * (D.costs[c.itemId] || 0), D.kitCost);
   const cap = bagCapacity({ contents: d.contents.filter((c) => c.itemId) }, D.stock, D.itemsById);
   return `<div class="section-head"><h2>${b ? 'Edit gift bag' : 'New gift bag'}</h2><button class="icon-btn" data-act="closeSheet" aria-label="Close">×</button></div>
   <div class="grid2">${field('Bag name', 'name', d.name, { ph: 'e.g. Sweet Treats' })}${field('Selling price', 'price', d.price, { type: 'number', rupee: true })}</div>
@@ -1239,8 +1243,8 @@ function moreSettings() {
   const d = (S.setDraft ||= { packCost: S.settings.packCost === 'perSale' ? 'perSale' : 'spread', threshold: S.settings.threshold ?? '', lowProduct: S.settings.lowProduct ?? 5, lowPackaging: S.settings.lowPackaging ?? 10, giftKit: clone(S.settings.giftKit || []), pouchKit: clone(S.settings.pouchKit || []) });
   return `<div class="stack" data-draft="settings">
    <div class="card stack"><h3>Packaging cost</h3>
-    <div class="seg" role="group" aria-label="Packaging cost">${[['spread', 'Built into product cost'], ['perSale', 'Charged per sale']].map(([k, l]) => `<button data-act="setPackCost" data-v="${k}" aria-pressed="${d.packCost === k}">${l}</button>`).join('')}</div>
-    <p class="small muted">${d.packCost === 'spread' ? `Everything spent on packaging is spread over products by value, like GST and shipping: product costs currently include ${pct(packShare(S.items, S.purchases))} for packaging. Packaging you tick on a sale only comes out of stock.` : 'Each sale’s profit subtracts the packaging ticked for it. Product costs exclude packaging.'}</p></div>
+    <div class="seg" role="group" aria-label="Packaging cost">${[['spread', 'In item cost'], ['perSale', 'Separate line']].map(([k, l]) => `<button data-act="setPackCost" data-v="${k}" aria-pressed="${d.packCost === k}">${l}</button>`).join('')}</div>
+    <p class="small muted">${d.packCost === 'spread' ? `Packaging counts when it is used: what you tick on a sale, at its cost per piece, goes into that sale’s item cost. Unused packaging stays in stock. Gift-bag costs include one gift kit (${inr(D.kitCost)} today).` : 'Each sale shows the packaging ticked for it as a separate cost line.'}</p></div>
    <div class="card stack"><h3>Packaging suggestion</h3>
     ${field('Suggest the gift kit for orders of at least', 'threshold', d.threshold, { type: 'number', rupee: true, ph: 'not decided yet' })}
     <p class="small muted">Packaging is never used automatically. When this is set, the Sell screen suggests Gift kit at or above it and Pouch below it.</p></div>
@@ -1337,7 +1341,7 @@ function onInput(e) {
   if (el.hasAttribute('data-rerender') && e.type === 'change') renderAll();
 }
 function updateBagPreview() {
-  const d = S.sheet.draft, cost = d.contents.reduce((a, c) => a + n(c.qty) * (D.full(c.itemId) || 0), 0);
+  const d = S.sheet.draft, cost = d.contents.reduce((a, c) => a + n(c.qty) * (D.costs[c.itemId] || 0), D.kitCost);
   const cap = bagCapacity({ contents: d.contents.filter((c) => c.itemId) }, D.stock, D.itemsById);
   const box = $('#bag-preview'); if (box) box.innerHTML = `<div class="sum-row"><span>Cost of contents</span><b>${inr(cost)}</b></div><div class="sum-row"><span>Margin</span><b>${n(d.price) ? `${inr(n(d.price) - cost)} (${pct((n(d.price) - cost) / n(d.price))})` : '–'}</b></div><div class="sum-row"><span>Can make now</span><b>${cap.count}</b></div>`;
 }
@@ -1804,15 +1808,15 @@ async function exportXlsx() {
   const add = (name, rows) => X.utils.book_append_sheet(wb, X.utils.json_to_sheet(rows), name);
   const r2 = (v) => Math.round(v * 100) / 100;
   add('Stock', S.items.map((i) => ({ Name: i.name, Type: i.type, Category: i.category, Stock: D.stock[i.id] ?? 0, Status: i.archived ? 'archived' : D.st(i), 'Refill at': D.lowAt(i),
-    'Avg cost': r2(D.costs[i.id] || 0), 'Cost incl. packaging': r2(D.full(i.id) || 0), 'Sell price': i.sellPrice ?? '', 'Stock value': r2(Math.max(0, D.stock[i.id] || 0) * (D.costs[i.id] || 0)), Supplier: i.supplier, Check: i.check ? 'yes' : '', Note: i.note })));
-  add('Sales', [...S.sales].sort((a, b) => String(a.date || '').localeCompare(String(b.date || ''))).map((s) => { const t = saleTotals(s, D.costs, S.bags, D.share); return { Date: s.date, What: saleTitle(s), Customer: s.customer, Packaging: s.packaging?.mode,
+    'Avg cost': r2(D.costs[i.id] || 0), 'Sell price': i.sellPrice ?? '', 'Stock value': r2(Math.max(0, D.stock[i.id] || 0) * (D.costs[i.id] || 0)), Supplier: i.supplier, Check: i.check ? 'yes' : '', Note: i.note })));
+  add('Sales', [...S.sales].sort((a, b) => String(a.date || '').localeCompare(String(b.date || ''))).map((s) => { const t = saleTotals(s, D.costs, S.bags, D.packIn); return { Date: s.date, What: saleTitle(s), Customer: s.customer, Packaging: s.packaging?.mode,
     'Item sales': r2(t.revenue - n(s.shippingCharged)), 'Shipping charged': n(s.shippingCharged), Revenue: r2(t.revenue), 'Item cost': r2(t.itemCost), 'Packaging cost': r2(t.packCost), Courier: r2(t.courier), Profit: r2(t.profit), Note: s.note }; }));
   add('Purchases', S.purchases.flatMap((p) => landedLines(p).map((l) => ({ Date: p.date, Supplier: p.supplier, Ref: p.ref, Item: itemName(l.itemId), Qty: l.qty, 'Unit price': r2(l.unitPrice), 'Landed cost': r2(l.landed), 'Line total': r2(l.qty * l.landed) }))));
   add('Stock corrections', S.adjustments.map((a) => ({ Date: a.date, Item: itemName(a.itemId), Change: a.qty, Reason: a.reason })));
-  add('Gift bags', S.bags.map((b) => { const c = (b.contents || []).reduce((a, x) => a + n(x.qty) * (D.full(x.itemId) || 0), 0); return { Bag: nameOf(b), Price: n(b.price), Cost: r2(c), Margin: r2(n(b.price) - c), 'Can make': bagCapacity(b, D.stock, D.itemsById).count, Contents: (b.contents || []).map((x) => `${x.qty} × ${itemName(x.itemId)}`).join('; '), Archived: b.archived ? 'yes' : '' }; }));
+  add('Gift bags', S.bags.map((b) => { const c = (b.contents || []).reduce((a, x) => a + n(x.qty) * (D.costs[x.itemId] || 0), D.kitCost); return { Bag: nameOf(b), Price: n(b.price), Cost: r2(c), Margin: r2(n(b.price) - c), 'Can make': bagCapacity(b, D.stock, D.itemsById).count, Contents: (b.contents || []).map((x) => `${x.qty} × ${itemName(x.itemId)}`).join('; '), Archived: b.archived ? 'yes' : '' }; }));
   add('Fixed costs', [...S.expenses].sort((a, b) => str(a.date).localeCompare(str(b.date))).map((x) => ({ Date: x.date, 'What for': x.label, Cost: n(x.amount), Note: x.note })));
   const monR = { from: today().slice(0, 8) + '01', to: today().slice(0, 8) + '31' };
-  const mon = summary(S.sales, D.costs, S.bags, monR, D.share), all = summary(S.sales, D.costs, S.bags, {}, D.share);
+  const mon = summary(S.sales, D.costs, S.bags, monR, D.packIn), all = summary(S.sales, D.costs, S.bags, {}, D.packIn);
   mon.fixed = fixedTotal(monR); all.fixed = fixedTotal({}); mon.net = mon.profit - mon.fixed; all.net = all.profit - all.fixed;
   add('Summary', ['revenue', 'itemCost', 'packCost', 'courier', 'profit', 'fixed', 'net', 'orders'].map((k) => ({ Measure: { revenue: 'Revenue', itemCost: 'Item cost', packCost: 'Packaging cost', courier: 'Courier', profit: 'Profit', fixed: 'Fixed costs', net: 'Profit after fixed costs', orders: 'Orders' }[k], 'This month': r2(mon[k]), 'All time': r2(all[k]) })));
   const data = X.write(wb, { bookType: 'xlsx', type: 'array' });
