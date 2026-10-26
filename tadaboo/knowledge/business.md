@@ -81,7 +81,7 @@ A fourth size may be added if orders need it. Bubble wrap and tape are still to 
 - **Median item margin** at catalogue price: **~56%**.
 - **Thinnest margins**: Chocolate Bar Squishy 35%, 7 Pcs Aesthetic Set 42%, Dumpling Bun Squishy 43%, Butterfly Pen 49%, 2-in-1 Sharpener + Eraser 49%, 6-in-1 Set 50%.
 - **Richest margins**: 2B pencils (~56% per box at ₹109; 74% as singles at ₹15), Plane Sharpener 67%, Rabbit Eraser 66%, Clipboard Diary 65%, Shuttlecock Sharpener 65%, Diamond Bracelet Kit 63%.
-- **Packaging in product cost** (owner's choice, 26 Oct 2026): packaging is costed when used, at its cost per piece, inside the item cost of the sale it went with (no separate packaging line, never charged to customers). Unused packaging stays in stock, so bulk packaging purchases don't move margins. Gift-bag margins include one gift kit (≈₹32 today: paper bag + sticker + card; ≈₹37 if a bookmark is given). A spread-by-value method was tried and dropped because the share jumped with each packaging purchase.
+- **Packaging in product cost** (owner's choice, 26 Oct 2026): packaging is costed when used, at its cost per piece, inside the item cost of the sale it went with (no separate packaging line, never charged to customers). Unused packaging stays in stock, so bulk packaging purchases don't move margins. Gift-bag margins include one gift kit (≈₹37.4: paper bag + sticker + card + bookmark). A spread-by-value method was tried and dropped because the share jumped with each packaging purchase.
 - **Packaging drag**: ₹37.4 per order is 19% of a ₹199 bag but under 4% of a ₹999 hamper. Low-ticket bags carry the lowest margins (39–40%).
 - **Stock on hand** (catalogue products, purchases only): ~₹25,800 at landed cost, ~₹57,900 at catalogue prices.
 
@@ -120,7 +120,7 @@ Payment methods seen: ICICI debit card, Amazon credit card, account transfer.
 
 1. ~~Stockroom gift bags out of date~~ **Resolved 13 Oct 2026:** the Stockroom now holds the 12 catalogue collections (ids `cat-<bag id>`, pencil boxes counted as 12 units); the 9 older bags (Aesthetic Bloom, Aesthetic Muse, Back to School ₹549, Fun Explorer, K-Style Cutie, Make & Create ₹499, Mini Surprise, Snoopy & Friends, Sweet Treats) are archived, not deleted.
 2. **Pencil units.** The Stockroom tracks 2B pencils as single pencils (₹15, 120 each in stock); the catalogue sells boxes of 12 at ₹109. A box sale must consume 12 units.
-3. **Bookmark not in the gift kit.** The catalogue promises a bookmark in every package, but `settings/main.giftKit` lists only paper bag, sticker and thank-you card.
+3. ~~Bookmark not in the gift kit~~ **Resolved 26 Oct 2026:** the gift kit is paper bag + sticker + thank-you card + bookmark (≈₹37.4). **Plastic pouch stock is −7:** used in 7 sales but never purchased, so those sales carry ₹0 pouch cost; record a pouch purchase (or an opening count) to fix.
 4. **Return-gift capacity.** Return Gift Mini and Classic can make only 4 bags each (Cute Crayons Set: 4 in stock). Party orders usually need 10–20 identical bags.
 5. **No sales recorded yet**, so stock figures are units purchased.
 6. **Uncategorised items** in the Stockroom: bath bomb, dumpling squishy, chocolate squishy (no category); fountain pen and pop-up pens under "Trendy (to classify)".

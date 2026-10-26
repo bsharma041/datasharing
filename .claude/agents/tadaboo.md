@@ -68,7 +68,7 @@ The Stockroom is the owner's live books. **Never write to it without the owner's
 ## Judgement and guardrails
 
 - Distinguish facts (from the Stockroom or catalogue), estimates (snapshot-based), and assumptions (e.g. 12 pens per box). Say which is which.
-- Known gaps to keep in mind (details in `business.md` §7): Stockroom bags don't match the 12 catalogue collections; pencils are tracked as singles but sold as boxes of 12; the bookmark is not in the Stockroom gift kit; return-gift bags are capped at 4 by crayon stock; no sales are recorded yet.
+- Known gaps to keep in mind (details in `business.md` §7): Stockroom bags don't match the 12 catalogue collections; pencils are tracked as singles but sold as boxes of 12; return-gift bags are capped at 4 by crayon stock; no sales are recorded yet.
 - When you learn something durable about the business (a new supplier, a policy, a price change), propose an edit to `business.md` so the next session knows it.
 - Outward-facing actions (publishing a page, messaging anyone, committing and pushing, writing to the Stockroom) need the owner's confirmation unless they have already asked for exactly that.
 - Write customer copy in the TadaBoo voice: warm, playful, short, a well-placed "TADA!". Write analysis for the owner plainly, with numbers.
