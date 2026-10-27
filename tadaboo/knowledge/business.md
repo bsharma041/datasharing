@@ -14,7 +14,7 @@ Numbers below are a snapshot. For anything current, re-read the Stockroom (see "
 
 ### Customer-facing rules (from the catalogue; do not change without the owner)
 - **Custom bags**: selected items must total **more than ₹299**. Customers pay only for the items they choose.
-- **Delivery**: additional charges apply for door-to-door delivery (amount confirmed per order by phone or WhatsApp, paid separately).
+- **Delivery** (owner decision, 27 Oct 2026): door-to-door delivery is **₹99 when the items total is below ₹699, free at ₹699 or more**; collecting is free. The website adds it at checkout and the UPI amount includes it (`catalog.js` → `delivery: { fee, freeFrom }`; the same numbers are written in the page copy). Basis: courier under ₹90 for 0.5 kg and about ₹300 for 2.5 kg (owner quote, nearby zones). ₹99 roughly covers one small-box order; free delivery is absorbed by orders of ₹699+ (worst case: a hamper in the large box keeps ~₹156–191 of ~₹456–491 profit). Far zones may cost more: watch courier cost per sale in the Stockroom.
 - **Dispatch**: bags are curated in small batches; allow **5–7 working days**.
 - **Variation**: colours, characters or designs may vary with availability; product type and value stay the same.
 - **Pencils**: Unicorn and Racing Car 2B pencils sell as a box of 12 for ₹109, or ₹15 per single pencil.
@@ -126,5 +126,5 @@ Payment methods seen: ICICI debit card, Amazon credit card, account transfer.
 6. **Uncategorised items** in the Stockroom: bath bomb, dumpling squishy, chocolate squishy (no category); fountain pen and pop-up pens under "Trendy (to classify)".
 7. **Not in the catalogue**: ChibiCharm Sticky Notes (no price), Pineapple Paper Cutter (archived).
 8. **Unverified counts**: gel pens assumed 12 per box; PaperZen ₹710 gap; Helmet vs Cold Drink Can sharpener on the 91Supplies sheet.
-9. **Delivery pricing** is not defined anywhere ("additional charges apply").
+9. ~~Delivery pricing not defined~~ **Resolved 27 Oct 2026:** ₹99 below ₹699, free from ₹699 (see §1). When confirming an order in the Stockroom, type the delivery charge the customer paid (₹99 or 0) in "Shipping charged"; it is not filled in automatically.
 10. **Low-stock threshold** for gift vs pouch packaging (`settings.threshold`) is not set.

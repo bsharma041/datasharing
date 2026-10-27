@@ -7,6 +7,9 @@ window.TADABOO = {
   whatsapp: "919730624700",
   customMin: 299, // custom bags: chosen items must total more than this
   dispatchDays: "5–7 working days",
+  // Door-to-door delivery: a flat fee when the items total is below `freeFrom`, free at or above it.
+  // Collecting is free. The same numbers are written in the page copy (How to order, FAQ): change both.
+  delivery: { fee: 99, freeFrom: 699 },
   // Website orders go to the WebsitePublisher order inbox (project 30289, form "tadaboo_order").
   // The Tadaboo agent reads them with leads/get-leads; each carries the Stockroom order code.
   orders: { project: 30289, form: "tadaboo_order" },

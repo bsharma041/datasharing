@@ -21,10 +21,10 @@
 {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
 {"@type":"Question","name":"Is there a minimum for custom bags?","acceptedAnswer":{"@type":"Answer","text":"Yes. Items you pick for a custom bag must total more than ₹299. You pay only for the items you choose. Ready-made gift bags have no minimum."}},
 {"@type":"Question","name":"How long does dispatch take?","acceptedAnswer":{"@type":"Answer","text":"We curate bags in small batches, so please allow 5–7 working days for dispatch."}},
-{"@type":"Question","name":"Do you deliver?","acceptedAnswer":{"@type":"Answer","text":"Yes. Door-to-door delivery has an additional charge, which we confirm with you by phone or WhatsApp before you pay it."}},
+{"@type":"Question","name":"Do you deliver?","acceptedAnswer":{"@type":"Answer","text":"Yes. Door-to-door delivery is ₹99, and free on orders of ₹699 or more. Collecting your order is free."}},
 {"@type":"Question","name":"Will I get exactly the colour in the photo?","acceptedAnswer":{"@type":"Answer","text":"Colours, characters or designs may vary with availability. The product type and value always stay the same."}},
 {"@type":"Question","name":"Can I buy single pencils?","acceptedAnswer":{"@type":"Answer","text":"Yes. Our Unicorn and Racing Car 2B pencils come in a box of 12 for ₹109, or as single pencils at ₹15 each."}},
-{"@type":"Question","name":"How do I pay?","acceptedAnswer":{"@type":"Answer","text":"By UPI, for your order total. Door-to-door delivery, if you choose it, is confirmed and paid separately."}},
+{"@type":"Question","name":"How do I pay?","acceptedAnswer":{"@type":"Answer","text":"By UPI, for your order total, delivery included."}},
 {"@type":"Question","name":"Can I order many return gifts for a party?","acceptedAnswer":{"@type":"Answer","text":"Yes. Add the return-gift bag you like, set the quantity, and send it to us. We'll confirm stock for larger orders."}}]}
 </script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -442,7 +442,7 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
     <div class="wrap order">
       <div class="lead">
         <h2>How to order</h2>
-        <p>Dispatch in 5–7 working days. Delivery charged extra.</p>
+        <p>Dispatch in 5–7 working days. Delivery ₹99, free on orders of ₹699 or more.</p>
         <a class="btn" href="https://wa.me/919730624700" target="_blank" rel="noopener">Chat on WhatsApp</a>
         <a class="tel" href="tel:+919730624700">or call 97306&nbsp;24700</a>
       </div>
@@ -460,10 +460,10 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
       <div class="faq">
         <details><summary>Is there a minimum for custom bags?</summary><p>Yes. Items you pick for a custom bag must total more than ₹299. You pay only for the items you choose. Ready-made gift bags have no minimum.</p></details>
         <details><summary>How long does dispatch take?</summary><p>We curate bags in small batches, so please allow 5–7 working days for dispatch.</p></details>
-        <details><summary>Do you deliver?</summary><p>Yes. Door-to-door delivery has an additional charge, which we confirm with you by phone or WhatsApp before you pay it.</p></details>
+        <details><summary>Do you deliver?</summary><p>Yes. Door-to-door delivery is ₹99, and free on orders of ₹699 or more. Collecting your order is free.</p></details>
         <details><summary>Will I get exactly the colour in the photo?</summary><p>Colours, characters or designs may vary with availability. The product type and value always stay the same.</p></details>
         <details><summary>Can I buy single pencils?</summary><p>Yes. Our Unicorn and Racing Car 2B pencils come in a box of 12 for ₹109, or as single pencils at ₹15 each. Mention it in your order note.</p></details>
-        <details><summary>How do I pay?</summary><p>By UPI, for your order total. Door-to-door delivery, if you choose it, is confirmed and paid separately.</p></details>
+        <details><summary>How do I pay?</summary><p>By UPI, for your order total, delivery included.</p></details>
         <details><summary>Can I order many return gifts for a party?</summary><p>Yes. Add the return-gift bag you like, set the quantity, and send it to us. We'll confirm stock for larger orders.</p></details>
       </div>
     </div>
@@ -592,6 +592,10 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
     }
     return { custom, bags, total: custom + bags, count, customOk: custom === 0 || custom > T.customMin };
   };
+  // Delivery: flat fee below the free-delivery level (items total), free at or above it; collecting is free.
+  const DL = T.delivery || { fee: 0, freeFrom: 0 };
+  const shipFee = (items) => (items >= DL.freeFrom ? 0 : DL.fee);
+  const deliveryFee = (t) => (form.delivery === "door" ? shipFee(t.total) : 0);
 
   // ---------- Messages ----------
   let tt, lt;
@@ -788,7 +792,9 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
     const pl = Object.entries(cart).filter(([k]) => k.startsWith("p:"));
     if (bl.length) { L.push("Gift bags:"); for (const [k, n] of bl) L.push(`• ${B[k.slice(2)].name} × ${n} = ${inr(B[k.slice(2)].price * n)}`); L.push(""); }
     if (pl.length) { L.push("Custom bag items:"); for (const [k, n] of pl) L.push(`• ${P[k.slice(2)].name} × ${n} = ${inr(P[k.slice(2)].price * n)}`); L.push(""); }
-    L.push(`Total (before delivery): ${inr(t.total)}`, "");
+    const fee = deliveryFee(t);
+    if (form.delivery === "door") L.push(`Items: ${inr(t.total)}`, `Delivery charge: ${fee ? inr(fee) : "Free"}`);
+    L.push(`Total: ${inr(t.total + fee)}`, "");
     if (form.name) L.push(`Name: ${form.name}`);
     if (form.phone) L.push(`Phone: ${form.phone}`);
     L.push(`Delivery: ${form.delivery === "door" ? "Door-to-door delivery" : "I'll collect / discuss"}`);
@@ -814,26 +820,32 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
       ${bl.length ? `<span class="group-t">Gift bags</span>${bl.map(([k, n]) => { const b = B[k.slice(2)]; return line(k, n, cover(b), b.name, b.price); }).join("")}` : ""}
       ${pl.length ? `<span class="group-t">Custom bag</span>${pl.map(([k, n]) => { const p = P[k.slice(2)]; return line(k, n, img(p.id), p.name, p.price); }).join("")}
         <div class="meter${m.done ? " done" : ""}"><span class="bar"><i style="width:${m.pct}%"></i></span><span>${m.msg}</span></div>` : ""}
-      <div class="totals">
-        <div class="r t"><span>Total</span><span>${inr(t.total)}</span></div>
-        <span class="note">Delivery is charged extra. We confirm it with you first.</span>
-      </div>
+      <div class="totals" id="ctot">${totalsHtml(t)}</div>
       <form class="form" id="oform" autocomplete="on">
         <label>Your name<input id="f-name" name="name" value="${esc(form.name || "")}" autocomplete="name"></label>
         <label>Phone<input id="f-phone" name="phone" type="tel" value="${esc(form.phone || "")}" autocomplete="tel"></label>
-        <label class="full">Delivery<select id="f-delivery" name="delivery"><option value="collect"${form.delivery !== "door" ? " selected" : ""}>I'll collect / let's discuss</option><option value="door"${form.delivery === "door" ? " selected" : ""}>Door-to-door delivery (extra charge)</option></select></label>
+        <label class="full">Delivery<select id="f-delivery" name="delivery"><option value="collect"${form.delivery !== "door" ? " selected" : ""}>I'll collect / let's discuss</option><option value="door"${form.delivery === "door" ? " selected" : ""}>Door-to-door delivery (${shipFee(t.total) ? inr(shipFee(t.total)) : "free"})</option></select></label>
         <label class="full" ${form.delivery === "door" ? "" : "hidden"} id="addrWrap">Address<textarea id="f-address" name="address" rows="2" autocomplete="street-address">${esc(form.address || "")}</textarea></label>
         <label ${form.delivery === "door" ? "" : "hidden"} id="pinWrap">Pincode<input id="f-pin" name="pin" inputmode="numeric" maxlength="6" autocomplete="postal-code" value="${esc(form.pin || "")}"></label>
         <label class="full">Gift note or request (optional)<input id="f-note" name="note" value="${esc(form.note || "")}" placeholder="Happy birthday, Aanya!"></label>
       </form>`;
     foot.innerHTML = t.customOk ? `
       <p class="err" id="ferr" role="alert" hidden></p>
-      <button class="btn" id="placeOrder" type="button">Place order · ${inr(t.total)}</button>
+      <button class="btn" id="placeOrder" type="button">Place order · ${inr(t.total + deliveryFee(t))}</button>
       <a class="btn line sm" id="sendWa" target="_blank" rel="noopener" href="#">Order on WhatsApp instead</a>
       <span class="small">Prefer to chat? Same order, sent on WhatsApp. Dispatch in ${T.dispatchDays}.</span>`
       : `<button class="btn" disabled>Place order</button><span class="small">${m.msg}</span>`;
     updateWa();
     if (t.customOk) sapi().catch(() => {});
+  }
+  function totalsHtml(t) {
+    const fee = shipFee(t.total), more = `Add ${inr(DL.freeFrom - t.total)} more for free delivery.`;
+    if (form.delivery !== "door") return `<div class="r t"><span>Total</span><span>${inr(t.total)}</span></div>
+      <span class="note">Collecting is free. Door-to-door delivery: ${fee ? `${inr(fee)}, free on orders of ${inr(DL.freeFrom)} or more` : "free on this order"}.</span>`;
+    return `<div class="r"><span>Items</span><span>${inr(t.total)}</span></div>
+      <div class="r"><span>Delivery</span><span>${fee ? inr(fee) : "Free"}</span></div>
+      <div class="r t"><span>Total</span><span>${inr(t.total + fee)}</span></div>
+      <span class="note">${fee ? more : `Free delivery on orders of ${inr(DL.freeFrom)} or more.`}</span>`;
   }
   const back = (label) => `<button class="back" data-view="bag" aria-label="Back to ${esc(label)}"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Back</button>`;
   function renderProduct(p) {
@@ -893,13 +905,13 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
       err.textContent = "Please add " + need.map((x) => x[1]).join(", ").replace(/, ([^,]*)$/, " and $1") + ".";
       err.hidden = false; $("#" + need[0][0]).focus(); return;
     }
-    const t = totals(), id = orderId();
+    const t = totals(), id = orderId(), fee = deliveryFee(t);
     const items = Object.entries(cart).map(([k, n]) => `${nameOf(k)} × ${n} = ${inr((k[0] === "b" ? B : P)[k.slice(2)].price * n)}`);
     const fields = {
       order_id: id, name: String(form.name).trim(), phone: mobile(form.phone),
-      delivery: door ? "Door-to-door delivery" : "Collect / discuss",
+      delivery: door ? `Door-to-door delivery (${fee ? inr(fee) : "free"})` : "Collect / discuss",
       address: door ? String(form.address).trim() : "-", pincode: door ? String(form.pin).trim() : "-",
-      note: String(form.note || "").trim(), items: items.join("\n"), total: String(t.total),
+      note: String(form.note || "").trim(), items: items.join("\n"), total: String(t.total + fee),
       order_code: orderCode(), website: "", // honeypot: must stay empty
     };
     placing = true; btn.disabled = true; btn.textContent = "Placing your order…"; err.hidden = true;
@@ -915,7 +927,7 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
       err.textContent = "We couldn't place your order online just now. Your bag is saved: please send it on WhatsApp instead.";
       err.hidden = false; $("#sendWa").focus(); return;
     }
-    try { localStorage.setItem(PLACED_KEY, JSON.stringify({ id, total: t.total, items, name: fields.name, phone: fields.phone, door, at: Date.now() })); } catch {}
+    try { localStorage.setItem(PLACED_KEY, JSON.stringify({ id, total: t.total + fee, fee, items, name: fields.name, phone: fields.phone, door, at: Date.now() })); } catch {}
     for (const k of Object.keys(cart)) delete cart[k];
     sent = true; newOrderIfSent(); save();
     view = { placed: true }; renderAll(); renderDrawer(); $("#drawerBody").scrollTop = 0;
@@ -926,23 +938,26 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
     $("#drawerTitle").textContent = "Order placed";
     $("#drawerLead").innerHTML = "";
     const first = String(o.name || "").split(/\s+/)[0];
+    const sep = o.door && !Number.isFinite(o.fee); // placed before delivery was priced on the site
     $("#drawerBody").innerHTML = `<div class="placed">
       <img src="img/tadaboo-bag.webp" alt="" width="359" height="400">
       <h3>Thank you${first ? ", " + esc(first) : ""}!</h3>
       <span class="oid num">${esc(o.id)}</span>
-      <p>We have your order. We'll call or WhatsApp you on <span class="num">${esc(o.phone || "")}</span> to confirm it${o.door ? " and the delivery charge" : ""}.</p>
+      <p>We have your order. We'll call or WhatsApp you on <span class="num">${esc(o.phone || "")}</span> to confirm it${sep ? " and the delivery charge" : ""}.</p>
       <ul>${(o.items || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
-      <div class="totals"><div class="r t"><span>Order total</span><span>${inr(o.total)}</span></div>
-        <span class="note">${o.door ? "Delivery is charged separately, once we confirm it." : "Dispatch in " + esc(T.dispatchDays) + "."}</span></div>
+      <div class="totals">${o.door && !sep ? `<div class="r"><span>Items</span><span>${inr(o.total - o.fee)}</span></div>
+        <div class="r"><span>Delivery</span><span>${o.fee ? inr(o.fee) : "Free"}</span></div>` : ""}
+        <div class="r t"><span>Order total</span><span>${inr(o.total)}</span></div>
+        <span class="note">${sep ? "Delivery is charged separately, once we confirm it." : "Dispatch in " + esc(T.dispatchDays) + "."}</span></div>
     </div>`;
     const upi = /^[\w.\-]{2,}@[a-zA-Z]{2,}$/.test(T.upi || "") ? T.upi : "";
     const q = (o2) => Object.entries(o2).map(([k, v]) => k + "=" + encodeURIComponent(v).replace(/%40/g, "@")).join("&");
     const wa = `https://wa.me/${T.whatsapp}?text=${encodeURIComponent(`Hi TadaBoo! I placed order ${o.id} on the website.`)}`;
-    const what = o.door ? `Pay ${inr(o.total)} for your items` : `Pay ${inr(o.total)}`;
+    const what = sep ? `Pay ${inr(o.total)} for your items` : `Pay ${inr(o.total)}`;
     const link = `upi://pay?${q({ pa: upi, pn: T.upiName || "TadaBoo", am: o.total.toFixed(2), cu: "INR", tn: "TadaBoo " + o.id })}`;
     // upi:// links open a UPI app on phones; on a computer, copying the UPI ID is what works.
     const desk = matchMedia("(hover: hover) and (pointer: fine)").matches;
-    const note = `<span class="small">${o.door ? "Delivery is confirmed and paid separately. " : ""}Pay to <b>${esc(upi)}</b> with note <span class="num">${esc(o.id)}</span>.</span>`;
+    const note = `<span class="small">${sep ? "Delivery is confirmed and paid separately. " : ""}Pay to <b>${esc(upi)}</b> with note <span class="num">${esc(o.id)}</span>.</span>`;
     $("#drawerFoot").innerHTML = !upi
       ? `<span class="small">We'll share payment details when we confirm your order.</span>
       <a class="btn line" target="_blank" rel="noopener" href="${wa}">Questions? WhatsApp us</a>`
@@ -960,7 +975,13 @@ html.lock .toast{top:calc(16px + env(safe-area-inset-top,0px));bottom:auto}
   drawer.addEventListener("input", (e) => {
     const f = e.target.closest("#oform [name]"); if (!f) return;
     form[f.name] = f.value; save(); f.removeAttribute("aria-invalid"); f.removeAttribute("aria-describedby");
-    if (f.name === "delivery") { $("#addrWrap").hidden = $("#pinWrap").hidden = f.value !== "door"; }
+    if (f.name === "delivery") {
+      $("#addrWrap").hidden = $("#pinWrap").hidden = f.value !== "door";
+      const t = totals(), b = $("#placeOrder");
+      $("#ctot").innerHTML = totalsHtml(t);
+      if (b && !placing) b.textContent = `${b.classList.contains("line") ? "Try placing it again" : "Place order"} · ${inr(t.total + deliveryFee(t))}`;
+      announce(f.value === "door" ? `Delivery ${shipFee(t.total) ? inr(shipFee(t.total)) : "free"}. Total ${inr(t.total + deliveryFee(t))}` : `Collecting. Total ${inr(t.total)}`);
+    }
     updateWa();
   });
   drawer.addEventListener("submit", (e) => e.preventDefault());
