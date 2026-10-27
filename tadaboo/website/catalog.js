@@ -15,7 +15,7 @@ window.TADABOO = {
   orders: { project: 30289, form: "tadaboo_order" },
   // UPI ID for the "Pay with UPI" button after a website order, e.g. "tadaboo@okaxis".
   // Leave empty until the owner adds it: the site then says payment details follow on confirmation.
-  upi: "",
+  upi: "8415037227@axl",
   upiName: "TadaBoo",
 
   categories: [

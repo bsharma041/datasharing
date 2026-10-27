@@ -25,7 +25,10 @@ Orders reach the owner in one of two ways, and both carry the same order code:
    pencils is `i:it-racing-pencils:1:12:109`).
 2. Paste the message into **Orders → Add an order from WhatsApp → Read order → Save order** (status *New*).
 3. Open it, set packaging (gift kits default to one per gift bag plus one for loose items), shipping
-   charged and courier cost, then **Confirm order and update stock**. This writes a normal sale with id
+   charged and courier cost. **Shipping charged is filled in automatically** (editable): the fee written
+   in the order ("Delivery charge: ₹99" / "(₹99)" / "Free"), or for messages without one the website rule
+   in `DELIVERY` (₹99 below ₹699 of items, free from ₹699; collect = 0). It is saved on the order when
+   you save it, and the payment amount (items + shipping) follows any edit. Then then **Confirm order and update stock**. This writes a normal sale with id
    `web-<order id>`, so stock, profit and History update exactly as for a Sell-screen sale.
 4. Move it through *Packed → Dispatched* (optional tracking) *→ Delivered*. **Cancel order** deletes its
    sale, which puts the stock back.

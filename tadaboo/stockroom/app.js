@@ -629,6 +629,22 @@ const afterOrderStep = (msg) => setTimeout(() => { ($('.sheet .btn.primary') || 
 // Website stock is out of date once an order is confirmed or cancelled after the last stock file.
 const stockStale = () => { const last = str(S.web?.stockExportedAt); return S.orders.filter((o) => ['confirmed', 'cancelled'].some((st) => (o.history || []).some((h) => h.status === st && str(h.at) > last))).length; };
 
+// Website delivery rule (keep in step with tadaboo/website/catalog.js → delivery): door-to-door costs
+// `fee` when the items total is below `freeFrom`, and is free at or above it. Collecting is free.
+const DELIVERY = { fee: 99, freeFrom: 699 };
+// The delivery fee written in the order ("Delivery charge: ₹99" on WhatsApp, "delivery: Door-to-door delivery (₹99)"
+// in the inbox; "Free" = 0), or null when the order doesn't say (orders placed before delivery was priced).
+function feeInText(t) {
+  const v = /^Delivery charge:[ \t]*(.+)$/mi.exec(t)?.[1] || /^Delivery:[ \t]*Door[^(\n]*\(([^)]*)\)/mi.exec(t)?.[1] || '';
+  if (/^\s*free/i.test(v)) return 0;
+  const m = /₹?\s*([\d,]+(?:\.\d+)?)/.exec(v); return m ? n(m[1].replace(/,/g, '')) : null;
+}
+/** Delivery to charge for an order: what the order says, else the website rule. */
+const shipDefault = (o, itemsTotal) => {
+  const f = o.deliveryFee ?? (o.raw ? feeInText(o.raw) : null);
+  if (f != null) return f;
+  return o.customer?.delivery === 'door' ? (n(itemsTotal) >= DELIVERY.freeFrom ? 0 : DELIVERY.fee) : 0;
+};
 function parseOrder(text) {
   const t = str(text);
   // WhatsApp can wrap the long code line; take everything after "TB1|" up to a blank line, minus spaces.
@@ -644,7 +660,7 @@ function parseOrder(text) {
   }
   const line = (label) => (new RegExp(`^${label}:[ \\t]*(.+)$`, 'mi').exec(t)?.[1] || '').trim().slice(0, 300);
   return {
-    id: m[1], code: m[0], lines,
+    id: m[1], code: m[0], lines, deliveryFee: feeInText(t),
     customer: { name: line('Name'), phone: line('Phone'), delivery: /door/i.test(line('Delivery')) ? 'door' : 'collect', address: line('Address'), note: line('(?:Gift )?note'),
       offers: ((v) => (/^yes/i.test(v) ? 'yes' : /^no/i.test(v) ? 'no' : ''))(line('(?:Offers on WhatsApp|offers_whatsapp)')) },
     raw: t.slice(0, 4000),
@@ -702,6 +718,8 @@ function viewOrders() {
       <div class="section-head"><h3>${esc(p.id)}</h3><span class="num"><b>${inr(m.total)}</b></span></div>
       ${customerHtml(p.customer)}
       ${orderLinesHtml(m)}
+      ${((f) => `<div class="sum-row muted"><span>Delivery${p.deliveryFee == null && p.customer.delivery === 'door' ? ' (website rule)' : ''}</span><span>${f ? inr(f) : 'Free'}</span></div>
+      <div class="sum-row"><span>Customer pays</span><b>${inr(m.total + f)}</b></div>`)(shipDefault(p, m.total))}
       ${dup ? `<div class="warn">This order is already saved (${esc(ORDER_LABEL[dup.status] || dup.status)}). <button class="btn ghost sm" data-act="openOrder" data-id="${esc(dup.id)}">Open it</button></div>` : ''}
       ${m.unknown.length ? `<div class="err">Not in the Stockroom: ${esc(m.unknown.map((l) => l.ref).join(', '))}. Add or restore them before confirming.</div>` : ''}
       ${m.short.length ? `<div class="warn">Not enough stock right now: ${esc(m.short.join('; '))}.</div>` : ''}
@@ -719,7 +737,7 @@ function viewOrders() {
 }
 function openOrderSheet(id) {
   const o = S.orders.find((x) => x.id === id); if (!o) return toast('This order was removed elsewhere.', true);
-  const draft = { shippingCharged: o.shippingCharged ?? '', courierCost: o.courierCost ?? '', packQty: o.packQty ? Object.fromEntries(Object.entries(o.packQty).map(([k, v]) => [k, String(v)])) : kitQty(o.pack || 'gift', o.kits ?? defaultKits(o.lines || [])), tracking: o.tracking || '',
+  const draft = { shippingCharged: o.shippingCharged ?? (o.status === 'new' ? shipDefault(o, o.total) : ''), courierCost: o.courierCost ?? '', packQty: o.packQty ? Object.fromEntries(Object.entries(o.packQty).map(([k, v]) => [k, String(v)])) : kitQty(o.pack || 'gift', o.kits ?? defaultKits(o.lines || [])), tracking: o.tracking || '',
     payRef: o.payment?.ref || '', payAmt: o.payment?.amount ?? '', payDate: o.payment?.date || today() };
   S.sheet = { kind: 'order', id, draft, orig: JSON.stringify(draft) }; renderSheet();
 }
@@ -740,7 +758,8 @@ function sheetOrder() {
     <div class="card stack"><h3>Delivery</h3>
       <div class="grid2">
         ${field('Shipping charged', 'shippingCharged', d.shippingCharged, { type: 'number', rupee: true, ph: '0' })}
-        ${field('Courier cost', 'courierCost', d.courierCost, { type: 'number', rupee: true, ph: '0' })}</div></div>
+        ${field('Courier cost', 'courierCost', d.courierCost, { type: 'number', rupee: true, ph: '0' })}</div>
+      <p class="small muted">Shipping charged is filled in from the order (₹${DELIVERY.fee} below ₹${DELIVERY.freeFrom}, free from ₹${DELIVERY.freeFrom}). Change it if needed.</p></div>
     <div class="card stack" id="order-preview">${orderPreview(m, t)}</div>
     <button class="btn primary block" data-act="saveOrderConfirm" ${m.unknown.length ? 'disabled' : ''}>Confirm order and update stock</button>`
   : `<div class="card stack"><div class="sum-row"><span>Order total</span><b>${inr(o.total)}</b></div>
@@ -756,7 +775,7 @@ function sheetOrder() {
 // Who issues receipts. Update after the company is registered (and add the GSTIN once there is one).
 const SELLER = { name: 'Upasana Negi, sole proprietor, trading as TadaBoo', place: 'Ghaziabad, Uttar Pradesh, India', phone: '97306 24700', email: 'hello@tadaboo.com', web: 'www.tadaboo.com' };
 // What the customer owes: items plus the delivery charge saved on the order.
-const due = (o) => n(o.total) + n(o.shippingCharged);
+const due = (o, d) => n(o.total) + n(o.status === 'new' && d && 'shippingCharged' in d ? d.shippingCharged : o.shippingCharged);
 function paymentCard(o, d) {
   const p = o.payment;
   if (p?.paid) return `<div class="card stack"><div class="section-head"><h3>Payment</h3><span class="chip ok">Paid</span></div>
@@ -765,8 +784,8 @@ function paymentCard(o, d) {
     <p class="small muted">A picture you can send on WhatsApp. In the Claude phone app it opens the share sheet.</p>
     <button class="btn ghost sm" data-act="orderUnpaid" data-confirm="Tap again to mark as not paid">Undo: not paid</button></div>`;
   return `<div class="card stack"><div class="section-head"><h3>Payment</h3><span class="chip plain">Awaiting payment</span></div>
-    <p class="small muted">Check your UPI app for ${inr(due(o))} with note ${esc(o.id)}.</p>
-    <div class="grid3">${field('Amount received', 'payAmt', d.payAmt, { type: 'number', rupee: true, ph: String(due(o)) })}${field('UPI reference (optional)', 'payRef', d.payRef, { ph: 'e.g. 4321…' })}${field('Date', 'payDate', d.payDate, { type: 'date' })}</div>
+    <p class="small muted" id="pay-due">Check your UPI app for ${inr(due(o, d))} with note ${esc(o.id)}.</p>
+    <div class="grid3">${field('Amount received', 'payAmt', d.payAmt, { type: 'number', rupee: true, ph: String(due(o, d)) })}${field('UPI reference (optional)', 'payRef', d.payRef, { ph: 'e.g. 4321…' })}${field('Date', 'payDate', d.payDate, { type: 'date' })}</div>
     <button class="btn primary block" data-act="orderPaid">Mark paid</button></div>`;
 }
 // Draws the receipt on a canvas (1080px wide) and returns a PNG Blob.
@@ -1337,7 +1356,8 @@ function onInput(e) {
   }
   if (key === 'sheet' && S.sheet.kind === 'bag') { if (el.tagName === 'SELECT') renderSheet(); else updateBagPreview(); }
   if (key === 'sheet' && S.sheet.kind === 'purchase') { if (el.tagName === 'SELECT') renderSheet(); else { const b = $('#pur-preview'); if (b) b.innerHTML = purchaseEditPreview(d); } }
-  if (key === 'sheet' && S.sheet.kind === 'order') { const o = S.orders.find((x) => x.id === S.sheet.id), b = $('#order-preview'); if (o && b) { const m = orderModel(o, d); b.innerHTML = orderPreview(m, m.totals); } }
+  if (key === 'sheet' && S.sheet.kind === 'order') { const o = S.orders.find((x) => x.id === S.sheet.id), b = $('#order-preview'); if (o && b) { const m = orderModel(o, d); b.innerHTML = orderPreview(m, m.totals); }
+    const pd = $('#pay-due'), pa = $('[data-bind="payAmt"]'); if (o && pd) { pd.textContent = `Check your UPI app for ${inr(due(o, d))} with note ${o.id}.`; if (pa) pa.placeholder = String(due(o, d)); } }
   if (el.hasAttribute('data-rerender') && e.type === 'change') renderAll();
 }
 function updateBagPreview() {
@@ -1682,7 +1702,7 @@ const A = {
     const p = S.ord?.parsed; if (!p || p.error) return toast('Read an order first.', true);
     if (S.orders.some((o) => o.id === p.id)) return toast('This order is already saved.', true);
     const m = orderModel(p), at = nowIso();
-    const body = { code: p.code, lines: p.lines, customer: p.customer, raw: p.raw, total: m.total, status: 'new', createdAt: at, updatedAt: at, history: [{ status: 'new', at }] };
+    const body = { code: p.code, lines: p.lines, customer: p.customer, raw: p.raw, total: m.total, shippingCharged: shipDefault(p, m.total), status: 'new', createdAt: at, updatedAt: at, history: [{ status: 'new', at }] };
     if (await write(() => setDoc('orders', p.id, body), `Order ${p.id} saved`)) {
       S.ord = { ...blankOrd(), filter: 'active' }; renderAll();
       if (S.orders.some((o) => o.id === p.id)) openOrderSheet(p.id);
@@ -1703,7 +1723,7 @@ const A = {
   orderPaid: async (el) => {
     const { id, draft: d } = S.sheet, o = S.orders.find((x) => x.id === id);
     if (!o) return toast('This order was removed elsewhere.', true);
-    const amount = str(d.payAmt).trim() === '' ? due(o) : n(d.payAmt);
+    const amount = str(d.payAmt).trim() === '' ? due(o, d) : n(d.payAmt);
     if (!(amount > 0)) return toast('Enter the amount you received.', true);
     el.disabled = true;
     const payment = { paid: true, amount, ref: str(d.payRef).trim().slice(0, 40), date: d.payDate || today(), at: nowIso() };
