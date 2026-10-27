@@ -1,3 +1,4 @@
 User-agent: *
 Allow: /
-# Add "Sitemap: https://<your-domain>/sitemap.xml" once the site has its live domain.
+
+Sitemap: https://www.tadaboo.com/sitemap.xml

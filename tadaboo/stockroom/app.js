@@ -629,26 +629,36 @@ const afterOrderStep = (msg) => setTimeout(() => { ($('.sheet .btn.primary') || 
 // Website stock is out of date once an order is confirmed or cancelled after the last stock file.
 const stockStale = () => { const last = str(S.web?.stockExportedAt); return S.orders.filter((o) => ['confirmed', 'cancelled'].some((st) => (o.history || []).some((h) => h.status === st && str(h.at) > last))).length; };
 
-// Website delivery rule (keep in step with tadaboo/website/catalog.js → delivery): door-to-door costs
-// `fee` when the items total is below `freeFrom`, and is free at or above it. Collecting is free.
-const DELIVERY = { fee: 99, freeFrom: 699 };
-// The delivery fee written in the order ("Delivery charge: ₹99" on WhatsApp, "delivery: Door-to-door delivery (₹99)"
-// in the inbox; "Free" = 0), or null when the order doesn't say (orders placed before delivery was priced).
+// Website delivery rule (keep in step with tadaboo/website/catalog.js → delivery): every order ships;
+// ₹99, or ₹149 to the North East (PIN codes starting 78, 79, 737), free when the items total ₹999 or more.
+// Used only when an order doesn't state its delivery charge.
+const DELIVERY = { fee: 99, remoteFee: 149, remote: ['78', '79', '737'], freeFrom: 999 };
+// The delivery charge written in the order, or null when it doesn't say. Formats:
+// WhatsApp "Delivery: Door-to-door to Delhi · ₹99 · est. …" (or "· Free"); inbox "Door-to-door delivery to Delhi · ₹99 (items ₹349)";
+// and the earlier site's "Delivery charge: ₹99" / "Door-to-door delivery (₹99)".
 function feeInText(t) {
-  const v = /^Delivery charge:[ \t]*(.+)$/mi.exec(t)?.[1] || /^Delivery:[ \t]*Door[^(\n]*\(([^)]*)\)/mi.exec(t)?.[1] || '';
+  const v = /^Delivery charge:[ \t]*(.+)$/mi.exec(t)?.[1]
+    || /^Delivery:[ \t]*Door[^\n·]*·[ \t]*(Free|₹[ \t]*[\d,.]+)/mi.exec(t)?.[1]
+    || /^Delivery:[ \t]*Door[^(\n]*\((free|₹[^)]*)\)/mi.exec(t)?.[1] || '';
   if (/^\s*free/i.test(v)) return 0;
   const m = /₹?\s*([\d,]+(?:\.\d+)?)/.exec(v); return m ? n(m[1].replace(/,/g, '')) : null;
 }
+// The 6-digit PIN code in the order's address, PIN or pincode line.
+const pinIn = (t) => /^(?:Address|PIN|Pincode)\b[^\n]*?\b([1-8]\d{5})\b/mi.exec(str(t))?.[1] || '';
 /** Delivery to charge for an order: what the order says, else the website rule. */
 const shipDefault = (o, itemsTotal) => {
   const f = o.deliveryFee ?? (o.raw ? feeInText(o.raw) : null);
   if (f != null) return f;
-  return o.customer?.delivery === 'door' ? (n(itemsTotal) >= DELIVERY.freeFrom ? 0 : DELIVERY.fee) : 0;
+  if (o.customer?.delivery !== 'door') return 0;
+  if (n(itemsTotal) >= DELIVERY.freeFrom) return 0;
+  const pin = pinIn(o.raw);
+  return DELIVERY.remote.some((p) => pin.startsWith(p)) ? DELIVERY.remoteFee : DELIVERY.fee;
 };
 function parseOrder(text) {
   const t = str(text);
   // WhatsApp can wrap the long code line; take everything after "TB1|" up to a blank line, minus spaces.
-  const at = t.indexOf('TB1|'), codeText = at < 0 ? '' : t.slice(at).split(/\n\s*\n/)[0].replace(/\s+/g, '');
+  // In the website inbox other fields (e.g. offers_whatsapp) can follow the code line, so it also stops at the next field name.
+  const at = t.indexOf('TB1|'), codeText = at < 0 ? '' : t.slice(at).split(/\n\s*\n|\n(?=[ \t]*(?:offers_whatsapp|Offers on WhatsApp|website|order_id|name|phone|delivery|address|pincode|note|items|total)[ \t]*:)/i)[0].replace(/\s+/g, '');
   const m = /^TB1\|(TB-\d{6}-[A-Z0-9]{4})\|([^\s]+)/.exec(codeText);
   if (!m) return { error: 'No TadaBoo order code found. Paste the whole WhatsApp message, or the order’s details from the website order inbox, including the code that starts “TB1|”.' };
   const lines = [];
@@ -759,7 +769,7 @@ function sheetOrder() {
       <div class="grid2">
         ${field('Shipping charged', 'shippingCharged', d.shippingCharged, { type: 'number', rupee: true, ph: '0' })}
         ${field('Courier cost', 'courierCost', d.courierCost, { type: 'number', rupee: true, ph: '0' })}</div>
-      <p class="small muted">Shipping charged is filled in from the order (₹${DELIVERY.fee} below ₹${DELIVERY.freeFrom}, free from ₹${DELIVERY.freeFrom}). Change it if needed.</p></div>
+      <p class="small muted">Shipping charged is filled in from the order (₹${DELIVERY.fee}, ₹${DELIVERY.remoteFee} to the North East, free from ₹${DELIVERY.freeFrom}). Change it if needed.</p></div>
     <div class="card stack" id="order-preview">${orderPreview(m, t)}</div>
     <button class="btn primary block" data-act="saveOrderConfirm" ${m.unknown.length ? 'disabled' : ''}>Confirm order and update stock</button>`
   : `<div class="card stack"><div class="sum-row"><span>Order total</span><b>${inr(o.total)}</b></div>

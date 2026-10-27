@@ -1,15 +1,30 @@
 // TadaBoo catalogue data (source: Tadaboo_Catalogue.pdf, 2026 collection).
-// Prices are customer prices in ₹. `sid` links each product to its item id in the
-// TadaBoo Stockroom so stock and costs can be joined later.
+// Prices are customer prices in ₹. `sid` links each product to its item id in the TadaBoo Stockroom.
+// Once stock.json loads, the site uses the Stockroom's selling price instead of the one here, except for
+// products marked `fixedPrice: true` (sold as a set at a set price, e.g. a box of 12 pencils at ₹109
+// while the Stockroom prices single pencils at ₹15). Best sellers are switched on in the Stockroom
+// ("★ Best seller on the website"); `bestsellers` below is only used if stock.json has none.
 // To add a product: add a row here and a photo at img/<id>.webp.
 window.TADABOO = {
   phone: "97306 24700",
   whatsapp: "919730624700",
   customMin: 299, // custom bags: chosen items must total more than this
-  dispatchDays: "5–7 working days",
-  // Door-to-door delivery: a flat fee when the items total is below `freeFrom`, free at or above it.
-  // Collecting is free. The same numbers are written in the page copy (How to order, FAQ): change both.
-  delivery: { fee: 99, freeFrom: 699 },
+  deliveryDays: "7–10 days", // from order to the buyer's door, anywhere in India
+  // Delivery: every order ships (no pickup). The checkout works out the charge from the buyer's PIN code.
+  // Items worth ₹999 or more ship free anywhere in India. Below that: ₹99 anywhere in India, or ₹149 to
+  // the North East states (Assam, Arunachal Pradesh, Manipur, Meghalaya, Mizoram, Nagaland, Tripura: PIN 78–79;
+  // Sikkim: 737). `home` is our own state (Maharashtra and Goa, 40–44); it pays the same as the rest of India.
+  delivery: {
+    home: ["40", "41", "42", "43", "44"],
+    remote: ["78", "79", "737"],
+    rates: { home: 99, india: 99, remote: 149 },
+    freeAbove: 999, // items of ₹999 or more ship free
+    // Estimated arrival shown at checkout: [earliest, latest] calendar days after the order, by zone.
+    // Keep in step with `deliveryDays` above.
+    arrivalDays: { home: [7, 10], india: [7, 10], remote: [7, 10] },
+    // If these change, update the "Do you deliver?" answer in index.html (FAQ and its JSON-LD copy)
+    // and the delivery lines in the hero and "How to order".
+  },
   // Website orders go to the WebsitePublisher order inbox (project 30289, form "tadaboo_order").
   // The Tadaboo agent reads them with leads/get-leads; each carries the Stockroom order code.
   orders: { project: 30289, form: "tadaboo_order" },
@@ -17,6 +32,11 @@ window.TADABOO = {
   // Leave empty until the owner adds it: the site then says payment details follow on confirmation.
   upi: "8415037227@axl",
   upiName: "TadaBoo",
+  // Optional fixed UPI QR image (from your bank or PhonePe/Paytm/BharatPe Business app), saved in website/img/,
+  // e.g. "img/upi-qr.png". Used only when `upi` is empty; with a UPI ID the site makes a QR with the exact amount.
+  upiQr: "",
+  // Fallback best sellers ("p:<product id>" or "b:<bag id>"), shown only when the Stockroom marks none.
+  bestsellers: [],
 
   categories: [
     { id: "pens", name: "Pens & Highlighters", line: "Write it, doodle it, make it sparkle." },
@@ -41,8 +61,8 @@ window.TADABOO = {
     { id: "popsicle-highlighter", sid: "it-popsicle-highlighter", cat: "pens", name: "Popsicle Highlighter", price: 30, desc: "Popsicle-shaped highlighters.", tags: ["sweet", "return", "school"] },
 
     // Pencils, Notebooks & Notes
-    { id: "unicorn-pencils", units: 12, sid: "it-unicorn-pencils", cat: "paper", name: "Unicorn Print 2B Pencil (Box of 12)", price: 109, desc: "Box of 12 for ₹109, or single pencils at ₹15.", tags: ["school", "girls", "unicorn"] },
-    { id: "racing-pencils", units: 12, sid: "it-racing-pencils", cat: "paper", name: "Racing Car Themed 2B Pencil (Box of 12)", price: 109, desc: "Box of 12 for ₹109, or single pencils at ₹15.", tags: ["school", "boys", "vroom"] },
+    { id: "unicorn-pencils", fixedPrice: true, units: 12, sid: "it-unicorn-pencils", cat: "paper", name: "Unicorn Print 2B Pencil (Box of 12)", price: 109, desc: "Box of 12 for ₹109, or single pencils at ₹15.", tags: ["school", "girls", "unicorn"] },
+    { id: "racing-pencils", fixedPrice: true, units: 12, sid: "it-racing-pencils", cat: "paper", name: "Racing Car Themed 2B Pencil (Box of 12)", price: 109, desc: "Box of 12 for ₹109, or single pencils at ₹15.", tags: ["school", "boys", "vroom"] },
     { id: "a7-notebook", sid: "it-a7-notebook", cat: "paper", name: "A7 Kawaii Mini Spiral Notebook", price: 80, desc: "Pocket notebook, ruled pages, cute animal covers.", tags: ["kawaii", "return", "school"] },
     { id: "snoopy-diary", sid: "it-snoopy-diary", cat: "paper", name: "Snoopy Diary", price: 149, desc: "Snoopy-themed diary, assorted designs.", tags: ["any", "kawaii"] },
     { id: "clipboard-diary", sid: "it-clipboard-diary", cat: "paper", name: "Kawaii Mini Clipboard Notepad Diary", price: 99, desc: "Mini clipboard-style notepad.", tags: ["kawaii", "school"] },
@@ -77,7 +97,7 @@ window.TADABOO = {
     { id: "6in1-set", sid: "it-6in1-set", cat: "make", name: "Kids Stationery Set – 6-in-1 DIY Cartoon", price: 199, desc: "Pencils, sharpener, eraser, brush, watercolours and tray.", tags: ["crafty", "school"] },
     { id: "crayons-set", sid: "it-crayons-set", cat: "make", name: "Cute Crayons Stationery Set", price: 99, desc: "Crayon-based cute stationery set.", tags: ["crafty", "return"] },
     { id: "hamburger-glue", sid: "it-hamburger-glue", cat: "make", name: "Hamburger Glue Stick", price: 129, desc: "Hamburger-shaped glue stick.", tags: ["crafty", "sweet", "school"] },
-    { id: "reward-stamps", sid: "it-trendy-08", cat: "make", name: "Reward Stamp Set", price: 129, desc: "10 self-inking reward stamps: smileys, flowers or sea animals.", tags: ["crafty", "any"] },
+    { id: "reward-stamps", units: 10, fixedPrice: true, sid: "it-trendy-08", cat: "make", name: "Reward Stamp Set", price: 129, desc: "10 self-inking reward stamps: smileys, flowers or sea animals.", tags: ["crafty", "any"] },
 
     // Gift Sets & Squishy Fun
     { id: "12pc-pencil-set", sid: "it-12pc-pencil-set", cat: "gift", name: "12 Pcs Pencil Stationery Gift Set", price: 199, desc: "12-piece pencil gift set, mixed designs.", tags: ["school", "any"] },

@@ -14,7 +14,7 @@ Numbers below are a snapshot. For anything current, re-read the Stockroom (see "
 
 ### Customer-facing rules (from the catalogue; do not change without the owner)
 - **Custom bags**: selected items must total **more than ₹299**. Customers pay only for the items they choose.
-- **Delivery** (owner decision, 27 Oct 2026): door-to-door delivery is **₹99 when the items total is below ₹699, free at ₹699 or more**; collecting is free. The website adds it at checkout and the UPI amount includes it (`catalog.js` → `delivery: { fee, freeFrom }`; the same numbers are written in the page copy). Basis: courier under ₹90 for 0.5 kg and about ₹300 for 2.5 kg (owner quote, nearby zones). ₹99 roughly covers one small-box order; free delivery is absorbed by orders of ₹699+ (worst case: a hamper in the large box keeps ~₹156–191 of ~₹456–491 profit). Far zones may cost more: watch courier cost per sale in the Stockroom. UPI ID for website payments: `8415037227@axl` (`catalog.js` → `upi`, set 27 Oct 2026).
+- **Delivery** (owner decision, 27 Oct 2026, with the website redesign): every order ships, no pickup. **₹99, or ₹149 to the North East** (PIN codes 78, 79, 737), **free when items total ₹999 or more**. Checkout prices it from the PIN code and shows estimated arrival (7–10 days); the UPI amount includes it (`catalog.js` → `delivery`; the same numbers are in the hero, How to order, FAQ and policies). Basis: courier under ₹90 for 0.5 kg, about ₹300 for 2.5 kg (owner quote); two real orders on 27 Oct cost ₹159 and ₹355, so watch courier cost per sale in the Stockroom. UPI ID for website payments: `8415037227@axl` (`catalog.js` → `upi`, set 27 Oct 2026).
 - **Dispatch**: bags are curated in small batches; allow **5–7 working days**.
 - **Variation**: colours, characters or designs may vary with availability; product type and value stay the same.
 - **Pencils**: Unicorn and Racing Car 2B pencils sell as a box of 12 for ₹109, or ₹15 per single pencil.
@@ -104,7 +104,7 @@ Payment methods seen: ICICI debit card, Amazon credit card, account transfer.
 |---|---|---|
 | **TadaBoo Stockroom** | https://claude.ai/artifact/LaZN37L8DS7RDsbxhM9inG | Inventory, purchases (landed cost), sales, gift-bag recipes, packaging kits, profit. Shared database collections: `items`, `bags`, `purchases`, `sales`, `adjustments`, `settings/main`. Stock and cost are derived from the ledger (see its `calc.js`). |
 | **Website orders** | WebsitePublisher order inbox (project 30289, form `tadaboo_order`) + Stockroom → Orders tab | Website orders land in the inbox; WhatsApp orders arrive as messages. Both carry an order code: paste it in the Orders tab; confirming records sale `web-<order id>`, so stock and profit update. Statuses New → Confirmed → Packed → Dispatched → Delivered, or Cancelled (stock put back). Exports `stock.json` for the website. See `tadaboo/stockroom/README.md`. |
-| **Website** | `tadaboo/website/` | Customer storefront: gift collections, gift finder, shop, custom-bag builder with ₹299 meter, checkout on the site (order inbox + UPI) or on WhatsApp. Static files; deploy anywhere. |
+| **Website** | `tadaboo/website/` (live on Cloudflare Pages: tadaboo-shop.pages.dev, production branch `claude/peaceful-keller-9qmlbg`, output dir `tadaboo/website`; domain www.tadaboo.com to be connected) | Customer storefront: gift collections, gift finder, shop, custom-bag builder with ₹299 meter, checkout on the site (order inbox + UPI) or on WhatsApp. Static files; deploy anywhere. |
 | **Catalogue PDF** | owner's files | Customer-facing source of truth for products, prices, collections, policies. |
 | **Website design draft** | claude.ai/design project "TadaBoo Store" | Needs `/design-login` or "Send to Claude Code" to be read by an agent. |
 
@@ -126,5 +126,5 @@ Payment methods seen: ICICI debit card, Amazon credit card, account transfer.
 6. **Uncategorised items** in the Stockroom: bath bomb, dumpling squishy, chocolate squishy (no category); fountain pen and pop-up pens under "Trendy (to classify)".
 7. **Not in the catalogue**: ChibiCharm Sticky Notes (no price), Pineapple Paper Cutter (archived).
 8. **Unverified counts**: gel pens assumed 12 per box; PaperZen ₹710 gap; Helmet vs Cold Drink Can sharpener on the 91Supplies sheet.
-9. ~~Delivery pricing not defined~~ **Resolved 27 Oct 2026:** ₹99 below ₹699, free from ₹699 (see §1). The Stockroom fills "Shipping charged" automatically from the order (editable; Stockroom v29, 27 Oct 2026). Keep `DELIVERY` in `tadaboo/stockroom/app.js` in step with `catalog.js` if the rule changes.
+9. ~~Delivery pricing not defined~~ **Resolved 27 Oct 2026:** see §1 (₹99 / ₹149 North East / free from ₹999). The Stockroom fills "Shipping charged" from the order text (editable); its fallback rule is `DELIVERY` in `tadaboo/stockroom/app.js`, keep it in step with `catalog.js`.
 10. **Low-stock threshold** for gift vs pouch packaging (`settings.threshold`) is not set.
