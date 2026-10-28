@@ -153,7 +153,9 @@ section{padding-block:clamp(64px,8vw,96px)}
 /* Gift bags */
 .bags-sec{background:var(--stone)}
 .bags{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:28px 22px;margin-top:24px}
-.bagcard{display:flex;flex-direction:column;gap:12px;min-width:0}
+.bagcard{display:flex;flex-direction:column;gap:12px;min-width:0;position:relative}
+.bagcard>.fav{top:18px;right:18px}
+@media (max-width:560px){.bagcard>.fav{top:13px;right:13px}}
 .bagopen{border:0;background:none;padding:0;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:12px;min-width:0;width:100%}
 .bfoot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:-4px;padding-inline:4px}
 .bfoot .ct{margin:0!important;padding:0!important}
@@ -998,8 +1000,8 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
   function bagCard(b) {
     const n = qty("b:" + b.id);
     const act = n ? stepper("b:" + b.id, n) : avail("b:" + b.id) <= 0 ? "" : `<button class="plus" data-bagplus="${b.id}" aria-label="Add ${esc(b.name)} to bag">${plusIcon}</button>`;
-    return `<div class="bagcard${!n && avail("b:" + b.id) <= 0 ? " sold" : ""}" style="--pc:var(--${["sky", "mint", "butter", "blush"].includes(b.tint) ? b.tint : "sky"})"><button class="bagopen" data-openbag="${b.id}" aria-haspopup="dialog">
-      <span class="ph"><span class="cv">${pic(cover(b))}</span><span class="chips" aria-hidden="true">${chips(b)}</span>${n ? `<span class="inbag">In bag · ${n}${avail("b:" + b.id) <= n ? " · all we have" : ""}</span>` : stockTag("b:" + b.id)}${BEST.has("b:" + b.id) ? `<span class="star r">★ Best seller</span>` : ""}</span>
+    return `<div class="bagcard${!n && avail("b:" + b.id) <= 0 ? " sold" : ""}" style="--pc:var(--${["sky", "mint", "butter", "blush"].includes(b.tint) ? b.tint : "sky"})">${favBtn("b:" + b.id)}<button class="bagopen" data-openbag="${b.id}" aria-haspopup="dialog">
+      <span class="ph"><span class="cv">${pic(cover(b))}</span><span class="chips" aria-hidden="true">${chips(b)}</span>${(n ? `<span class="inbag">In bag · ${n}${avail("b:" + b.id) <= n ? " · all we have" : ""}</span>` : stockTag("b:" + b.id)) || (BEST.has("b:" + b.id) ? `<span class="star">★ Best seller</span>` : "")}</span>
       <span class="row"><span class="nm">${esc(b.name)}</span>${priceTag(b)}</span>
     </button>
       <div class="bfoot"><span class="ct">${b.items.length} items</span><div class="act">${act}</div></div>
