@@ -13,10 +13,16 @@ customer details). Serve this folder with `python3 -m http.server 8766` and open
 
 ## Website orders (Orders tab)
 Orders reach the owner in one of two ways, and both carry the same order code:
-- **On the website** ("Place order"): the order goes to the WebsitePublisher order inbox (project 30289,
-  form `tadaboo_order`, lead capture) with name, phone, delivery, address, items, total and
-  `order_code`. The buyer can then pay by UPI (if `upi` is set in `catalog.js`). The Tadaboo agent reads
-  new orders with `leads/get-leads`; the owner can also see them in the WebsitePublisher dashboard.
+- **On the website** ("Place order"): the order goes to TadaBoo's order inbox (Cloudflare Worker
+  `tadaboo/orders-worker`) with name, phone, delivery, address, items, total and `order_code`. The buyer can
+  then pay by UPI (if `upi` is set in `catalog.js`). The inbox also files a copy in WebsitePublisher's lead
+  capture (project 30289 — "My First Project" in the dashboard — form `tadaboo_order`; needs the Worker
+  secret `WP_KEY`, a `wpa_` project key from dashboard.websitepublisher.ai/keys).
+  **Live import:** while the Stockroom is open it reads those leads through the owner's *WebsitePublisher AI*
+  connector (`mcp` capability, tool `execute_integration`, `leads/get-leads`, last 30 days) on open and every
+  minute, and saves each new order id as a *New* order (same record as Save order, plus `source: 'website'`,
+  `leadId` = order id, `wpLeadId`). The Orders tab shows when it last checked and a **Check now** button.
+  The hourly task (`scripts/scheduled_task.md`) imports from the Cloudflare inbox too, as the backup.
 - **On WhatsApp** ("Order on WhatsApp instead"): a prefilled message.
 
 1. Take the order text (the WhatsApp message, or the inbox entry's fields) — it ends with

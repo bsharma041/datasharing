@@ -85,6 +85,8 @@ async function connect() {
   }
   if (!db) { S.conn = 'off'; renderAll(); return; }
   S.db = db;
+  // Live website orders: the owner's WebsitePublisher connector (claude.ai), or a test double on localhost.
+  (window.claude?.use ? window.claude.use('mcp').catch(() => null) : Promise.resolve(window.__devMcp || null)).then(startWebOrders);
   for (const c of COLLS) {
     db.collection(c).onSnapshot((snap) => {
       S[c] = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -104,6 +106,103 @@ async function connect() {
     S.loaded.add('settings'); onData();
   }, (e) => { S.conn = 'err'; S.error = e; S.loaded.add('settings'); onData(); });
 }
+// ---------------------------------------------------------------- website orders, live
+// The order inbox (Cloudflare) files a copy of each www.tadaboo.com order in WebsitePublisher's lead capture.
+// While the Stockroom is open it reads those leads through the owner's WebsitePublisher connector (on open,
+// then every minute) and saves each new one as a "New" order: the same record Paste → Read order → Save order
+// makes. Nothing changes stock until the owner confirms the order. The hourly task is the backup.
+const WEB = { server: 'WebsitePublisher AI', project: 30289, form: 'tadaboo_order', everyMs: 60000, days: 30 };
+const WEB_FIELDS = ['order_id', 'name', 'phone', 'delivery', 'address', 'pincode', 'note', 'items', 'total', 'order_code', 'offers_whatsapp'];
+// Error codes that need the owner (allow, reconnect, add the connector): stop checking until they act.
+const WEB_STOP = ['approval_required', 'not_in_manifest', 'needs_reauth', 'server_not_connected', 'selection_required', 'blocked_by_policy', 'not_granted', 'capability_disabled', 'capability_removed', 'consent_required'];
+const leadText = (f) => [...WEB_FIELDS.filter((k) => k in f), ...Object.keys(f).filter((k) => !WEB_FIELDS.includes(k) && k !== 'website')]
+  .map((k) => `${k}: ${str(f[k]).trim()}`).join('\n');
+const leadList = (x) => {
+  if (Array.isArray(x)) return x;
+  if (x && typeof x === 'object') for (const k of ['data', 'result', 'leads']) if (x[k] != null) { const r = leadList(x[k]); if (r) return r; }
+  return null;
+};
+let webMcp = null, webBusy = false, webTimer = null;
+S.webIn = { state: 'off' };
+
+async function startWebOrders(mcp) {
+  webMcp = mcp;
+  if (!mcp) { S.webIn = { state: 'off' }; scheduleRender(); return; }
+  S.webIn = { state: 'checking' }; scheduleRender();
+  checkWebOrders();
+  webTimer = setInterval(() => { if (!document.hidden) checkWebOrders(); }, WEB.everyMs);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkWebOrders(); });
+}
+
+/** Read recent website orders and save the new ones. forced = the owner pressed "Check now". */
+async function checkWebOrders(forced = false) {
+  if (!webMcp || webBusy || (S.webIn.blocked && !forced)) return;
+  if (!S.loaded.has('orders')) { setTimeout(() => checkWebOrders(forced), 1500); return; } // need saved orders to skip repeats
+  webBusy = true;
+  try {
+    const from = new Date(Date.now() - WEB.days * 864e5).toISOString().slice(0, 10);
+    const r = await webMcp.callTool(WEB.server, 'execute_integration',
+      { project_id: WEB.project, service: 'leads', endpoint: 'get-leads', input: { form_name: WEB.form, date_from: from, per_page: 100 } }, { cache: false });
+    let pl = r?.payload;
+    if (typeof pl === 'string') { try { pl = JSON.parse(pl); } catch { /* keep text */ } }
+    if (pl?.success === false || pl?.data?.success === false) throw { code: 'tool_error', message: str(pl?.error?.message || pl?.data?.error?.message) };
+    const leads = leadList(pl);
+    if (!leads) throw { code: 'tool_error', message: 'Unexpected answer from WebsitePublisher' };
+    const added = await importWebLeads(leads);
+    S.webIn = { state: 'ok', at: nowIso(), added: (S.webIn.added || 0) + added };
+  } catch (e) {
+    console.error('website orders', e);
+    const code = str(e?.code) || 'upstream_error';
+    S.webIn = { state: 'err', code, at: S.webIn.at, blocked: WEB_STOP.includes(code) };
+  } finally { webBusy = false; scheduleRender(); }
+}
+
+async function importWebLeads(leads) {
+  const have = new Set(S.orders.map((o) => o.id));
+  const ids = [];
+  for (const lead of leads) {
+    if (lead?.form_name && lead.form_name !== WEB.form) continue;
+    let f = lead?.fields ?? lead?.data ?? {};
+    if (typeof f === 'string') { try { f = JSON.parse(f); } catch { f = {}; } }
+    if (!f || typeof f !== 'object') continue;
+    const p = parseOrder(leadText(f));
+    if (p.error || have.has(p.id)) continue;
+    have.add(p.id);
+    const m = orderModel(p), at = nowIso();
+    // leadId is the order inbox's id (= order id), which the hourly task uses to mark the inbox entry done.
+    const body = { code: p.code, lines: p.lines, customer: p.customer, raw: p.raw, total: m.total, shippingCharged: shipDefault(p, m.total),
+      status: 'new', createdAt: at, updatedAt: at, history: [{ status: 'new', at, by: 'website (live)' }],
+      source: 'website', leadId: p.id, ...(lead?.id != null ? { wpLeadId: str(lead.id) } : {}) };
+    if (await write(() => setDoc('orders', p.id, body))) ids.push(p.id);
+  }
+  if (ids.length) {
+    toast(ids.length === 1 ? `New website order ${ids[0]} added to Orders` : `${ids.length} new website orders added to Orders`);
+  }
+  return ids.length;
+}
+
+/** One status line for the Orders screen. */
+function webInLine() {
+  const w = S.webIn, t = (iso) => (iso ? new Date(iso).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }) : '');
+  const btn = (label) => `<button class="btn ghost sm" data-act="webCheck">${label}</button>`;
+  if (w.state === 'off') return '';
+  if (w.state === 'checking') return `<div class="row small muted" role="status"><span class="dot"></span><span class="grow">Checking the website for new orders…</span></div>`;
+  if (w.state === 'ok') return `<div class="row small muted" role="status"><span class="dot live"></span><span class="grow">Website orders come in by themselves while this is open · checked ${esc(t(w.at))}</span>${btn('Check now')}</div>`;
+  const msg = {
+    approval_required: 'Allow the WebsitePublisher connector so website orders come in by themselves.',
+    not_in_manifest: 'The WebsitePublisher connector is turned off for the Stockroom. Turn it on in this page’s Permissions, then check again.',
+    consent_required: 'Allow the WebsitePublisher connector so website orders come in by themselves.',
+    needs_reauth: 'Reconnect WebsitePublisher AI in claude.ai Settings → Connectors, then check again.',
+    server_not_connected: 'Add WebsitePublisher AI in claude.ai Settings → Connectors so website orders come in by themselves.',
+    selection_required: 'Choose which WebsitePublisher connector to use when claude.ai asks, then check again.',
+    blocked_by_policy: 'Your organization blocks the WebsitePublisher connector here. Website orders still arrive with the hourly update.',
+  }[w.code] || (['not_granted', 'capability_disabled', 'capability_removed'].includes(w.code)
+    ? 'Website orders can’t be read in this view. They still arrive with the hourly update.'
+    : `Couldn’t reach the website orders just now${w.at ? ` (last checked ${esc(t(w.at))})` : ''}. Trying again every minute.`);
+  const canRetry = !['blocked_by_policy', 'not_granted', 'capability_disabled', 'capability_removed'].includes(w.code);
+  return `<div class="warn row" role="status"><span class="grow">${msg}</span>${canRetry ? btn(w.blocked ? 'Allow and check' : 'Check now') : ''}</div>`;
+}
+
 function onData() {
   S.ready = S.loaded.size >= COLLS.length + 1;
   derive(); // numbers stay current even while the screen redraw waits for typing to finish
@@ -719,6 +818,7 @@ function viewOrders() {
   return `<div class="stack" data-draft="orders">
   <div class="section-head"><div><div class="eyebrow">Website</div><h2>Orders</h2></div>
     <button class="btn ghost sm" data-act="stockFile" ${S.downloads ? '' : 'hidden'}>Website stock file</button></div>
+  ${webInLine()}
   ${stockStale() ? `<div class="warn" role="status">Website stock is out of date: ${stockStale()} order${stockStale() === 1 ? '' : 's'} changed since the last stock file. ${S.downloads ? 'Tap “Website stock file” and upload it with the website, or a' : 'A'}sk Tadaboo to “refresh the website stock”.</div>` : ''}
   <div class="card stack"><h3>Add a website or WhatsApp order</h3>
     <label class="f">Paste the WhatsApp message, or the order from the website inbox<textarea class="input" rows="4" data-bind="paste" placeholder="Hi TadaBoo! I'd like to order (TB-…)">${esc(d.paste)}</textarea></label>
@@ -1704,6 +1804,7 @@ const A = {
     if (await write(() => S.db.doc('settings/main').set({ ...S.settings, ...body }), 'Settings saved')) { S.setDraft = null; S.setDirty = false; renderAll(); } else el.disabled = false;
   },
   // orders (website)
+  webCheck: async (el) => { el.disabled = true; S.webIn = { ...S.webIn, state: 'checking' }; renderView(); await checkWebOrders(true); },
   ordRead: () => { const d = S.ord; d.parsed = str(d.paste).trim() ? parseOrder(d.paste) : { error: 'Paste the order first.' }; renderView(); },
   ordClear: () => { S.ord = { ...blankOrd(), filter: S.ord.filter }; renderView(); },
   ordFilter: (el) => { S.ord.filter = el.dataset.v; renderView(); },

@@ -18,7 +18,7 @@ tadaboo/
   scripts/import_orders.mjs    Turn new order-inbox leads into Stockroom "New" orders (uses the Stockroom's own order reader)
   scripts/publish_live.sh      Commit + push only stock.json/reviews.json to the live branch (www.tadaboo.com redeploys)
   scripts/orders.sh            Owner access to the order inbox: list orders, mark won/rejected (token in ~/.tadaboo/orders.env)
-  orders-worker/               The order inbox: Cloudflare Worker + KV that "Place order" posts to (deploy: npx wrangler@4 deploy)
+  orders-worker/               The order inbox: Cloudflare Worker + KV that "Place order" posts to; copies each order to WebsitePublisher leads so the open Stockroom picks it up within a minute (deploy: npx wrangler@4 deploy; secrets ADMIN_TOKEN, WP_KEY)
   scripts/scheduled_task.md    Instructions for the hourly "TadaBoo: update website from Stockroom" task
 ```
 

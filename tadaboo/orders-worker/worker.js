@@ -7,11 +7,18 @@
 // An order is { id, form_name: "tadaboo_order", status, created_at, fields }: the same shape as the
 // WebsitePublisher lead it replaces, so tadaboo/scripts/import_orders.mjs reads it unchanged.
 // Bindings (wrangler.toml): KV namespace ORDERS; secret ADMIN_TOKEN. Local testing only: DEV_ORIGIN in .dev.vars.
+//
+// Live copy for the Stockroom: with secret WP_KEY (a WebsitePublisher project key, wpa_…, project 30289) set,
+// each NEW order is also filed in WebsitePublisher's lead capture (form tadaboo_order), in the background.
+// The Stockroom reads those leads through the owner's WebsitePublisher connector while it is open, so a
+// website order shows up there within a minute. The order is stored here first either way; the copy's result
+// is kept on the order as `copy` ("ok" or "failed: …") and the hourly task still imports from this inbox.
 
 const ALLOWED_ORIGINS = ['https://www.tadaboo.com', 'https://tadaboo.com', 'https://tadaboo-shop.pages.dev'];
 const REQUIRED = ['order_id', 'name', 'phone', 'address', 'pincode', 'items', 'total', 'order_code'];
 const MAX_FIELD = 4000, MAX_BODY = 20000, PER_IP_PER_HOUR = 10;
 const STATUSES = ['new', 'won', 'rejected'];
+const WP = { url: 'https://api.websitepublisher.ai/iapi/project/30289/leads/submit-lead', form: 'tadaboo_order' };
 
 const json = (body, status = 200, headers = {}) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json; charset=utf-8', ...headers } });
@@ -27,7 +34,7 @@ const sameSecret = (a, b) => {
 };
 const isOwner = (req, env) => sameSecret((req.headers.get('authorization') || '').replace(/^Bearer\s+/i, ''), env.ADMIN_TOKEN);
 
-async function placeOrder(req, env, origin) {
+async function placeOrder(req, env, origin, ctx) {
   const h = cors(origin, env);
   if (!h) return json({ success: false, error: 'Origin not allowed' }, 403);
   const text = await req.text();
@@ -56,8 +63,26 @@ async function placeOrder(req, env, origin) {
     const order = { id, form_name: 'tadaboo_order', status: 'new', created_at: new Date().toISOString(), fields,
       metadata: { country: req.cf?.country || '', city: req.cf?.city || '' } };
     await env.ORDERS.put(key, JSON.stringify(order), { metadata: { status: 'new' } });
+    if (env.WP_KEY && ctx) ctx.waitUntil(copyToWebsitePublisher(env, key, order));
   }
   return json({ success: true, id }, 200, h);
+}
+
+// File the order in WebsitePublisher's lead capture, then note the result on the stored order.
+async function copyToWebsitePublisher(env, key, order) {
+  let copy;
+  try {
+    const r = await fetch(WP.url, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${env.WP_KEY}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ form_name: WP.form, fields: order.fields, metadata: { source: 'tadaboo-orders', order_id: order.id } }),
+      signal: AbortSignal.timeout(15000),
+    });
+    const body = await r.json().catch(() => null);
+    copy = r.ok && body?.success !== false ? 'ok' : `failed: HTTP ${r.status} ${String(body?.error?.message || '').slice(0, 120)}`.trim();
+  } catch (e) { copy = `failed: ${String(e?.name || e).slice(0, 60)}`; }
+  const o = await env.ORDERS.get(key, 'json');
+  if (o) { o.copy = copy; await env.ORDERS.put(key, JSON.stringify(o), { metadata: { status: o.status } }); }
 }
 
 async function listOrders(url, env) {
@@ -88,10 +113,10 @@ async function setStatus(id, req, env) {
 }
 
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     const url = new URL(req.url), origin = req.headers.get('origin') || '';
     if (req.method === 'OPTIONS') { const h = cors(origin, env); return new Response(null, { status: h ? 204 : 403, headers: h || {} }); }
-    if (url.pathname === '/order' && req.method === 'POST') return placeOrder(req, env, origin);
+    if (url.pathname === '/order' && req.method === 'POST') return placeOrder(req, env, origin, ctx);
     if (url.pathname === '/orders' && req.method === 'GET') return isOwner(req, env) ? listOrders(url, env) : json({ success: false, error: 'Unauthorized' }, 401);
     const m = /^\/orders\/(TB-\d{6}-[A-Z0-9]{4})\/status$/.exec(url.pathname);
     if (m && req.method === 'POST') return isOwner(req, env) ? setStatus(m[1], req, env) : json({ success: false, error: 'Unauthorized' }, 401);
