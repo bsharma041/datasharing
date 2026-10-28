@@ -17,6 +17,8 @@ tadaboo/
   scripts/sync_stock.py        Rebuild website/stock.json + reviews.json (stock, prices, offers, best sellers, reviews) from a Stockroom dump
   scripts/import_orders.mjs    Turn new order-inbox leads into Stockroom "New" orders (uses the Stockroom's own order reader)
   scripts/publish_live.sh      Commit + push only stock.json/reviews.json to the live branch (www.tadaboo.com redeploys)
+  scripts/orders.sh            Owner access to the order inbox: list orders, mark won/rejected (token in ~/.tadaboo/orders.env)
+  orders-worker/               The order inbox: Cloudflare Worker + KV that "Place order" posts to (deploy: npx wrangler@4 deploy)
   scripts/scheduled_task.md    Instructions for the hourly "TadaBoo: update website from Stockroom" task
 ```
 
@@ -41,8 +43,8 @@ cd tadaboo/website && python3 -m http.server 8000
 
 **Stockroom ↔ website sync** (scheduled task "TadaBoo: update website from Stockroom", hourly 8:00–22:00, plus Run now;
 instructions in `scripts/scheduled_task.md`):
-1. New website orders in the order inbox are copied into Stockroom → Orders as **New** (`import_orders.mjs`). Nothing
-   changes stock yet.
+1. New website orders in the order inbox (Cloudflare Worker `tadaboo/orders-worker`, https://tadaboo-orders.bsharma-04.workers.dev)
+   are copied into Stockroom → Orders as **New** (`import_orders.mjs`). Nothing changes stock yet.
 2. The owner checks the UPI credit and presses **Confirm order and update stock** (or Cancel). The task then marks the
    inbox lead won / rejected.
 3. The task dumps the Stockroom, rebuilds `stock.json` / `reviews.json` (`sync_stock.py`) and pushes just those two

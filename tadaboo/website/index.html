@@ -1228,7 +1228,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
       : `<button class="btn" disabled>Place order</button><span class="small">${m.msg}${bl.length ? " Or remove the loose items to order your gift bags now." : ""}</span>
       <a class="btn line sm wa-ask" href="https://wa.me/${T.whatsapp}" target="_blank" rel="noopener" data-chat>Ask us on WhatsApp</a>`;
     updateWa();
-    if (t.customOk) sapi().catch(() => {});
+    if (t.customOk && !T.orders.url) sapi().catch(() => {});
   }
   function totalsHtml() {
     const t = totals(), q = quote(form.pin, t.total), left = D.freeAbove - t.total, toFlat = Number.isFinite(D.flatAbove) ? D.flatAbove - t.total : 0;
@@ -1275,7 +1275,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     else renderCart();
   }
   // ---------- Website checkout ----------
-  // Orders go to the WebsitePublisher order inbox (catalog.js `orders`); WhatsApp stays as the other way.
+  // Orders go to TadaBoo's order inbox (catalog.js `orders.url`; WebsitePublisher if unset); WhatsApp stays as the other way.
   // The script loads only when someone is about to order; if it can't load or the send fails,
   // the bag is kept and the buyer is pointed to WhatsApp.
   let sapiP = null;
@@ -1336,9 +1336,16 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     placing = true; btn.disabled = true; btn.textContent = "Placing your order…"; err.hidden = true;
     let ok = false;
     try {
-      const client = await sapi();
-      const r = await Promise.race([client.submitForm(T.orders.form, fields), new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 20000))]);
-      ok = !!(r && r.ok);
+      const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 20000));
+      if (T.orders.url) {
+        // TadaBoo's own order inbox (Cloudflare Worker, tadaboo/orders-worker).
+        const r = await Promise.race([fetch(T.orders.url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ fields }) }), timeout]);
+        ok = r.ok && !!(await r.json().catch(() => null))?.success;
+      } else {
+        const client = await sapi();
+        const r = await Promise.race([client.submitForm(T.orders.form, fields), timeout]);
+        ok = !!(r && r.ok);
+      }
     } catch {}
     placing = false;
     if (!ok) {

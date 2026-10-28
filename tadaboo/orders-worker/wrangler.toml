@@ -1,0 +1,13 @@
+# TadaBoo order inbox (Cloudflare Worker). Deploy: npx wrangler@4 deploy  (from this folder)
+name = "tadaboo-orders"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+# Create once with: npx wrangler@4 kv namespace create ORDERS  → paste the id below.
+[[kv_namespaces]]
+binding = "ORDERS"
+id = "154d433b7a344f09b99ac01f0903a9d0"
+
+# Owner token (never committed): npx wrangler@4 secret put ADMIN_TOKEN
+# The same token goes in ~/.tadaboo/orders.env as TADABOO_ORDERS_TOKEN (with TADABOO_ORDERS_URL).
