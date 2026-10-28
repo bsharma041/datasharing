@@ -726,7 +726,21 @@ let orderStepAt = 0; // a status button that appears under the finger right afte
 // After a status change the sheet redraws: keep focus on its next button and say what happened.
 const afterOrderStep = (msg) => setTimeout(() => { ($('.sheet .btn.primary') || $('.sheet'))?.focus({ preventScroll: true }); $('#sr').textContent = msg; }, 60);
 // Website stock is out of date once an order is confirmed or cancelled after the last stock file.
-const stockStale = () => { const last = str(S.web?.stockExportedAt); return S.orders.filter((o) => ['confirmed', 'cancelled'].some((st) => (o.history || []).some((h) => h.status === st && str(h.at) > last))).length; };
+// A cancel only changes website stock when the order had been confirmed (it held a sale).
+const stockStale = () => { const last = str(S.web?.stockExportedAt); return S.orders.filter((o) => (o.history || []).some((h) => h.status === 'confirmed' && str(h.at) > last) || (o.history || []).some((h) => h.status === 'cancelled' && str(h.at) > last) && (o.history || []).some((h) => h.status === 'confirmed')).length; };
+// Orders still New (never confirmed, so never paid) a day after they came in. They hold no stock.
+const STALE_MS = 24 * 3600e3, STALE_NOTE = 'Unpaid for 24 hours';
+const staleOrders = () => S.orders.filter((o) => o.status === 'new' && Date.now() - Date.parse(o.createdAt || '') > STALE_MS).sort((a, b) => str(a.createdAt).localeCompare(str(b.createdAt)));
+const ago = (iso) => { const h = Math.floor((Date.now() - Date.parse(iso)) / 3600e3); return h < 48 ? `${h} hours ago` : `${Math.floor(h / 24)} days ago`; };
+function staleCard() {
+  const list = staleOrders(); if (!list.length) return '';
+  const k = list.length, s = k === 1 ? '' : 's';
+  return `<div class="card stack" role="status" style="border:2px solid var(--low)">
+    <div><h3>${k} order${s} unpaid for over 24 hours</h3><p class="small muted">Still New, so no stock is taken. Check WhatsApp for payment screenshots first: open and confirm any order that has paid.</p></div>
+    <div class="list">${list.map((o) => `<button class="li" data-act="openOrder" data-id="${esc(o.id)}"><div class="grow"><div class="name">${esc(o.customer?.name || 'Customer')} · ${esc(o.id)}</div><div class="meta">${esc(ago(o.createdAt))} · ${orderCount(o.lines)}</div></div><div class="right"><span class="num">${inr(o.total)}</span></div></button>`).join('')}</div>
+    <button class="btn danger block" data-act="cancelStale" data-confirm="Tap again to cancel ${k} order${s}">Cancel ${k === 1 ? 'this order' : `these ${k} orders`}</button>
+  </div>`;
+}
 
 // Website delivery rule (keep in step with tadaboo/website/catalog.js → delivery): every order ships;
 // ₹99, or ₹149 to the North East (PIN codes starting 78, 79, 737), free when the items total ₹999 or more.
@@ -819,6 +833,7 @@ function viewOrders() {
   <div class="section-head"><div><div class="eyebrow">Website</div><h2>Orders</h2></div>
     <button class="btn ghost sm" data-act="stockFile" ${S.downloads ? '' : 'hidden'}>Website stock file</button></div>
   ${webInLine()}
+  ${staleCard()}
   ${stockStale() ? `<div class="warn" role="status">Website stock is out of date: ${stockStale()} order${stockStale() === 1 ? '' : 's'} changed since the last stock file. ${S.downloads ? 'Tap “Website stock file” and upload it with the website, or a' : 'A'}sk Tadaboo to “refresh the website stock”.</div>` : ''}
   <div class="card stack"><h3>Add a website or WhatsApp order</h3>
     <label class="f">Paste the WhatsApp message, or the order from the website inbox<textarea class="input" rows="4" data-bind="paste" placeholder="Hi TadaBoo! I'd like to order (TB-…)">${esc(d.paste)}</textarea></label>
@@ -857,7 +872,7 @@ function sheetOrder() {
   const m = orderModel(o, d), t = m.totals, st = o.status, done = st === 'delivered' || st === 'cancelled';
   const stepAt = ORDER_STEPS.findIndex(([k]) => k === st);
   return `<div class="section-head"><h2>${esc(o.id)}</h2><button class="icon-btn" data-act="closeSheet" aria-label="Close">×</button></div>
-  <div class="row">${orderChip(st)}<span class="small muted">${st === 'cancelled' ? 'Stock was put back.' : ORDER_STEPS.map(([k, l], i) => `<span style="${i <= stepAt ? 'color:var(--ink);font-weight:700' : ''}">${l}</span>`).join(' → ')}</span></div>
+  <div class="row">${orderChip(st)}<span class="small muted">${st === 'cancelled' ? (o.cancelReason ? `${esc(o.cancelReason)}. ` : '') + ((o.history || []).some((h) => h.status === 'confirmed') ? 'Stock was put back.' : 'It was never confirmed, so stock did not change.') : ORDER_STEPS.map(([k, l], i) => `<span style="${i <= stepAt ? 'color:var(--ink);font-weight:700' : ''}">${l}</span>`).join(' → ')}</span></div>
   ${customerHtml(o.customer)}
   <div class="card" style="padding-block:4px">${orderLinesHtml(m)}</div>
   ${st === 'new' ? `
@@ -1875,6 +1890,16 @@ const A = {
     if (o.saleId && S.sales.some((x) => x.id === o.saleId) && !(await write(() => delDoc('sales', o.saleId)))) return;
     if (await write(() => S.db.collection('orders').doc(id).update({ status: 'cancelled', updatedAt: at, history: [...(Array.isArray(o.history) ? o.history : []), { status: 'cancelled', at }] }),
       o.saleId ? 'Order cancelled · stock put back' : 'Order cancelled')) { orderStepAt = Date.now(); S.sheet.orig = JSON.stringify(S.sheet.draft); renderAll(); afterOrderStep('Order cancelled'); }
+  },
+  cancelStale: async (el) => {
+    if (needsConfirm(el)) return;
+    const list = staleOrders(); let done = 0;
+    for (const o of list) {
+      const at = nowIso();
+      if (await write(() => S.db.collection('orders').doc(o.id).update({ status: 'cancelled', cancelReason: STALE_NOTE, updatedAt: at, history: [...(Array.isArray(o.history) ? o.history : []), { status: 'cancelled', at, note: STALE_NOTE }] }))) done++;
+      else break;
+    }
+    if (done) { toast(`${done} unpaid order${done === 1 ? '' : 's'} cancelled`); orderStepAt = Date.now(); renderAll(); }
   },
   stockFile: async () => {
     if (!S.downloads) return;

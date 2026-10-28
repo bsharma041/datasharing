@@ -38,6 +38,10 @@ Orders reach the owner in one of two ways, and both carry the same order code:
    `web-<order id>`, so stock, profit and History update exactly as for a Sell-screen sale.
 4. Move it through *Packed → Dispatched* (optional tracking) *→ Delivered*. **Cancel order** deletes its
    sale, which puts the stock back.
+   **Unpaid for 24 hours:** orders still *New* a day after they came in are listed at the top of the Orders
+   tab with **Cancel these N orders** (tap twice). They hold no stock, so nothing changes in stock; each is
+   marked cancelled with `cancelReason: 'Unpaid for 24 hours'`, and the hourly task marks it rejected in the
+   inbox. The website's payment screen tells buyers to pay within 24 hours.
 5. **Website stock file** saves `stock.json`; put it in `tadaboo/website/` so the site shows
    "Only N left" / "Sold out" and caps quantities. `scripts/sync_stock.py` builds the same file from a
    database dump.
