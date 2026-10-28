@@ -14,7 +14,10 @@ tadaboo/
   website/img/                 Product photos, gift bag, thank-you card, bookmark
   website/stock.json           Stock the website may sell (from the Stockroom; refresh after orders/purchases)
   stockroom/                   Source copy of the Stockroom artifact + local test harness; README explains the order flow
-  scripts/sync_stock.py        Rebuild website/stock.json from a Stockroom database dump
+  scripts/sync_stock.py        Rebuild website/stock.json + reviews.json (stock, prices, offers, best sellers, reviews) from a Stockroom dump
+  scripts/import_orders.mjs    Turn new order-inbox leads into Stockroom "New" orders (uses the Stockroom's own order reader)
+  scripts/publish_live.sh      Commit + push only stock.json/reviews.json to the live branch (www.tadaboo.com redeploys)
+  scripts/scheduled_task.md    Instructions for the hourly "TadaBoo: update website from Stockroom" task
 ```
 
 ## Using the agent
@@ -33,7 +36,18 @@ Static files, no build step. Open `tadaboo/website/index.html` in a browser, or 
 cd tadaboo/website && python3 -m http.server 8000
 ```
 
-Deploy by uploading the `website/` folder to any static host (Netlify, Vercel, GitHub Pages, Cloudflare Pages).
+**Live shop: www.tadaboo.com** runs on Cloudflare Pages (project `tadaboo-shop`), built automatically from GitHub branch
+`claude/peaceful-keller-9qmlbg`, folder `tadaboo/website`. Any push to that branch goes live in about a minute.
+
+**Stockroom ↔ website sync** (scheduled task "TadaBoo: update website from Stockroom", hourly 8:00–22:00, plus Run now;
+instructions in `scripts/scheduled_task.md`):
+1. New website orders in the order inbox are copied into Stockroom → Orders as **New** (`import_orders.mjs`). Nothing
+   changes stock yet.
+2. The owner checks the UPI credit and presses **Confirm order and update stock** (or Cancel). The task then marks the
+   inbox lead won / rejected.
+3. The task dumps the Stockroom, rebuilds `stock.json` / `reviews.json` (`sync_stock.py`) and pushes just those two
+   files (`publish_live.sh`), so sold-out items, bag capacity, prices, offers, best sellers and reviews follow the Stockroom.
+It stops and asks if a price would jump by more than 50%.
 Buyers order either on the site or on WhatsApp **97306 24700** (both set in `catalog.js`):
 
 - **Place order** sends the order to the WebsitePublisher order inbox (`orders` in `catalog.js`), then offers

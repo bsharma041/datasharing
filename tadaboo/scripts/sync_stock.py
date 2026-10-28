@@ -1,9 +1,10 @@
-"""Build tadaboo/website/stock.json (what the website may sell) from a Stockroom database dump.
+"""Build tadaboo/website/stock.json (what the website may sell, at what price, and the best sellers)
+from a Stockroom database dump.
 
 Usage:
     python3 sync_stock.py <dump_dir> [<out.json>]
 
-<dump_dir> holds items/, bags/, purchases/, sales/ and adjustments/ folders of JSON documents,
+<dump_dir> holds items/, bags/, purchases/, sales/, adjustments/, offers/ and reviews/ folders of JSON documents,
 as written by ArtifactData(action="list", out_dir=...). Stock follows the Stockroom's calc.js:
 purchases + adjustments - items consumed by sales - packaging used by sales. Bag capacity is how
 many of each (non-archived) bag current stock can make.
@@ -15,7 +16,7 @@ import json
 import math
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 
 def num(v):
@@ -73,11 +74,44 @@ def main(root, out):
                 if c["itemId"] not in archived else 0 for c in b.get("contents") or []]
         bag_cap[b["id"]] = min(caps) if caps else 0
 
-    data = {"asOf": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "items": item_stock, "bags": bag_cap}
-    # Units in stock per Stockroom item id, and how many of each gift bag can be packed.
+    # Selling prices (the website uses them, except for products marked fixedPrice in catalog.js),
+    # and the items and bags the owner switched on as "Best seller on the website".
+    def price(v):
+        try:
+            v = float(v)
+        except (TypeError, ValueError):
+            return None
+        return int(v) if v == int(v) else v
+    prices = {i["id"]: price(i.get("sellPrice")) for i in items
+              if i["id"] not in archived and i.get("type", "product") == "product" and (price(i.get("sellPrice")) or 0) > 0}
+    bag_prices = {b["id"]: price(b.get("price")) for b in bags if not b.get("archived") and (price(b.get("price")) or 0) > 0}
+    best = sorted([i["id"] for i in items if i.get("best") and i["id"] not in archived] +
+                  [b["id"] for b in bags if b.get("best") and not b.get("archived")])
+
+    # Website-only sale prices (must be below the normal price) and occasion offers that are on and not over.
+    sale = {}
+    for x, base in [(i, i.get("sellPrice")) for i in items if i["id"] not in archived] + [(b, b.get("price")) for b in bags if not b.get("archived")]:
+        sp, bp = price(x.get("salePrice")), price(base)
+        if sp and bp and 0 < sp < bp:
+            sale[x["id"]] = sp
+    today = datetime.now(timezone(timedelta(hours=5, minutes=30))).strftime("%Y-%m-%d")  # India time
+    offers = [{"name": str(o.get("name") or ""), "pct": price(o.get("pct")), "scope": o.get("scope") or "all",
+               "from": str(o.get("from") or ""), "to": str(o.get("to") or "")}
+              for o in load(root, "offers") if o.get("on") and (price(o.get("pct")) or 0) > 0 and str(o.get("to") or "") >= today]
+
+    data = {"asOf": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), "items": item_stock, "bags": bag_cap,
+            "prices": prices, "bagPrices": bag_prices, "best": best, "sale": sale, "offers": offers}
+    # Units in stock per Stockroom item id, how many of each gift bag can be packed, prices and best sellers.
     with open(out, "w") as f:
         json.dump(data, f, separators=(",", ":"))
-    print(f"wrote {out}: {len(item_stock)} items, {len(bag_cap)} bags")
+    # Reviews the owner marked "Show on website" and that have the customer's consent.
+    reviews = [{"name": str(r.get("name") or "")[:60], "city": str(r.get("city") or "")[:40], "quote": str(r.get("quote") or "")[:320],
+                "bought": str(r.get("bought") or ""), "rating": price(r.get("rating")), "photo": str(r.get("photo") or "") if str(r.get("photo") or "").startswith("data:image/") else ""}
+               for r in sorted(load(root, "reviews"), key=lambda r: str(r.get("createdAt") or ""), reverse=True)
+               if r.get("show") and r.get("consent") and str(r.get("quote") or "").strip()]
+    with open(os.path.join(os.path.dirname(out), "reviews.json"), "w") as f:
+        json.dump({"asOf": data["asOf"], "reviews": reviews}, f, separators=(",", ":"))
+    print(f"wrote {out}: {len(item_stock)} items, {len(bag_cap)} bags, {len(prices)} prices, {len(best)} best sellers, {len(sale)} on sale, {len(offers)} offers, {len(reviews)} reviews")
 
 
 if __name__ == "__main__":
