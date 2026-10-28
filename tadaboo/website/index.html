@@ -153,7 +153,12 @@ section{padding-block:clamp(64px,8vw,96px)}
 /* Gift bags */
 .bags-sec{background:var(--stone)}
 .bags{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:28px 22px;margin-top:24px}
-.bagcard{border:0;background:none;padding:0;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:12px;min-width:0}
+.bagcard{display:flex;flex-direction:column;gap:12px;min-width:0}
+.bagopen{border:0;background:none;padding:0;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:12px;min-width:0;width:100%}
+.bfoot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:-4px;padding-inline:4px}
+.bfoot .ct{margin:0!important;padding:0!important}
+.bfoot{flex-wrap:wrap}.bfoot .ct{white-space:nowrap}.bfoot .act{margin-left:auto}
+@media (max-width:560px){.bfoot .stepper{height:40px}.bfoot .stepper button{width:34px;height:40px}}
 .bagcard .ph{position:relative;border-radius:20px;overflow:hidden;background:var(--tile)}
 .bagcard .cv img{width:100%;aspect-ratio:4/5;object-fit:cover;transition:transform .5s ease}
 .bagcard:hover .cv img{transform:scale(1.04)}
@@ -198,7 +203,7 @@ select.sort:focus{outline:none;border-color:var(--price)}
   .tools .search{min-width:0}
   .sortl select{width:auto;max-width:132px;font-size:.9rem;padding:0 10px}
   #catTabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;overflow:visible;padding-bottom:0}
-  #catTabs .pill{padding:0 6px;min-height:42px;font-size:.9rem;justify-content:center;display:flex;align-items:center}
+  #catTabs .pill{padding:4px 6px;min-height:50px;font-size:.84rem;line-height:1.15;white-space:normal;text-align:center;justify-content:center;display:flex;align-items:center}
   #catTabs .pill .full{display:none}
   #catTabs .pill .short{display:inline}
   .shop-sec .head{margin-bottom:14px}
@@ -310,6 +315,9 @@ footer .wm{font-size:1.25rem}
 .payqr{align-self:stretch;background:var(--card);border:2px dashed var(--line-strong);border-radius:20px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
 .payqr .qrimg img{width:220px;height:220px;image-rendering:pixelated;border-radius:8px;background:#fff}
 .payqr .qrwait{display:grid;place-items:center;width:220px;height:220px;color:var(--muted)}
+.payqr .payamt{font:600 1.15rem var(--f-display)}
+.payqr .upiid{font-size:1.3rem;font-weight:700;letter-spacing:.02em;color:var(--ink);user-select:all;-webkit-user-select:all;word-break:break-all}
+.payqr .baby{margin:6px 0 0;font-size:.86rem;line-height:1.45;color:var(--muted);background:color-mix(in srgb,var(--butter) 45%,transparent);border-radius:12px;padding:10px 12px}
 .placed ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:4px;font-size:.9rem;color:var(--muted)}
 .lastorder{font-size:.9rem}
 .emptybag{text-align:center;padding:40px 10px;color:var(--muted);display:flex;flex-direction:column;gap:14px;align-items:center}
@@ -888,14 +896,14 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
 
   // Re-rendering replaces buttons, so put keyboard focus back on the matching control
   // (Add -> its stepper, stepper at 0 -> its Add button, filter -> same filter).
-  const FOCUS = ["data-inc", "data-dec", "data-add", "data-addbag", "data-bf", "data-cat", "data-openbag", "data-page", "data-fav", "data-prod"];
+  const FOCUS = ["data-inc", "data-dec", "data-add", "data-bagplus", "data-addbag", "data-bf", "data-cat", "data-openbag", "data-page", "data-fav", "data-prod"];
   function keep(fn) {
     const a = document.activeElement, attr = a && FOCUS.find((n) => a.hasAttribute?.(n));
     const box = attr && a.closest("[id]");
     fn();
     if (!box || document.contains(a)) return;
-    const v = a.getAttribute(attr), id = v.replace(/^[pb]:/, ""), k = attr === "data-add" ? "p:" + v : attr === "data-addbag" ? "b:" + v : v;
-    const el = [`[${attr}="${v}"]`, `[data-inc="${k}"]`, `[data-dec="${k}"]`, `[data-add="${id}"]`, `[data-addbag="${id}"]`, `[data-openbag="${id}"]`].map((sel) => box.querySelector(sel)).find(Boolean);
+    const v = a.getAttribute(attr), id = v.replace(/^[pb]:/, ""), k = attr === "data-add" ? "p:" + v : attr === "data-addbag" || attr === "data-bagplus" ? "b:" + v : v;
+    const el = [`[${attr}="${v}"]`, `[data-inc="${k}"]`, `[data-dec="${k}"]`, `[data-add="${id}"]`, `[data-bagplus="${id}"]`, `[data-addbag="${id}"]`, `[data-openbag="${id}"]`].map((sel) => box.querySelector(sel)).find(Boolean);
     (el || (box.closest("#drawer") && $("#closeDrawer")))?.focus({ preventScroll: true });
   }
   // ---------- Delivery ----------
@@ -968,7 +976,9 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
 
   // ---------- Categories ----------
   const catCover = { pens: "labubu-gel-pen", paper: "snoopy-diary", sharp: "cow-sharpener", make: "3d-sticker", gift: "dumpling-squishy" };
-  const catShort = { pens: "Pens", paper: "Notebooks", sharp: "Erasers", make: "Craft kits", gift: "Gift sets" };
+  // Short names for phones and the round tiles. Each one names what is really inside
+  // (the pencil boxes live in "paper", so "Notebooks" alone read as if pens were mixed in).
+  const catShort = { pens: "Pens & highlighters", paper: "Pencils & notebooks", sharp: "Sharpeners & erasers", make: "Craft kits", gift: "Gift sets & squishies" };
   $("#catTiles").innerHTML = T.categories.map((c) => `<li><button data-gocat="${c.id}" aria-label="${esc(c.name)}">${pic(thumb(catCover[c.id] || T.products.find((p) => p.cat === c.id).id))}${esc(catShort[c.id] || c.name)}</button></li>`).join("");
   $("#catTiles").addEventListener("click", (e) => {
     const b = e.target.closest("[data-gocat]"); if (!b) return;
@@ -987,18 +997,24 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
   const askLink = (name) => `<a class="btn line" target="_blank" rel="noopener" href="https://wa.me/${T.whatsapp}?text=${encodeURIComponent(`Hi TadaBoo! Is ${name} back in stock?`)}">Sold out · ask us on WhatsApp</a>`;
   function bagCard(b) {
     const n = qty("b:" + b.id);
-    return `<button class="bagcard${!n && avail("b:" + b.id) <= 0 ? " sold" : ""}" style="--pc:var(--${["sky", "mint", "butter", "blush"].includes(b.tint) ? b.tint : "sky"})" data-openbag="${b.id}" aria-haspopup="dialog">
+    const act = n ? stepper("b:" + b.id, n) : avail("b:" + b.id) <= 0 ? `<span class="soldout">Sold out</span>` : `<button class="plus" data-bagplus="${b.id}" aria-label="Add ${esc(b.name)} to bag">${plusIcon}</button>`;
+    return `<div class="bagcard${!n && avail("b:" + b.id) <= 0 ? " sold" : ""}" style="--pc:var(--${["sky", "mint", "butter", "blush"].includes(b.tint) ? b.tint : "sky"})"><button class="bagopen" data-openbag="${b.id}" aria-haspopup="dialog">
       <span class="ph"><span class="cv">${pic(cover(b))}</span><span class="chips" aria-hidden="true">${chips(b)}</span>${n ? `<span class="inbag">In bag · ${n}${avail("b:" + b.id) <= n ? " · all we have" : ""}</span>` : stockTag("b:" + b.id)}${BEST.has("b:" + b.id) ? `<span class="star r">★ Best seller</span>` : ""}</span>
       <span class="row"><span class="nm">${esc(b.name)}</span>${priceTag(b)}</span>
-      <span class="ct">${b.items.length} items</span>
-    </button>`;
+    </button>
+      <div class="bfoot"><span class="ct">${b.items.length} items</span><div class="act">${act}</div></div>
+    </div>`;
   }
   function renderBags() {
     $("#bagFilters").innerHTML = bagFilters.map(([id, l]) => `<button class="pill" aria-pressed="${id === bagF}" data-bf="${id}">${l}</button>`).join("");
     $("#bagGrid").innerHTML = T.bags.filter(bagMatch).map(bagCard).join("");
   }
   $("#bagFilters").addEventListener("click", (e) => { const c = e.target.closest("[data-bf]"); if (c) { bagF = c.dataset.bf; keep(renderBags); announce(`${$("#bagGrid").children.length} gift bags`); } });
-  $("#bagGrid").addEventListener("click", (e) => { const c = e.target.closest("[data-openbag]"); if (c) openDrawer({ bag: c.dataset.openbag }); });
+  $("#bagGrid").addEventListener("click", (e) => {
+    const c = e.target.closest("[data-openbag]"); if (c) openDrawer({ bag: c.dataset.openbag });
+    const a = e.target.closest("[data-bagplus]");
+    if (a) { const id = a.dataset.bagplus; flyToBag(a.closest(".bagcard").querySelector(".cv img"), cover(B[id])); setQty("b:" + id, 1); announce(`Added ${B[id].name}`); }
+  });
 
   // ---------- Shop ----------
   let cat = "all", query = "", sort = "cat", page = 0;
@@ -1041,7 +1057,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     const nums = Array.from({ length: pages }, (_, n) => `<button class="pill pg" data-page="${n}" aria-label="Page ${n + 1}"${n === page ? ' aria-current="page"' : ""}>${n + 1}</button>`).join("");
     const pager = pages > 1 ? `<nav class="pager" aria-label="Shop pages"><button class="pill pg" data-page="${page - 1}" aria-label="Previous page"${page ? "" : " disabled"}>‹</button>${nums}<button class="pill pg" data-page="${page + 1}" aria-label="Next page"${page < pages - 1 ? "" : " disabled"}>›</button><span class="of">${page * PER + 1}–${page * PER + shown.length} of ${list.length}</span></nav>` : "";
     $("#grid").innerHTML = list.length ? shown.map((p, i) => productCard(p).replace('<article class="card">', `<article class="card${wave ? " in" : ""}" style="--i:${i}">`)).join("") + pager : `<div class="empty"><p>Nothing matches “${esc(query)}”. Try “pen”, “diary” or “squishy”.</p></div>`;
-    $("#shopMeta").textContent = q ? `${list.length} results` : `${list.length} items`;
+    $("#shopMeta").textContent = q ? `${list.length} results` : cat === "all" ? `${list.length} items` : `${T.categories.find((c) => c.id === cat)?.name || ""} · ${list.length} items`;
     wave = false;
     return list.length;
   }
@@ -1401,32 +1417,30 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     const upi = UPI_ID;
     const q = (o2) => Object.entries(o2).map(([k, v]) => k + "=" + encodeURIComponent(v).replace(/%40/g, "@")).join("&");
     const wa = `https://wa.me/${T.whatsapp}?text=${encodeURIComponent(`Hi TadaBoo! I placed order ${o.id} on the website.`)}`;
-    const what = `Pay ${inr(o.total)}`;
     const link = `upi://pay?${q({ pa: upi, pn: T.upiName || "TadaBoo", am: o.total.toFixed(2), cu: "INR", tn: "TadaBoo " + o.id })}`;
-    // upi:// links open a UPI app on phones; on a computer, copying the UPI ID is what works.
-    const desk = matchMedia("(hover: hover) and (pointer: fine)").matches;
-    const note = `<span class="small">Pay to <b>${esc(upi)}</b> with note <span class="num">${esc(o.id)}</span>.</span>`;
     const paidWa = `https://wa.me/${T.whatsapp}?text=${encodeURIComponent(`Hi TadaBoo! I've paid ${inr(o.total)} for order ${o.id}. Screenshot attached.`)}`;
     // QR: exact amount and note when we have the UPI ID, else the fixed QR image.
     const box = $("#payqr");
     if (upi || UPI_QR) {
-      const head = desk ? "Scan to pay with any UPI app" : "Paying from another phone? Scan this";
-      const how = upi ? `Amount <b>${inr(o.total)}</b> and note <b class="num">${esc(o.id)}</b> are filled in for you.` : `Enter <b>${inr(o.total)}</b> and add <b class="num">${esc(o.id)}</b> as the note.`;
-      box.innerHTML = `<b>${head}</b><span class="qrimg">${UPI_QR && !upi ? `<img src="${UPI_QR}" alt="TadaBoo UPI QR code" width="220" height="220">` : `<span class="qrwait">Loading QR…</span>`}</span><span class="small">${how}</span><a class="link" target="_blank" rel="noopener" href="${paidWa}" style="min-height:36px">Paid? Send us the screenshot</a>`;
+      const id = upi ? `<span class="upiid num">${esc(upi)}</span>` : "";
+      box.innerHTML = upi
+        ? `<b class="payamt">Pay ${inr(o.total)} by UPI</b><span class="small">Scan the QR, or pay to this UPI ID</span>${id}
+          <span class="qrimg"><span class="qrwait">Loading QR…</span></span>
+          <span class="small">UPI ID</span>${id}
+          <span class="small">Add <b class="num">${esc(o.id)}</b> as the note. Scanning fills in the amount and note.</span>
+          <p class="baby">TadaBoo is taking baby steps, and we're working on making payment seamless. Till then, please pay by UPI and send us the screenshot on WhatsApp.</p>`
+        : `<b class="payamt">Pay ${inr(o.total)} by UPI</b><span class="qrimg"><img src="${UPI_QR}" alt="TadaBoo UPI QR code" width="220" height="220"></span><span class="small">Enter <b>${inr(o.total)}</b> and add <b class="num">${esc(o.id)}</b> as the note.</span>`;
       box.hidden = false;
       if (upi) loadQr().then((q) => { const qr = q(0, "M"); qr.addData(link); qr.make(); const im = new Image(); im.src = qr.createDataURL(6, 2); im.alt = `UPI QR code to pay ${inr(o.total)} to TadaBoo`; im.width = im.height = 220; box.querySelector(".qrimg").replaceChildren(im); })
-        .catch(() => { box.querySelector(".qrimg").textContent = "Couldn't show the QR here. Use the UPI button or ID below."; });
+        .catch(() => { box.querySelector(".qrimg").textContent = "Couldn't show the QR here. Pay to the UPI ID instead."; });
     }
     $("#drawerFoot").innerHTML = !upi
-      ? (UPI_QR ? `<a class="btn" target="_blank" rel="noopener" href="${paidWa}">I've paid · send screenshot</a>
+      ? (UPI_QR ? `<a class="btn wa" target="_blank" rel="noopener" href="${paidWa}">${waIcon}Paid? Send us the screenshot on WhatsApp</a>
       <span class="small">Scan the QR above to pay ${inr(o.total)}. We confirm once payment arrives.</span>`
         : `<span class="small">We'll share payment details when we confirm your order.</span>`) + `
       <a class="btn line sm" target="_blank" rel="noopener" href="${wa}">Questions? WhatsApp us</a>`
-      : desk
-      ? `<button class="btn" data-copyupi type="button">Copy UPI ID to pay ${inr(o.total)}</button>${note}
-      <a class="btn line sm" href="${link}">Open a UPI app</a>`
-      : `<a class="btn" href="${link}">${what} with UPI</a>${note}
-      <a class="btn line sm" target="_blank" rel="noopener" href="${wa}">Questions? WhatsApp us</a>`;
+      : `<a class="btn wa" target="_blank" rel="noopener" href="${paidWa}">${waIcon}Paid? Send us the screenshot on WhatsApp</a>
+      <span class="small">We confirm your order once we see the payment.</span>`;
   }
   function updateWa() {
     // A lone surrogate (half an emoji, e.g. from a cut-off paste) makes encodeURIComponent throw.
@@ -1450,7 +1464,6 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     if (e.target.closest("#copyOrder")) { sent = true; copy(orderText(), "Order copied. Paste it in WhatsApp to " + T.phone); }
     if (e.target.closest("#sendWa")) { rememberWa(); sent = true; }
     if (e.target.closest("#placeOrder")) placeOrder(e.target.closest("#placeOrder"));
-    if (e.target.closest("[data-copyupi]")) copy(T.upi, "UPI ID copied");
     if (e.target.closest("[data-back]")) {
       // Back: a bag's item -> that bag; anything opened from the bag -> the bag; else close.
       const left = view.product;
