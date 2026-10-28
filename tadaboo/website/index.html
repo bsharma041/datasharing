@@ -997,7 +997,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
   const askLink = (name) => `<a class="btn line" target="_blank" rel="noopener" href="https://wa.me/${T.whatsapp}?text=${encodeURIComponent(`Hi TadaBoo! Is ${name} back in stock?`)}">Sold out · ask us on WhatsApp</a>`;
   function bagCard(b) {
     const n = qty("b:" + b.id);
-    const act = n ? stepper("b:" + b.id, n) : avail("b:" + b.id) <= 0 ? `<span class="soldout">Sold out</span>` : `<button class="plus" data-bagplus="${b.id}" aria-label="Add ${esc(b.name)} to bag">${plusIcon}</button>`;
+    const act = n ? stepper("b:" + b.id, n) : avail("b:" + b.id) <= 0 ? "" : `<button class="plus" data-bagplus="${b.id}" aria-label="Add ${esc(b.name)} to bag">${plusIcon}</button>`;
     return `<div class="bagcard${!n && avail("b:" + b.id) <= 0 ? " sold" : ""}" style="--pc:var(--${["sky", "mint", "butter", "blush"].includes(b.tint) ? b.tint : "sky"})"><button class="bagopen" data-openbag="${b.id}" aria-haspopup="dialog">
       <span class="ph"><span class="cv">${pic(cover(b))}</span><span class="chips" aria-hidden="true">${chips(b)}</span>${n ? `<span class="inbag">In bag · ${n}${avail("b:" + b.id) <= n ? " · all we have" : ""}</span>` : stockTag("b:" + b.id)}${BEST.has("b:" + b.id) ? `<span class="star r">★ Best seller</span>` : ""}</span>
       <span class="row"><span class="nm">${esc(b.name)}</span>${priceTag(b)}</span>
