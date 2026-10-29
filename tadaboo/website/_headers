@@ -14,7 +14,7 @@
 # Website orders load the WebsitePublisher form client (cdn.) and post to its API.
 # Inline style attributes are used by the page, so style-src needs 'unsafe-inline'.
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.websitepublisher.ai 'sha256-+dNXPuI7LVLnWYD44twLHga9zsq7vH2IR3OMPyU4WOo='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://tadaboo-orders.bsharma-04.workers.dev https://api.websitepublisher.ai https://*.websitepublisher.ai; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.websitepublisher.ai 'sha256-4JXvS837N0E1vOnn0i+s8P0ByexYDc511Y/dQbUdToA='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://tadaboo-orders.bsharma-04.workers.dev https://api.websitepublisher.ai https://*.websitepublisher.ai; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()

@@ -391,6 +391,7 @@ function viewHome() {
   ${costTotal > 0 ? `<div class="card stack"><div class="bars">${bar(s.itemCost - s.packShare, 'var(--accent)')}${bar(s.packCost + s.packShare, 'var(--teal)')}${bar(s.courier, 'var(--pink)')}</div>
     <div class="legend"><span><b style="background:var(--accent)"></b>Items ${inr(s.itemCost - s.packShare)}</span><span><b style="background:var(--teal)"></b>Packaging ${inr(s.packCost + s.packShare)}${D.packIn ? ' (in item cost)' : ''}</span><span><b style="background:var(--pink)"></b>Courier ${inr(s.courier)}</span></div></div>` : ''}
   ${D.fixedAll > 0 ? paybackCard() : ''}
+  ${viewsCard()}
   <div class="two-col">
     <div class="card stack"><div class="section-head"><h3>Needs a refill</h3><span class="small muted">${D.alerts.length} item${D.alerts.length === 1 ? '' : 's'}</span></div>
       ${alerts.length ? `<div class="tbl" id="refill-list"><div class="trow thead r4"><span class="l">Item</span><span class="l">Category</span><span>Refill at</span><span>Stock</span></div>
@@ -410,6 +411,28 @@ function viewHome() {
         <div class="right"><span class="stockno">${c.count}</span>${c.count === 0 ? '<span class="chip out">Can’t make</span>' : c.count <= 2 ? '<span class="chip low">Low</span>' : '<span class="chip ok">OK</span>'}</div></button>`).join('')}</div>`
         : '<p class="muted">No gift bags set up yet. Add them under More → Gift bags.</p>'}</div>
   </div></div>`;
+}
+
+// Visits to www.tadaboo.com, copied here from the order inbox by the hourly update (settings/web.views).
+const istDay = (t = Date.now()) => new Date(t + 5.5 * 3600e3).toISOString().slice(0, 10);
+function viewsCard() {
+  const v = S.web?.views, days = v?.days && typeof v.days === 'object' ? v.days : null;
+  if (!days) return '';
+  const last = (k) => Array.from({ length: k }, (_, i) => istDay(Date.now() - i * 86400e3));
+  const tot = (k, f = 'visits') => last(k).reduce((a, d) => a + n(days[d]?.[f]), 0);
+  const ordersIn = (k) => { const from = last(k).at(-1); return S.orders.filter((o) => o.status !== 'cancelled' && istDay(Date.parse(o.createdAt || '') || 0) >= from).length; };
+  const w = tot(7), o7 = ordersIn(7), spark = last(14).reverse(), top = Math.max(1, ...spark.map((d) => n(days[d]?.visits)));
+  const when = v.at ? new Date(v.at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '';
+  return `<div class="card stack"><div class="section-head"><div><div class="eyebrow">Website</div><h3>Visits to tadaboo.com</h3></div><span class="small muted">${when ? `Updated ${esc(when)}` : ''}</span></div>
+    <div class="kpis">
+      <div class="kpi"><span class="eyebrow">Today</span><span class="v">${tot(1)}</span></div>
+      <div class="kpi"><span class="eyebrow">Last 7 days</span><span class="v">${w}</span><span class="small muted">${tot(7, 'new')} new visitor${tot(7, 'new') === 1 ? '' : 's'}</span></div>
+      <div class="kpi"><span class="eyebrow">Last 30 days</span><span class="v">${tot(30)}</span></div>
+      <div class="kpi"><span class="eyebrow">Orders, 7 days</span><span class="v">${o7}</span><span class="small muted">${w ? `${pct(o7 / w)} of visits` : 'No visits yet'}</span></div>
+    </div>
+    <div role="img" aria-label="Visits per day, last 14 days: ${esc(spark.map((d) => n(days[d]?.visits)).join(', '))}" style="display:flex;align-items:flex-end;gap:3px;height:48px">${spark.map((d) => `<i title="${esc(fmtDate(d))}: ${n(days[d]?.visits)}" style="flex:1;min-height:2px;height:${(n(days[d]?.visits) / top) * 100}%;background:${d === istDay() ? 'var(--accent)' : 'var(--teal)'};border-radius:3px 3px 0 0"></i>`).join('')}</div>
+    <p class="small muted">One visit = one person opening the site (repeat opens in the same browser session count once). Counting started ${esc(fmtDate(Object.keys(days).filter((d) => n(days[d]?.visits)).sort()[0] || istDay()))}.</p>
+  </div>`;
 }
 
 // How much of the one-time costs the profit from sales (all time) has paid back.

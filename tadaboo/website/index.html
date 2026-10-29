@@ -1292,6 +1292,18 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     else if (view.orders) renderOrders();
     else renderCart();
   }
+  // ---------- Visit count ----------
+  // One visit per browser session to the order inbox (/hit), flagged new on this device's first visit.
+  // Nothing about the visitor is sent or stored. text/plain keeps it a simple request (no CORS preflight).
+  (() => {
+    try {
+      if (!T.orders?.url || navigator.webdriver || sessionStorage.getItem("tb_visit")) return;
+      sessionStorage.setItem("tb_visit", "1");
+      let fresh = false;
+      try { fresh = !localStorage.getItem("tb_seen"); localStorage.setItem("tb_seen", "1"); } catch {}
+      fetch(T.orders.url.replace(/\/order$/, "/hit"), { method: "POST", keepalive: true, headers: { "content-type": "text/plain" }, body: JSON.stringify({ new: fresh }) }).catch(() => {});
+    } catch {}
+  })();
   // ---------- Website checkout ----------
   // Orders go to TadaBoo's order inbox (catalog.js `orders.url`; WebsitePublisher if unset); WhatsApp stays as the other way.
   // The script loads only when someone is about to order; if it can't load or the send fails,
