@@ -420,7 +420,9 @@ function viewsCard() {
   if (!days) return '';
   const last = (k) => Array.from({ length: k }, (_, i) => istDay(Date.now() - i * 86400e3));
   const tot = (k, f = 'visits') => last(k).reduce((a, d) => a + n(days[d]?.[f]), 0);
-  const ordersIn = (k) => { const from = last(k).at(-1); return S.orders.filter((o) => o.status !== 'cancelled' && istDay(Date.parse(o.createdAt || '') || 0) >= from).length; };
+  const start = Object.keys(days).filter((d) => n(days[d]?.visits)).sort()[0] || istDay();
+  // Only orders placed since counting started, so the share of visits makes sense.
+  const ordersIn = (k) => { const a = last(k).at(-1), from = a > start ? a : start; return S.orders.filter((o) => o.status !== 'cancelled' && istDay(Date.parse(o.createdAt || '') || 0) >= from).length; };
   const w = tot(7), o7 = ordersIn(7), spark = last(14).reverse(), top = Math.max(1, ...spark.map((d) => n(days[d]?.visits)));
   const when = v.at ? new Date(v.at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }) : '';
   return `<div class="card stack"><div class="section-head"><div><div class="eyebrow">Website</div><h3>Visits to tadaboo.com</h3></div><span class="small muted">${when ? `Updated ${esc(when)}` : ''}</span></div>
@@ -428,10 +430,10 @@ function viewsCard() {
       <div class="kpi"><span class="eyebrow">Today</span><span class="v">${tot(1)}</span></div>
       <div class="kpi"><span class="eyebrow">Last 7 days</span><span class="v">${w}</span><span class="small muted">${tot(7, 'new')} new visitor${tot(7, 'new') === 1 ? '' : 's'}</span></div>
       <div class="kpi"><span class="eyebrow">Last 30 days</span><span class="v">${tot(30)}</span></div>
-      <div class="kpi"><span class="eyebrow">Orders, 7 days</span><span class="v">${o7}</span><span class="small muted">${w ? `${pct(o7 / w)} of visits` : 'No visits yet'}</span></div>
+      <div class="kpi"><span class="eyebrow">Orders, 7 days</span><span class="v">${o7}</span><span class="small muted">${!w ? 'No visits yet' : o7 <= w ? `${pct(o7 / w)} of visits` : 'since counting started'}</span></div>
     </div>
     <div role="img" aria-label="Visits per day, last 14 days: ${esc(spark.map((d) => n(days[d]?.visits)).join(', '))}" style="display:flex;align-items:flex-end;gap:3px;height:48px">${spark.map((d) => `<i title="${esc(fmtDate(d))}: ${n(days[d]?.visits)}" style="flex:1;min-height:2px;height:${(n(days[d]?.visits) / top) * 100}%;background:${d === istDay() ? 'var(--accent)' : 'var(--teal)'};border-radius:3px 3px 0 0"></i>`).join('')}</div>
-    <p class="small muted">One visit = one person opening the site (repeat opens in the same browser session count once). Counting started ${esc(fmtDate(Object.keys(days).filter((d) => n(days[d]?.visits)).sort()[0] || istDay()))}.</p>
+    <p class="small muted">One visit = one person opening the site (repeat opens in the same browser session count once). Counting started ${esc(fmtDate(start))}.</p>
   </div>`;
 }
 
