@@ -25,4 +25,4 @@ TadaBoo sells stationery and ready-to-gift bags in India. Shoppers pick a ready-
 ## Pages
 
 - [Shop and gift bags](https://www.tadaboo.com/): the gift bags, all products, and how to order
-- [Policies and privacy](https://www.tadaboo.com/policies.html): delivery, returns and replacements, cancellation and refunds, terms, contact
+- [Policies and privacy](https://www.tadaboo.com/policies): delivery, returns and replacements, cancellation and refunds, terms, contact
