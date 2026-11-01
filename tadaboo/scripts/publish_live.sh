@@ -15,14 +15,18 @@ repo="$(cd "$(dirname "$0")/../.." && pwd)"
 cd "$repo"
 
 [ "$(git rev-parse --abbrev-ref HEAD)" = "$BRANCH" ] || { echo "Not on $BRANCH: refusing."; exit 2; }
-files="tadaboo/website/stock.json tadaboo/website/reviews.json"
-other=$(git status --porcelain | awk '{print $2}' | grep -v -x -F -e tadaboo/website/stock.json -e tadaboo/website/reviews.json || true)
+json="tadaboo/website/stock.json tadaboo/website/reviews.json"
+files="$json tadaboo/website/index.html"   # index.html only changes when prerender.mjs rewrote it from the new stock
+other=$(git status --porcelain | awk '{print $2}' | grep -v -x -F -e tadaboo/website/stock.json -e tadaboo/website/reviews.json -e tadaboo/website/index.html || true)
 [ -z "$other" ] || { echo "Other files changed, refusing to publish:"; echo "$other"; exit 3; }
-for f in $files; do python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$f"; done   # never ship broken JSON
+for f in $json; do python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$f"; done   # never ship broken JSON
+# Plain-HTML copy of names, prices and photos for crawlers (idempotent; the task may already have run it).
+if command -v node >/dev/null; then node tadaboo/scripts/prerender.mjs; else echo "node not found: index.html not refreshed"; fi
 
 # Only the timestamp changed? Then the shop is already up to date.
 same=1
-for f in $files; do
+git diff --quiet -- tadaboo/website/index.html || same=0
+for f in $json; do
   if ! diff -q <(git show "HEAD:$f" | python3 -c "import json,sys; d=json.load(sys.stdin); d.pop('asOf',None); print(json.dumps(d,sort_keys=True))") \
                <(python3 -c "import json,sys; d=json.load(open(sys.argv[1])); d.pop('asOf',None); print(json.dumps(d,sort_keys=True))" "$f") >/dev/null; then same=0; fi
 done

@@ -16,7 +16,8 @@ tadaboo/
   stockroom/                   Source copy of the Stockroom artifact + local test harness; README explains the order flow
   scripts/sync_stock.py        Rebuild website/stock.json + reviews.json (stock, prices, offers, best sellers, reviews) from a Stockroom dump
   scripts/import_orders.mjs    Turn new order-inbox leads into Stockroom "New" orders (uses the Stockroom's own order reader)
-  scripts/publish_live.sh      Commit + push only stock.json/reviews.json to the live branch (www.tadaboo.com redeploys)
+  scripts/prerender.mjs        Write the 12 gift bags and 50 products (names, prices, photos with alt text) into index.html as plain HTML for crawlers, plus the gift-bag JSON-LD; `--check` fails if stale
+  scripts/publish_live.sh      Commit + push stock.json/reviews.json (and index.html, if prerender changed it) to the live branch (www.tadaboo.com redeploys)
   scripts/orders.sh            Owner access to the order inbox: list orders, mark won/rejected (token in ~/.tadaboo/orders.env)
   orders-worker/               The order inbox: Cloudflare Worker + KV that "Place order" posts to; copies each order to WebsitePublisher leads so the open Stockroom picks it up within a minute (deploy: npx wrangler@4 deploy; secrets ADMIN_TOKEN, WP_KEY)
   scripts/scheduled_task.md    Instructions for the hourly "TadaBoo: update website from Stockroom" task
@@ -47,8 +48,22 @@ instructions in `scripts/scheduled_task.md`):
    are copied into Stockroom → Orders as **New** (`import_orders.mjs`). Nothing changes stock yet.
 2. The owner checks the UPI credit and presses **Confirm order and update stock** (or Cancel). The task then marks the
    inbox lead won / rejected.
-3. The task dumps the Stockroom, rebuilds `stock.json` / `reviews.json` (`sync_stock.py`) and pushes just those two
-   files (`publish_live.sh`), so sold-out items, bag capacity, prices, offers, best sellers and reviews follow the Stockroom.
+3. The task dumps the Stockroom, rebuilds `stock.json` / `reviews.json` (`sync_stock.py`), then runs
+   `node tadaboo/scripts/prerender.mjs` (see below) and pushes those files plus `index.html` (`publish_live.sh`), so
+   sold-out items, bag capacity, prices, offers, best sellers and reviews follow the Stockroom.
+   **The scheduled task should run `prerender.mjs` right after `sync_stock.py`** (`publish_live.sh` also runs it, so the push is
+   never stale), and its "push only these two files" permission now needs `index.html` added. The task itself has not been changed.
+
+**Readable HTML for crawlers (`scripts/prerender.mjs`).** Search and AI crawlers that don't run JavaScript used to see an empty
+shop. The script writes the shop into marked regions of `index.html` (`<!-- PRERENDER:name --> ... <!-- /PRERENDER:name -->`):
+`bags` (12 gift bag cards), `grid` (first shop page; the page script builds the identical markup, so shoppers see no change),
+`catalog` (all 50 products as a plain list inside `<noscript>`, never shown with JavaScript) and `jsonld` (schema.org ItemList of
+the gift bags: INR price, availability from `stock.json`; no sale prices, ratings, shipping or returns). Prices come from
+`stock.json` when present, else `catalog.js`, with the same `fixedPrice` rule as the page. Run it after `sync_stock.py`, after
+editing `catalog.js`, and after changing a card template in `index.html` (keep `pic`/`bagCard`/`productCard` in the script in step with
+the page script); `node tadaboo/scripts/prerender.mjs --check` fails if the committed HTML is stale. After editing the inline script,
+run `csp_hash.py` as before. Also in `website/`: `404.html` (Cloudflare Pages serves it for unknown URLs), `llms.txt`, `sitemap.xml`
+(home + policies; update `lastmod` when the page copy changes).
 It stops and asks if a price would jump by more than 50%.
 Buyers order either on the site or on WhatsApp **97306 24700** (both set in `catalog.js`):
 
