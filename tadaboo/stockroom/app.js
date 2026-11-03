@@ -593,8 +593,8 @@ function openItemSheet(id) {
   const it = id ? D.itemsById[id] : null;
   S.sheet = { kind: 'item', id, draft: it ? {
     name: it.name || '', type: it.type || 'product', category: str(it.category).trim(), newCat: '', unit: it.unit || 'pcs', sellPrice: it.sellPrice ?? '', lowAt: it.lowAt ?? '',
-    costOverride: it.costOverride ?? '', supplier: it.supplier || '', note: it.note || '', check: !!it.check, best: !!it.best, salePrice: it.salePrice ?? '', stockCount: D.stock[id] ?? 0, stockAtOpen: D.stock[id] ?? 0,
-  } : { name: '', type: S.stock.type, category: '', newCat: '', unit: 'pcs', sellPrice: '', lowAt: '', costOverride: '', supplier: '', note: '', check: false, best: false, salePrice: '', stockCount: 0, stockAtOpen: 0 } };
+    costOverride: it.costOverride ?? '', supplier: it.supplier || '', note: it.note || '', check: !!it.check, best: !!it.best, salePrice: it.salePrice ?? '', packOf: it.packOf ?? '', packPrice: it.packPrice ?? '', stockCount: D.stock[id] ?? 0, stockAtOpen: D.stock[id] ?? 0,
+  } : { name: '', type: S.stock.type, category: '', newCat: '', unit: 'pcs', sellPrice: '', lowAt: '', costOverride: '', supplier: '', note: '', check: false, best: false, salePrice: '', packOf: '', packPrice: '', stockCount: 0, stockAtOpen: 0 } };
   S.sheet.orig = JSON.stringify(S.sheet.draft);
   renderSheet();
 }
@@ -625,7 +625,12 @@ function sheetItem() {
   <label class="switch"><input type="checkbox" data-bind="check" ${d.check ? 'checked' : ''}> Mark “⚠ check” (needs my review)</label>
   ${d.type === 'product' ? `<label class="switch"><input type="checkbox" data-bind="best" ${d.best ? 'checked' : ''}> ★ Best seller on the website</label>
   ${field('Sale price on the website (optional)', 'salePrice', d.salePrice, { type: 'number', rupee: true, ph: 'no sale' })}
-  <p class="small muted">The website shows the selling price struck through and this price instead. Clear it to end the sale.</p>` : ''}
+  <p class="small muted">The website shows the selling price struck through and this price instead. Clear it to end the sale.</p>
+  <div class="grid2">
+    ${field('Also sold as a box of (pieces)', 'packOf', d.packOf, { type: 'number', ph: 'no box' })}
+    ${field('Box price', 'packPrice', d.packPrice, { type: 'number', rupee: true, ph: d.packOf > 1 && d.sellPrice !== '' ? `${n(d.sellPrice) * n(d.packOf)}` : 'not set' })}
+  </div>
+  <p class="small muted">Stock is counted in single pieces. With a box size, Record a sale asks “Box” or “Single”, and a box takes that many pieces out of stock.</p>` : ''}
   <button class="btn primary block" data-act="saveItem">Save item</button>
   ${it ? `<div class="row">
     <button class="btn ghost grow" data-act="archiveItem">${it.archived ? 'Restore from archive' : 'Archive (hide)'}</button>
@@ -645,11 +650,19 @@ function refsOf(id) {
 
 // ---------------------------------------------------------------- SELL
 const blankSell = () => ({ date: today(), lines: [], shippingCharged: '', courierCost: '', packQty: {}, customer: '', note: '' });
-const unitPriceOf = (l) => (l.t === 'bag' ? D.bagsById[l.id]?.price : D.itemsById[l.id]?.sellPrice) ?? 0;
+// Items sold in boxes (packOf, e.g. 12 pencils): a Sell line is a box unless set to Single. Stock counts pieces.
+const boxSize = (l) => (l.t === 'bag' ? 1 : Math.max(1, Math.floor(n(D.itemsById[l.id]?.packOf))));
+const unitsPer = (l) => (l.unit === 'single' ? 1 : boxSize(l));
+const unitPriceOf = (l) => {
+  if (l.t === 'bag') return D.bagsById[l.id]?.price ?? 0;
+  const it = D.itemsById[l.id], u = unitsPer(l);
+  if (u > 1) return it?.packPrice ?? (it?.sellPrice != null ? n(it.sellPrice) * u : 0);
+  return it?.sellPrice ?? 0;
+};
 function sellModel(d) {
   const lines = d.lines.filter((l) => l.id && n(l.qty) > 0).map((l) => (l.t === 'bag'
     ? { bagId: l.id, qty: n(l.qty), price: n(l.price), name: bagName(l.id) }
-    : { itemId: l.id, qty: n(l.qty), price: n(l.price), name: itemName(l.id) }));
+    : ((u) => ({ itemId: l.id, qty: n(l.qty) * u, price: n(l.price), name: u > 1 ? `${itemName(l.id)} (${n(l.qty)} × box of ${u})` : itemName(l.id) }))(unitsPer(l))));
   // Unknown costs stay null so the app can fill them in later instead of freezing ₹0.
   const snap = (c) => (c == null ? null : +(+c).toFixed(4));
   const consumed = expandSale({ lines }, S.bags).map((c) => ({ ...c, cost: snap(D.costs[c.itemId]) }));
@@ -661,7 +674,7 @@ function sellModel(d) {
   const need = {};
   for (const c of [...consumed, ...pieces]) need[c.itemId] = (need[c.itemId] || 0) + c.qty;
   const short = Object.entries(need).filter(([id, q]) => (D.stock[id] ?? 0) < q).map(([id, q]) => `${itemName(id)} (need ${q}, have ${D.stock[id] ?? 0})`);
-  const noPrice = d.lines.filter((l) => l.t === 'item' && l.id && !l.priceEdited && D.itemsById[l.id]?.sellPrice == null).map((l) => itemName(l.id));
+  const noPrice = d.lines.filter((l) => l.t === 'item' && l.id && !l.priceEdited && D.itemsById[l.id]?.sellPrice == null && (unitsPer(l) === 1 || D.itemsById[l.id]?.packPrice == null)).map((l) => itemName(l.id));
   return { sale, totals: saleTotals(sale, D.costs, S.bags, D.packIn), short, noCost, noPrice, orderValue: lines.reduce((a, l) => a + l.price, 0) };
 }
 function viewSell() {
@@ -677,7 +690,8 @@ function viewSell() {
         <div class="row"><span class="chip plain">${l.t === 'bag' ? 'Gift bag' : 'Item'}</span><span class="grow"></span><button class="icon-btn" data-act="rmLine" data-path="lines" data-i="${i}" aria-label="Remove line">×</button></div>
         <select class="input" data-bind="lines.${i}.id" data-rerender aria-label="${l.t === 'bag' ? 'Gift bag' : 'Item'}">${l.t === 'bag' ? bagOptions(l.id) : itemOptions(l.id, { type: 'product' })}</select>
         <div class="row"><div class="qty"><button class="icon-btn" data-act="step" data-i="${i}" data-d="-1" aria-label="One less">−</button><input class="input" type="number" inputmode="numeric" min="1" data-bind="lines.${i}.qty" value="${esc(l.qty)}" aria-label="Quantity"><button class="icon-btn" data-act="step" data-i="${i}" data-d="1" aria-label="One more">+</button></div>
-        <label class="f grow">Price for ${l.qty || 0}<span class="prefix"><input class="input" type="number" inputmode="decimal" step="any" min="0" data-bind="lines.${i}.price" value="${esc(l.price)}"></span></label></div>
+        ${boxSize(l) > 1 ? `<select class="input" data-bind="lines.${i}.unit" data-rerender aria-label="Box or single"><option value="box" ${l.unit !== 'single' ? 'selected' : ''}>Box of ${boxSize(l)}</option><option value="single" ${l.unit === 'single' ? 'selected' : ''}>Single piece</option></select>` : ''}
+        <label class="f grow">Price for ${l.qty || 0}${unitsPer(l) > 1 ? (n(l.qty) === 1 ? ' box' : ' boxes') : ''}<span class="prefix"><input class="input" type="number" inputmode="decimal" step="any" min="0" data-bind="lines.${i}.price" value="${esc(l.price)}"></span></label></div>
       </div>`).join('') || '<p class="muted">Add a gift bag or single items. Mix both for a “Curate Your Own” order.</p>'}
       <div class="row"><button class="btn ghost grow" data-act="addSellLine" data-t="bag">+ Gift bag</button><button class="btn ghost grow" data-act="addSellLine" data-t="item">+ Single item</button></div>
     </div>
@@ -1486,9 +1500,9 @@ function onInput(e) {
   setPath(d, path, val);
   if (path.startsWith('packQty.')) { const cb = el.closest('.packrow')?.querySelector('input[type="checkbox"]'); if (cb) cb.checked = n(val) > 0; }
   if (key === 'sell') {
-    const m = path.match(/^lines\.(\d+)\.(price|id)$/);
+    const m = path.match(/^lines\.(\d+)\.(price|id|unit)$/);
     if (m && m[2] === 'price') d.lines[+m[1]].priceEdited = true;
-    if (m && m[2] === 'id') d.lines[+m[1]].priceEdited = false;
+    if (m && (m[2] === 'id' || m[2] === 'unit')) d.lines[+m[1]].priceEdited = false;
     syncSell();
   }
   if (key === 'buy') { const box = $('#buy-preview'); if (box) box.innerHTML = buyPreview(d); }
@@ -1712,13 +1726,15 @@ const A = {
   saveItem: async (el) => {
     const { id, draft: d } = S.sheet;
     if (!d.name.trim()) return toast('Give the item a name.', true);
-    if (negative(d.sellPrice, d.costOverride, d.lowAt, d.salePrice)) return toast('Prices, cost and refill level can’t be negative.', true);
+    if (negative(d.sellPrice, d.costOverride, d.lowAt, d.salePrice, d.packPrice)) return toast('Prices, cost and refill level can’t be negative.', true);
+    if (d.type === 'product' && nOrNull(d.packOf) != null && !(Number.isInteger(+d.packOf) && +d.packOf >= 2)) return toast('Box size must be a whole number of 2 or more, or empty.', true);
     if (nOrNull(d.salePrice) != null && !(nOrNull(d.salePrice) < n(d.sellPrice))) return toast('The sale price must be lower than the selling price.', true);
     if (d.category === '__new' && !str(d.newCat).trim()) return toast('Type a name for the new category, or pick one from the list.', true);
     el.disabled = true;
     const iid = id || newId('items');
     const fields = (x) => ({ name: x.name.trim(), type: x.type, category: resolveCategory(x.category, x.newCat), unit: x.unit.trim() || 'pcs', sellPrice: nOrNull(x.sellPrice), lowAt: nOrNull(x.lowAt),
-      costOverride: nOrNull(x.costOverride), supplier: x.supplier.trim(), note: x.note.trim(), check: !!x.check, best: x.type === 'product' && !!x.best, salePrice: x.type === 'product' ? nOrNull(x.salePrice) : null });
+      costOverride: nOrNull(x.costOverride), supplier: x.supplier.trim(), note: x.note.trim(), check: !!x.check, best: x.type === 'product' && !!x.best, salePrice: x.type === 'product' ? nOrNull(x.salePrice) : null,
+      packOf: x.type === 'product' && nOrNull(x.packOf) >= 2 ? Math.floor(+x.packOf) : null, packPrice: x.type === 'product' && nOrNull(x.packOf) >= 2 ? nOrNull(x.packPrice) : null });
     if (id) {
       // Write only what the owner changed, so edits made meanwhile by Claude or another device survive.
       const changed = changedFields(fields(d), fields(JSON.parse(S.sheet.orig)));

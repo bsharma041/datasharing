@@ -71,3 +71,9 @@ packaging stays in stock, so buying packaging in bulk does not change any cost o
 margin (More → Gift bags) include one gift kit at today's cost per piece. A gift-bag sale with nothing ticked
 shows a warning. **Separate line** (`settings/main.packCost = 'perSale'`) shows the same packaging cost as its
 own line; profit is identical either way.
+
+## Items sold in boxes (pencils)
+Stock is always counted in single pieces. An item can also be sold as a box: `items/{id}.packOf` (pieces per
+box, e.g. 12) and `packPrice` (box price, e.g. 109), set in Stock → item → "Also sold as a box of". On Record a
+sale, such an item shows **Box of 12 / Single piece** (Box by default); a box line saves `qty` in pieces
+(qty × packOf) and the name "(N × box of 12)", the same shape as website orders with `unitsPerQty` 12.
