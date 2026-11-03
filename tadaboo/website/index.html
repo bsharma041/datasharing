@@ -1607,7 +1607,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
       <span class="group-t">Inside · ${b.items.length} items</span>
       <ul>${b.items.map((id, i) => `<li data-i="${i}"><button class="itembtn" data-prod="${id}">${pic(thumb(id))}<span>${esc(P[id].name)}</span><span class="go" aria-hidden="true">›</span></button></li>`).join("")}</ul>
       <span class="part">Swipe through the bag, or tap any item to see it up close.</span>
-      <p class="muted">${b.note ? esc(b.note) + " " : ""}Packed in our white TadaBoo bag with a thank-you card.</p>
+      <p class="muted">${b.note ? esc(b.note) + " " : ""}Every order comes with a thank-you card and a bookmark.</p>
     </div>`;
     renderDetailFoot(b);
   }
