@@ -12,6 +12,8 @@
 //   grid     the first page of the shop grid (12 of 50), same markup
 //   catalog  all 50 products as a plain list inside <noscript> (never shown to shoppers with JavaScript)
 //   jsonld   schema.org ItemList of the gift bags (price, INR, availability from stock.json)
+// It also writes p/<id>.html and bag/<id>.html (one page per product and gift bag), google-feed.xml
+// (Google Merchant Center product feed) and sitemap-products.xml; --check checks those too.
 // Prices come from stock.json when present, else catalog.js: the same rule as applyStock() in index.html
 // (set-priced products, fixedPrice, keep the catalogue price). Sale and offer data is never written here.
 // No dependencies; Node 18+.
@@ -138,10 +140,155 @@ for (const [name, make] of Object.entries(regions)) {
   if (!re.test(html)) { console.error(`index.html has no <!-- PRERENDER:${name} --> region`); process.exit(2); }
   html = html.replace(re, (_, a, z) => `${a}${make()}${z}`);
 }
+
+// ---- Product pages (/p/<id>, /bag/<id>), Google Merchant feed and product sitemap ----
+// One plain page per product and gift bag, so Google Shopping (and search) has a page that shows
+// that item's photo, price and stock, with a button that opens it in the shop (/?open=p:<id>).
+// Prices follow the page script: stock.json price, then the lower of a Stockroom sale price and an
+// occasion offer running today (India date). Built from the date, never the clock, so an unchanged
+// stock.json gives byte-identical files and the hourly task has nothing to commit.
+const FEED_SKIP = /kuromi|labubu|snoopy|sanrio|hello kitty|disney|marvel|avengers|pokemon|barbie|peppa|doraemon|minion|spider|batman|harry potter/i;
+// Character names in a title, description or photo can get a new Merchant Center account suspended
+// (unlicensed brand use). Those products keep their pages but stay out of google-feed.xml.
+const istDay = new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
+const SALE = (STOCK && STOCK.sale) || {};
+const OFFERS = ((STOCK && Array.isArray(STOCK.offers)) ? STOCK.offers : []).filter((o) => o && o.pct > 0 && o.pct < 90 && String(o.from) <= istDay && istDay <= String(o.to));
+function deal(x, saleV, isBag) {
+  let price = x.price, why = "", offer = null;
+  if (isNum(saleV) && saleV > 0 && saleV < price) { price = saleV; why = "Sale"; }
+  for (const o of OFFERS) if (o.scope === "all" || o.scope === (isBag ? "bags" : "items")) {
+    const v = Math.round(x.price * (1 - o.pct / 100)); if (v < price) { price = v; why = String(o.name || "Offer"); offer = o; }
+  }
+  return { list: x.price, price, why, offer };
+}
+const B = Object.fromEntries(T.bags.map((b) => [b.id, b]));
+const itemLeft = (p) => (STOCK && isNum(STOCK.items[p.sid]) ? Math.floor(Math.max(0, STOCK.items[p.sid]) / (p.units || 1)) : null);
+const D = T.delivery || { rates: { india: 99, remote: 149 }, freeAbove: 999 };
+const xml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" }[c]));
+const catName = Object.fromEntries((T.categories || []).map((c) => [c.id, c.name]));
+const entries = [
+  ...T.products.map((p) => ({ kind: "p", id: p.id, url: `p/${p.id}`, name: p.name, desc: p.desc, image: img(p.id), extra: [], left: itemLeft(p),
+    d: deal(p, p.fixedPrice || (p.units || 1) !== 1 ? NaN : SALE[p.sid], false), type: "Kids stationery > " + (catName[p.cat] || "Stationery"),
+    skip: FEED_SKIP.test(p.name + " " + p.desc), contents: null })),
+  ...T.bags.map((b) => { const names = b.items.map((id) => P[id].name);
+    return { kind: "b", id: b.id, url: `bag/${b.id}`, name: b.name, image: cover(b), extra: b.items.filter((id) => id !== (b.cover || b.items[0])).map(img),
+      desc: `Ready-packed TadaBoo gift bag with ${b.items.length} items: ${names.join(", ")}.${b.note ? " " + b.note : ""}`, left: capacity(b),
+      d: deal(b, SALE["cat-" + b.id], true), type: "Kids gift bags > Return gifts", brand: "TadaBoo",
+      skip: FEED_SKIP.test(b.name + " " + names.join(" ") + " " + (b.note || "") + " " + (b.cover || "")), contents: b.items }; }),
+];
+const stockLine = (e) => e.left === null ? "" : e.left <= 0 ? "Sold out for now" : e.left <= 5 ? `Only ${e.left} left` : "In stock";
+const PAGE_CSS = `:root{--bg:#FFF8F0;--card:#fff;--ink:#23264A;--muted:#5C5F78;--price:#B83A0A;--line:#F0E2D4;--ok:#17795E;color-scheme:light}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.6 "Figtree",system-ui,sans-serif}
+.wrap{max-width:900px;margin:0 auto;padding:0 16px}header{border-bottom:2px solid #FFD2BC}header .wrap{display:flex;align-items:center;justify-content:space-between;min-height:68px}
+.wm{font:700 1.5rem/1 "Fredoka",system-ui;text-decoration:none;color:var(--ink);min-height:44px;display:inline-flex;align-items:center}.wm .t{color:#E2541A;font-style:italic}.wm .s{color:#FFC63A;font-size:.55em;vertical-align:.7em}
+a{color:var(--price);font-weight:600}.back{min-height:44px;display:inline-flex;align-items:center}
+main{padding:24px 0 56px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start}
+@media(max-width:700px){main{grid-template-columns:1fr}}
+.photo{width:100%;height:auto;aspect-ratio:4/5;object-fit:cover;border-radius:20px;background:#fff;display:block}
+h1{font:600 clamp(1.6rem,1.2rem + 1.6vw,2.2rem)/1.15 "Bricolage Grotesque",sans-serif;margin:0 0 8px;text-wrap:balance}
+.price{font:700 1.6rem/1.2 "Figtree",sans-serif;color:var(--price);margin:0}.was{color:var(--muted);text-decoration:line-through;font-size:1rem;margin-left:8px;font-weight:600}
+.why{display:inline-block;background:#FFEFE0;color:var(--price);border-radius:999px;padding:2px 10px;font-size:.85rem;font-weight:600;margin-top:6px}
+.stock{color:var(--ok);font-weight:600;margin:10px 0 0}.stock.out{color:var(--muted)}
+p{margin:0 0 12px}.info{display:flex;flex-direction:column;gap:6px}
+.cta{display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:0 24px;border-radius:999px;background:var(--ink);color:#fff;text-decoration:none;font-weight:600;border:2px solid var(--ink);margin:14px 10px 0 0}
+.cta.line{background:transparent;color:var(--ink)}
+ul.items{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:8px}ul.items li{display:flex;align-items:center;gap:10px}ul.items img{width:48px;height:60px;object-fit:cover;border-radius:8px}
+.small{font-size:.92rem;color:var(--muted)}footer{padding:24px 0 40px;color:var(--muted);font-size:.9rem}footer a{display:inline-block;padding:12px 0}`;
+function productPage(e) {
+  const abs = SITE_URL + e.url, d = e.d, out = e.left !== null && e.left <= 0;
+  const ld = { "@context": "https://schema.org", "@type": "Product", name: e.name, image: [SITE_URL + e.image, ...e.extra.map((s) => SITE_URL + s)], description: e.desc, sku: (e.kind === "b" ? "bag-" : "") + e.id,
+    ...(e.brand ? { brand: { "@type": "Brand", name: e.brand } } : {}),
+    offers: { "@type": "Offer", url: abs, price: d.price, priceCurrency: "INR", itemCondition: "https://schema.org/NewCondition",
+      ...(e.left === null ? {} : { availability: "https://schema.org/" + (out ? "OutOfStock" : "InStock") }) } };
+  const items = e.contents ? `<p class="small" style="margin-top:14px">What's inside</p><ul class="items">${e.contents.map((id) => `<li><img src="/${thumb(id)}" alt="" loading="lazy" width="48" height="60"><a href="/p/${id}">${esc(P[id].name)}</a></li>`).join("")}</ul>` : "";
+  return `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(e.name)} · TadaBoo</title>
+<meta name="description" content="${esc((e.desc + " " + inr(d.price) + ", delivered anywhere in India.").slice(0, 300))}">
+<link rel="canonical" href="${abs}">
+<link rel="icon" type="image/png" sizes="48x48" href="/favicon.png">
+<meta property="og:title" content="${esc(e.name)}"><meta property="og:image" content="${SITE_URL + e.image}"><meta property="og:url" content="${abs}">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600&family=Figtree:wght@400;600;700&family=Fredoka:wght@700&display=swap">
+<style>${PAGE_CSS}</style>
+<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, "\\u003c")}</script>
+</head>
+<body>
+<header><div class="wrap"><a class="wm" href="/"><span class="t">TADA</span><span class="s">✦</span>BOO</a><a class="back" href="/${e.kind === "b" ? "#bags" : "#shop"}">← All ${e.kind === "b" ? "gift bags" : "products"}</a></div></header>
+<main class="wrap">
+  <img class="photo" src="/${e.image}" alt="${esc(e.name)}" width="520" height="650">
+  <div class="info">
+    <h1>${esc(e.name)}</h1>
+    <p class="price">${inr(d.price)}${d.price < d.list ? `<span class="was">${inr(d.list)}</span>` : ""}</p>
+    ${d.why ? `<span class="why">${esc(d.why)}</span>` : ""}
+    ${stockLine(e) ? `<p class="stock${out ? " out" : ""}">${stockLine(e)}</p>` : ""}
+    <p style="margin-top:10px">${esc(e.desc)}</p>
+    ${items}
+    <div><a class="cta" href="/?open=${e.kind}:${e.id}">${out ? "See it in the shop" : "Add to bag"}</a><a class="cta line" href="https://wa.me/${T.whatsapp}" target="_blank" rel="noopener">WhatsApp us</a></div>
+    <p class="small" style="margin-top:14px">Delivered anywhere in India in ${T.deliveryDays || "7–10 days"}. Delivery ${inr(D.rates.india)} (${inr(D.rates.remote)} to the North East), free when items total ${inr(D.freeAbove)} or more. Every order comes with a thank-you card and a bookmark.</p>
+  </div>
+</main>
+<footer><div class="wrap">© TadaBoo · <a href="/">Shop</a> · <a href="/policies">Policies &amp; privacy</a></div></footer>
+</body>
+</html>
+`;
+}
+const g = (k, v) => `<g:${k}>${xml(v)}</g:${k}>`;
+const ist = (day, end) => `${day}T${end ? "23:59" : "00:00"}+05:30`;
+function feedItem(e) {
+  const d = e.d, out = e.left !== null && e.left <= 0;
+  const parts = [g("id", (e.kind === "b" ? "bag-" : "") + e.id), g("title", e.name.replace(/ · /g, " - ").slice(0, 150)), g("description", e.desc.slice(0, 5000)),
+    g("link", SITE_URL + e.url), g("image_link", SITE_URL + e.image), ...e.extra.slice(0, 10).map((s) => g("additional_image_link", SITE_URL + s)),
+    g("availability", out ? "out_of_stock" : "in_stock"), g("price", d.list.toFixed(2) + " INR")];
+  if (d.price < d.list) {
+    parts.push(g("sale_price", d.price.toFixed(2) + " INR"));
+    if (d.offer) parts.push(g("sale_price_effective_date", `${ist(d.offer.from)}/${ist(d.offer.to, true)}`));
+  }
+  parts.push(g("condition", "new"), g("identifier_exists", "no"), g("product_type", e.type));
+  if (e.brand) parts.push(g("brand", e.brand));
+  return `<item>\n  ${parts.join("\n  ")}\n</item>`;
+}
+const feedEntries = entries.filter((e) => !e.skip);
+const gen = {
+  "google-feed.xml": `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
+<channel>
+<title>TadaBoo</title>
+<link>${SITE_URL}</link>
+<description>Kids' stationery and ready-packed gift bags, delivered anywhere in India.</description>
+${feedEntries.map(feedItem).join("\n")}
+</channel>
+</rss>
+`,
+  "sitemap-products.xml": `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${entries.map((e) => `  <url><loc>${SITE_URL + e.url}</loc></url>`).join("\n")}
+</urlset>
+`,
+};
+for (const e of entries) gen[e.url + ".html"] = productPage(e);
+// Pages for products that left the catalogue are removed.
+const stale = [];
+for (const dir of ["p", "bag"]) {
+  const abs = path.join(site, dir);
+  if (fs.existsSync(abs)) for (const f of fs.readdirSync(abs)) if (!gen[`${dir}/${f}`]) stale.push(`${dir}/${f}`);
+}
+const changed = Object.entries(gen).filter(([f, s]) => { try { return read(f) !== s; } catch { return true; } }).map(([f]) => f);
+const skipped = entries.filter((e) => e.skip).map((e) => (e.kind === "b" ? "bag " : "") + e.id);
+const summary = `${entries.length} product pages, feed of ${feedEntries.length} (left out for character names: ${skipped.join(", ") || "none"})`;
+
 if (process.argv.includes("--check")) {
-  if (html !== before) { console.error("index.html is STALE: run  node tadaboo/scripts/prerender.mjs  and commit the result."); process.exit(1); }
-  console.log(`Prerender OK (${T.bags.length} gift bags, ${T.products.length} products, prices from ${STOCK ? "stock.json" : "catalog.js"}).`);
+  let bad = false;
+  if (html !== before) { console.error("index.html is STALE: run  node tadaboo/scripts/prerender.mjs  and commit the result."); bad = true; }
+  if (changed.length || stale.length) { console.error(`Product pages/feed are STALE (${[...changed, ...stale].slice(0, 5).join(", ")}…): run  node tadaboo/scripts/prerender.mjs  and commit.`); bad = true; }
+  if (bad) process.exit(1);
+  console.log(`Prerender OK (${T.bags.length} gift bags, ${T.products.length} products, prices from ${STOCK ? "stock.json" : "catalog.js"}; ${summary}).`);
 } else {
   if (html !== before) fs.writeFileSync(path.join(site, "index.html"), html);
-  console.log(`${html !== before ? "Updated" : "Already up to date:"} index.html (${T.bags.length} gift bags, ${T.products.length} products, prices from ${STOCK ? "stock.json" : "catalog.js"}).`);
+  for (const f of changed) { fs.mkdirSync(path.dirname(path.join(site, f)), { recursive: true }); fs.writeFileSync(path.join(site, f), gen[f]); }
+  for (const f of stale) fs.unlinkSync(path.join(site, f));
+  console.log(`${html !== before ? "Updated" : "Already up to date:"} index.html (${T.bags.length} gift bags, ${T.products.length} products, prices from ${STOCK ? "stock.json" : "catalog.js"}). ${changed.length + stale.length} product files changed; ${summary}.`);
 }

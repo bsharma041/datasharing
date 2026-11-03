@@ -2176,6 +2176,12 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     if (!isObj(d) || !isObj(d.items) || !isObj(d.bags)) return;
     STOCK = d; applyStock(); clampCart(); save(); keep(renderAll);
   }).catch(() => {});
+  // Product pages (/p/<id>, /bag/<id>) link here as ?open=p:<id> or ?open=b:<id>: open that item, ready to add.
+  const deep = /^([pb]):([a-z0-9-]+)$/.exec(new URLSearchParams(location.search).get("open") || "");
+  if (deep && (deep[1] === "p" ? P[deep[2]] : B[deep[2]])) {
+    detailQty = 1; openDrawer(deep[1] === "p" ? { product: deep[2] } : { bag: deep[2] });
+    history.replaceState(null, "", location.pathname + location.hash);
+  }
 
   // Sections rise gently as they scroll in (they are already visible; only the lift plays).
   if (!reduced && "IntersectionObserver" in window) {
