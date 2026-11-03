@@ -150,6 +150,11 @@ for (const [name, make] of Object.entries(regions)) {
 const FEED_SKIP = /kuromi|labubu|snoopy|sanrio|hello kitty|disney|marvel|avengers|pokemon|barbie|peppa|doraemon|minion|spider|batman|harry potter/i;
 // Character names in a title, description or photo can get a new Merchant Center account suspended
 // (unlicensed brand use). Those products keep their pages but stay out of google-feed.xml.
+// Products whose photo shows a cartoon character or another brand's packaging, though the name does not
+// (checked by eye on 2026-11-04). Add an id here when a new photo shows one.
+const FEED_PHOTO_SKIP = new Set(["korean-gel-pen", "light-up-pen", "icecream-pen", "toffee-eraser", "sharpener-eraser",
+  "activity-set", "magnetic-bookmark", "chocolate-squishy"]);
+const feedSkipItem = (p) => FEED_PHOTO_SKIP.has(p.id) || FEED_SKIP.test(p.name + " " + p.desc);
 const istDay = new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
 const SALE = (STOCK && STOCK.sale) || {};
 const OFFERS = ((STOCK && Array.isArray(STOCK.offers)) ? STOCK.offers : []).filter((o) => o && o.pct > 0 && o.pct < 90 && String(o.from) <= istDay && istDay <= String(o.to));
@@ -169,12 +174,12 @@ const catName = Object.fromEntries((T.categories || []).map((c) => [c.id, c.name
 const entries = [
   ...T.products.map((p) => ({ kind: "p", id: p.id, url: `p/${p.id}`, name: p.name, desc: p.desc, image: img(p.id), extra: [], left: itemLeft(p),
     d: deal(p, p.fixedPrice || (p.units || 1) !== 1 ? NaN : SALE[p.sid], false), type: "Kids stationery > " + (catName[p.cat] || "Stationery"),
-    skip: FEED_SKIP.test(p.name + " " + p.desc), contents: null })),
+    skip: feedSkipItem(p), contents: null })),
   ...T.bags.map((b) => { const names = b.items.map((id) => P[id].name);
     return { kind: "b", id: b.id, url: `bag/${b.id}`, name: b.name, image: cover(b), extra: b.items.filter((id) => id !== (b.cover || b.items[0])).map(img),
       desc: `Ready-packed TadaBoo gift bag with ${b.items.length} items: ${names.join(", ")}.${b.note ? " " + b.note : ""}`, left: capacity(b),
       d: deal(b, SALE["cat-" + b.id], true), type: "Kids gift bags > Return gifts", brand: "TadaBoo",
-      skip: FEED_SKIP.test(b.name + " " + names.join(" ") + " " + (b.note || "") + " " + (b.cover || "")), contents: b.items }; }),
+      skip: b.items.some((id) => feedSkipItem(P[id])) || FEED_SKIP.test(b.name + " " + (b.note || "") + " " + (b.cover || "")), contents: b.items }; }),
 ];
 const stockLine = (e) => e.left === null ? "" : e.left <= 0 ? "Sold out for now" : e.left <= 5 ? `Only ${e.left} left` : "In stock";
 const PAGE_CSS = `:root{--bg:#FFF8F0;--card:#fff;--ink:#23264A;--muted:#5C5F78;--price:#B83A0A;--line:#F0E2D4;--ok:#17795E;color-scheme:light}
@@ -278,7 +283,7 @@ for (const dir of ["p", "bag"]) {
 }
 const changed = Object.entries(gen).filter(([f, s]) => { try { return read(f) !== s; } catch { return true; } }).map(([f]) => f);
 const skipped = entries.filter((e) => e.skip).map((e) => (e.kind === "b" ? "bag " : "") + e.id);
-const summary = `${entries.length} product pages, feed of ${feedEntries.length} (left out for character names: ${skipped.join(", ") || "none"})`;
+const summary = `${entries.length} product pages, feed of ${feedEntries.length} (left out for character names or photos: ${skipped.join(", ") || "none"})`;
 
 if (process.argv.includes("--check")) {
   let bad = false;
