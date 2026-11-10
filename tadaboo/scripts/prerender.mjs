@@ -131,7 +131,10 @@ function jsonld() {
   return `<script type="application/ld+json">\n${json}\n</script>`;
 }
 
-const regions = { bags: () => T.bags.map(bagCard).join(""), grid: gridFirstPage, catalog: catalogList, jsonld };
+// Sold-out bags last, the same order renderBags() in index.html gives once stock.json has loaded.
+const soldOut = (b) => { const c = capacity(b); return c !== null && c <= 0; };
+const bagsInOrder = () => [...T.bags.filter((b) => !soldOut(b)), ...T.bags.filter(soldOut)];
+const regions = { bags: () => bagsInOrder().map(bagCard).join(""), grid: gridFirstPage, catalog: catalogList, jsonld };
 
 let html = read("index.html");
 const before = html;
@@ -184,7 +187,9 @@ const entries = [
 const stockLine = (e) => e.left === null ? "" : e.left <= 0 ? "Sold out for now" : e.left <= 5 ? `Only ${e.left} left` : "In stock";
 const PAGE_CSS = `:root{--bg:#FFF8F0;--card:#fff;--ink:#23264A;--muted:#5C5F78;--price:#B83A0A;--line:#F0E2D4;--ok:#17795E;color-scheme:light}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.6 "Figtree",system-ui,sans-serif}
-.wrap{max-width:900px;margin:0 auto;padding:0 16px}header{border-bottom:2px solid #FFD2BC}header .wrap{display:flex;align-items:center;justify-content:space-between;min-height:68px}
+.wrap{max-width:900px;margin:0 auto;padding:0 16px}header{border-bottom:2px solid #FFD2BC}header .wrap{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:68px}
+header nav{display:flex;gap:2px}header nav a{color:var(--ink);font-weight:600;font-size:.95rem;text-decoration:none;min-height:44px;padding:0 12px;display:inline-flex;align-items:center;border-radius:999px;white-space:nowrap}header nav a:hover{background:#FFF0E2}
+@media(max-width:420px){header nav a{padding:0 8px;font-size:.9rem}.wm{font-size:1.3rem!important}}
 .wm{font:700 1.5rem/1 "Fredoka",system-ui;text-decoration:none;color:var(--ink);min-height:44px;display:inline-flex;align-items:center}.wm .t{color:#E2541A;font-style:italic}.wm .s{color:#FFC63A;font-size:.55em;vertical-align:.7em}
 a{color:var(--price);font-weight:600}.back{min-height:44px;display:inline-flex;align-items:center}
 main{padding:24px 0 56px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start}
@@ -197,8 +202,30 @@ h1{font:600 clamp(1.6rem,1.2rem + 1.6vw,2.2rem)/1.15 "Bricolage Grotesque",sans-
 p{margin:0 0 12px}.info{display:flex;flex-direction:column;gap:6px}
 .cta{display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:0 24px;border-radius:999px;background:var(--ink);color:#fff;text-decoration:none;font-weight:600;border:2px solid var(--ink);margin:14px 10px 0 0}
 .cta.line{background:transparent;color:var(--ink)}
+.buy{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}.buy .cta{margin:0;flex:1 1 auto}
+@media(max-width:700px){.buy{position:sticky;bottom:0;z-index:5;margin-inline:-16px;padding:10px 16px calc(10px + env(safe-area-inset-bottom,0px));background:var(--bg);border-top:1px solid var(--line)}}
+.ship{display:flex;align-items:center;gap:8px;background:#E5F6EC;border-radius:14px;padding:10px 12px;font-size:.92rem;margin:12px 0 0}
+.more{grid-column:1/-1;margin-top:8px}.more h2{font:600 1.35rem/1.2 "Bricolage Grotesque",sans-serif;margin:0 0 14px}
+.more ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px}
+.more li a{display:flex;flex-direction:column;gap:6px;background:var(--card);border-radius:18px;padding:8px 8px 12px;text-decoration:none;color:var(--ink);font-weight:600;font-size:.92rem;line-height:1.3;height:100%}
+.more li img{width:100%;height:auto;aspect-ratio:4/5;object-fit:cover;border-radius:12px}.more li b{color:var(--price);font-size:1rem}
 ul.items{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:8px}ul.items li{display:flex;align-items:center;gap:10px}ul.items img{width:48px;height:60px;object-fit:cover;border-radius:8px}
 .small{font-size:.92rem;color:var(--muted)}footer{padding:24px 0 40px;color:var(--muted);font-size:.9rem}footer a{display:inline-block;padding:12px 0}`;
+// "You may also like": up to four other things that can be bought now. For a gift bag, other gift bags;
+// for a product, the gift bags that hold it, then its category neighbours (catalogue order, starting after it).
+const inStock = (x) => x.left === null || x.left > 0;
+const moreCard = (x) => `<li><a href="/${x.url}"><img src="/${x.image}" alt="" loading="lazy" width="416" height="520">${esc(x.name)}<b>${inr(x.d.price)}</b></a></li>`;
+function related(e) {
+  const bags = entries.filter((x) => x.kind === "b" && x.id !== e.id && inStock(x));
+  let picks;
+  if (e.kind === "b") picks = bags;
+  else {
+    const same = entries.filter((x) => x.kind === "p" && P[x.id].cat === P[e.id].cat), at = same.findIndex((x) => x.id === e.id);
+    picks = [...bags.filter((x) => x.contents.includes(e.id)).slice(0, 2), ...[...same.slice(at + 1), ...same.slice(0, at)].filter(inStock)];
+  }
+  picks = picks.slice(0, 4);
+  return picks.length ? `<section class="more" aria-labelledby="moreTitle"><h2 id="moreTitle">You may also like</h2><ul>${picks.map(moreCard).join("")}</ul></section>` : "";
+}
 function productPage(e) {
   const abs = SITE_URL + e.url, d = e.d, out = e.left !== null && e.left <= 0;
   const ld = { "@context": "https://schema.org", "@type": "Product", name: e.name, image: [SITE_URL + e.image, ...e.extra.map((s) => SITE_URL + s)], description: e.desc, sku: (e.kind === "b" ? "bag-" : "") + e.id,
@@ -216,13 +243,12 @@ function productPage(e) {
 <link rel="canonical" href="${abs}">
 <link rel="icon" type="image/png" sizes="48x48" href="/favicon.png">
 <meta property="og:title" content="${esc(e.name)}"><meta property="og:image" content="${SITE_URL + e.image}"><meta property="og:url" content="${abs}">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600&family=Figtree:wght@400;600;700&family=Fredoka:wght@700&display=swap">
+<link rel="stylesheet" href="/fonts/fonts.css">
 <style>${PAGE_CSS}</style>
 <script type="application/ld+json">${JSON.stringify(ld).replace(/</g, "\\u003c")}</script>
 </head>
 <body>
-<header><div class="wrap"><a class="wm" href="/"><span class="t">TADA</span><span class="s">✦</span>BOO</a><a class="back" href="/${e.kind === "b" ? "#bags" : "#shop"}">← All ${e.kind === "b" ? "gift bags" : "products"}</a></div></header>
+<header><div class="wrap"><a class="wm" href="/"><span class="t">TADA</span><span class="s">✦</span>BOO</a><nav aria-label="Shop"><a href="/#bags">Gift bags</a><a href="/#shop">Shop</a><a href="/#order">How to order</a></nav></div></header>
 <main class="wrap">
   <img class="photo" src="/${e.image}" alt="${esc(e.name)}" width="520" height="650">
   <div class="info">
@@ -232,9 +258,13 @@ function productPage(e) {
     ${stockLine(e) ? `<p class="stock${out ? " out" : ""}">${stockLine(e)}</p>` : ""}
     <p style="margin-top:10px">${esc(e.desc)}</p>
     ${items}
-    <div><a class="cta" href="/?open=${e.kind}:${e.id}">${out ? "See it in the shop" : "Add to bag"}</a><a class="cta line" href="https://wa.me/${T.whatsapp}" target="_blank" rel="noopener">WhatsApp us</a></div>
+    <p class="ship">${d.price >= D.freeAbove ? "Free delivery" : `Delivery ${inr(D.rates.india)}, free from ${inr(D.freeAbove)}`} · arrives in ${T.deliveryDays || "7–10 days"}</p>
+    <div class="buy">${out
+      ? `<a class="cta" href="https://wa.me/${T.whatsapp}?text=${encodeURIComponent(`Hi TadaBoo! Please tell me when ${e.name} is back in stock.`)}" target="_blank" rel="noopener">Tell me when it's back</a><a class="cta line" href="/?open=${e.kind}:${e.id}">See it in the shop</a>`
+      : `<a class="cta" href="/?add=${e.kind}:${e.id}">Add to bag · ${inr(d.price)}</a><a class="cta line" href="https://wa.me/${T.whatsapp}?text=${encodeURIComponent(`Hi TadaBoo! A question about ${e.name}:`)}" target="_blank" rel="noopener">Ask on WhatsApp</a>`}</div>
     <p class="small" style="margin-top:14px">Delivered anywhere in India in ${T.deliveryDays || "7–10 days"}. Delivery ${inr(D.rates.india)} (${inr(D.rates.remote)} to the North East), free when items total ${inr(D.freeAbove)} or more. Every order comes with a thank-you card and a bookmark.</p>
   </div>
+  ${related(e)}
 </main>
 <footer><div class="wrap">© TadaBoo · <a href="/">Shop</a> · <a href="/policies">Policies &amp; privacy</a></div></footer>
 </body>

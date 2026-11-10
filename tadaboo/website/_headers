@@ -2,6 +2,8 @@
 # Photos rarely change; the page and catalogue must update quickly after an edit.
 /img/*
   Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable
 /catalog.js
   Cache-Control: public, max-age=300, must-revalidate
 /index.html
@@ -14,7 +16,7 @@
 # Website orders load the WebsitePublisher form client (cdn.) and post to its API.
 # Inline style attributes are used by the page, so style-src needs 'unsafe-inline'.
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.websitepublisher.ai 'sha256-1D8FYX0k04axNHVectudJD8cwfhzBeZh7M5Tox0Y+Oo='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://tadaboo-orders.bsharma-04.workers.dev https://api.websitepublisher.ai https://*.websitepublisher.ai; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.websitepublisher.ai 'sha256-ayRguhH3w88c9wWPxH9e1/M+tfyd71jF6oNPrhv3bL4='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://tadaboo-orders.bsharma-04.workers.dev https://api.websitepublisher.ai https://*.websitepublisher.ai; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()

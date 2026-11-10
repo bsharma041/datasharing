@@ -304,9 +304,8 @@
  ]
 }
 </script><!-- /PRERENDER:jsonld -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600&family=Figtree:wght@400;500;600&family=Fredoka:wght@700&display=swap">
+<link rel="preload" as="font" type="font/woff2" href="fonts/figtree-latin.woff2" crossorigin>
+<link rel="stylesheet" href="fonts/fonts.css">
 <style>
 /* Layout: the catalogue's look. A warm cream page framed in orange, every card on its own pastel
    panel (sky, mint, butter, blush, in turn), teal labels and the PICK · MIX · DISCOVER · GIFT pills.
@@ -627,7 +626,7 @@ footer .wm{font-size:1.25rem}
 .pview{display:flex;flex-direction:column;gap:14px}
 .pview .big{position:relative;border-radius:22px;overflow:hidden;background:var(--tile)}
 .pview .big{max-width:460px;width:100%;margin:0 auto}
-.pview .big img{width:100%;aspect-ratio:4/5;max-height:70vh;object-fit:contain;animation:zoomIn .45s cubic-bezier(.2,.8,.2,1) both}
+.pview .big img{width:100%;height:auto;aspect-ratio:auto 4/5;max-height:70vh;object-fit:contain;animation:zoomIn .45s cubic-bezier(.2,.8,.2,1) both}
 @keyframes zoomIn{from{transform:scale(.92);opacity:.4}}
 .pview .nav{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:0;background:var(--bg);color:var(--ink);box-shadow:var(--shadow);cursor:pointer;display:grid;place-items:center}
 .pview .nav.prev{left:12px}.pview .nav.next{right:12px}
@@ -879,6 +878,34 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
 .arrive svg{width:18px;height:18px;flex:none;color:var(--ok)}
 .tags a{display:block;font:inherit;color:inherit;padding:9px 14px;border-radius:inherit}
 .tags li{padding:0}
+/* Nov 2026 audit: trust line, quick picks, budget, sold-out notify, in every order, review clamp */
+.trust{display:flex;flex-wrap:wrap;gap:4px 14px;margin:-6px 0 0;font-size:.88rem;font-weight:500;color:var(--ink)}
+.trust>span::before{content:"✓";margin-right:5px;font-weight:700;color:var(--teal)}
+.trust a{font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.trust .st{color:#8A5D00}
+@media (max-width:560px){.hero .wrap{gap:16px}.hero-copy{display:contents}.hero-media{order:1}.facts{order:2;margin-top:0;border-top:0;padding-top:4px}.trust{margin-top:-4px}}
+.quick{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:28px}
+.ql{font-size:.78rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-right:4px;white-space:nowrap}
+.budget{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px}
+@media (max-width:560px){.quick,.budget{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;margin-inline:calc(-1 * var(--gutter));padding-inline:var(--gutter)}.quick::-webkit-scrollbar,.budget::-webkit-scrollbar{display:none}.quick .pill,.budget .pill{padding:0 14px;font-size:.88rem;flex:none}.quick{margin-bottom:20px}}
+.notify{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--line-strong);background:var(--card);font-size:.85rem;font-weight:600;white-space:nowrap}
+.notify svg{width:16px;height:16px;color:var(--wa);flex:none}
+.bagcard.sold .nm,.bagcard.sold .price{color:var(--muted)}
+.every{padding-top:0}
+.everybox{background:var(--butter);border-radius:32px;padding:clamp(24px,4vw,44px);display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:clamp(20px,4vw,48px);align-items:center}
+.everybox .txt{display:flex;flex-direction:column;gap:12px}
+.everybox p{margin:0;font-size:1.05rem;color:var(--muted);max-width:28em}
+.everybox .pics{display:flex;align-items:center;justify-content:center;gap:clamp(14px,3vw,28px);min-width:0}
+.everybox .pics img{border-radius:12px;box-shadow:var(--shadow);background:var(--card);height:auto}
+.everybox .pics .tc{width:min(72%,360px);transform:rotate(-3deg)}
+.everybox .pics .bm{width:min(20%,96px);transform:rotate(5deg)}
+.rev blockquote.clamp{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:6;overflow:hidden}
+.rev .morerev{all:unset;cursor:pointer;font-size:.88rem;font-weight:600;text-decoration:underline;text-underline-offset:3px;min-height:32px;display:inline-flex;align-items:center;align-self:flex-start;margin-top:-6px}
+.rev .morerev:focus-visible{outline:3px solid var(--price);outline-offset:2px;border-radius:4px}
+.rev.share{justify-content:center;align-items:flex-start;gap:10px;border:2px dashed color-mix(in srgb,var(--orange) 45%,transparent);background:var(--card)}
+.rev.share h3{font-size:1.25rem}
+.rev.share p{margin:0;color:var(--muted)}
+.rev.share .acts{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 }
@@ -896,6 +923,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
       <a href="#bags">Gift bags</a>
       <a href="#shop">Shop</a>
       <a href="#order">How to order</a>
+      <a href="#reviews" id="navRev" hidden>Reviews</a>
       <button type="button" class="navbtn" id="navOrders" data-myordersbtn hidden>My orders</button>
     </nav>
     <button class="bagbtn" id="bagBtn" aria-haspopup="dialog">
@@ -916,6 +944,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
           <a class="btn" href="#bags">Shop gift bags</a>
           <a class="link" href="#build">Build your own</a>
         </div>
+        <p class="trust"><a href="#reviews" id="trustRev" hidden></a><span>Pay by UPI</span><span>Free card + bookmark in every order</span></p>
         <ul class="facts">
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg><span><b>Delivered in 7–10 days</b>Thoughtfully packed, lovingly gifted</span></li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12v9H4v-9M2 7h20v5H2zM12 21V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg><span><b>Free delivery from ₹999</b>₹99 below that (₹149 to the North East)</span></li>
@@ -928,8 +957,14 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     </div>
   </section>
 
+  <div class="wrap">
+    <div class="quick" id="quick" role="group" aria-label="Quick picks"><span class="ql" aria-hidden="true">Quick picks</span><button class="pill" type="button" data-quick="100">Up to ₹100</button><button class="pill" type="button" data-quick="300">Up to ₹300</button><button class="pill" type="button" data-quick="birthday">Birthday hampers</button><button class="pill" type="button" data-quick="return">Return gifts</button></div>
+  </div>
+
   <section class="cats" aria-label="Shop by category">
-    <div class="wrap"><ul id="catTiles"></ul></div>
+    <div class="wrap">
+      <ul id="catTiles"></ul>
+    </div>
   </section>
 
   <section class="bestsec" id="best" aria-labelledby="bestTitle" hidden>
@@ -972,16 +1007,26 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
       <span class="row"><span class="nm">Space Cadet · Boys</span><span class="price">₹399</span></span>
     </button>
       <div class="bfoot"><span class="ct">6 items</span><div class="act"><button class="plus" data-bagplus="space-cadet" aria-label="Add Space Cadet · Boys to bag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div></div>
-    </div><div class="bagcard" style="--pc:var(--blush)"><button class="fav " data-fav="b:kuromi" aria-pressed="false" aria-label="Save Kuromi Kawaii · Girls to favourites"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7.5-4.6-9.3-9.2C1.5 7.6 3.6 4.5 7 4.5c2 0 3.5 1.1 5 3 1.5-1.9 3-3 5-3 3.4 0 5.5 3.1 4.3 6.3C19.5 15.4 12 20 12 20z"/></svg></button><button class="bagopen" data-openbag="kuromi" aria-haspopup="dialog">
-      <span class="ph"><span class="cv"><img src="img/kuromi-diary.webp" alt="Kuromi Kawaii · Girls" loading="lazy" decoding="async" width="416" height="520" class="fade"></span><span class="chips" aria-hidden="true"><img src="img/sm/korean-gel-pen.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/animal-memo-pad.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/rabbit-eraser.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/magnetic-bookmark.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"></span></span>
-      <span class="row"><span class="nm">Kuromi Kawaii · Girls</span><span class="price">₹259</span></span>
-    </button>
-      <div class="bfoot"><span class="ct">5 items</span><div class="act"><button class="plus" data-bagplus="kuromi" aria-label="Add Kuromi Kawaii · Girls to bag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div></div>
     </div><div class="bagcard" style="--pc:var(--blush)"><button class="fav " data-fav="b:unicorn" aria-pressed="false" aria-label="Save Unicorn Sparkle · Girls to favourites"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7.5-4.6-9.3-9.2C1.5 7.6 3.6 4.5 7 4.5c2 0 3.5 1.1 5 3 1.5-1.9 3-3 5-3 3.4 0 5.5 3.1 4.3 6.3C19.5 15.4 12 20 12 20z"/></svg></button><button class="bagopen" data-openbag="unicorn" aria-haspopup="dialog">
       <span class="ph"><span class="cv"><img src="img/crystal-unicorn-pen.webp" alt="Unicorn Sparkle · Girls" loading="lazy" decoding="async" width="416" height="520" class="fade"></span><span class="chips" aria-hidden="true"><img src="img/sm/camera-sharpener.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/donut-unicorn-eraser.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/a7-notebook.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/diamond-bracelet.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/3d-sticker.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/popsicle-highlighter.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"></span></span>
       <span class="row"><span class="nm">Unicorn Sparkle · Girls</span><span class="price">₹399</span></span>
     </button>
       <div class="bfoot"><span class="ct">7 items</span><div class="act"><button class="plus" data-bagplus="unicorn" aria-label="Add Unicorn Sparkle · Girls to bag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div></div>
+    </div><div class="bagcard" style="--pc:var(--sky)"><button class="fav " data-fav="b:hamper-boys" aria-pressed="false" aria-label="Save Birthday Hamper · Boys to favourites"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7.5-4.6-9.3-9.2C1.5 7.6 3.6 4.5 7 4.5c2 0 3.5 1.1 5 3 1.5-1.9 3-3 5-3 3.4 0 5.5 3.1 4.3 6.3C19.5 15.4 12 20 12 20z"/></svg></button><button class="bagopen" data-openbag="hamper-boys" aria-haspopup="dialog">
+      <span class="ph"><span class="cv"><img src="img/dumpling-squishy.webp" alt="Birthday Hamper · Boys" loading="lazy" decoding="async" width="416" height="520" class="fade"></span><span class="chips" aria-hidden="true"><img src="img/sm/activity-set.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/reward-stamps.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/racing-pencils.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/eraser-combo.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/bath-bomb.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/light-up-pen.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/shuttlecock-sharpener.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"></span></span>
+      <span class="row"><span class="nm">Birthday Hamper · Boys</span><span class="price">₹999</span></span>
+    </button>
+      <div class="bfoot"><span class="ct">8 items</span><div class="act"><button class="plus" data-bagplus="hamper-boys" aria-label="Add Birthday Hamper · Boys to bag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div></div>
+    </div><div class="bagcard" style="--pc:var(--blush)"><button class="fav " data-fav="b:hamper-girls" aria-pressed="false" aria-label="Save Birthday Hamper · Girls to favourites"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7.5-4.6-9.3-9.2C1.5 7.6 3.6 4.5 7 4.5c2 0 3.5 1.1 5 3 1.5-1.9 3-3 5-3 3.4 0 5.5 3.1 4.3 6.3C19.5 15.4 12 20 12 20z"/></svg></button><button class="bagopen" data-openbag="hamper-girls" aria-haspopup="dialog">
+      <span class="ph"><span class="cv"><img src="img/7pc-aesthetic.webp" alt="Birthday Hamper · Girls" loading="lazy" decoding="async" width="416" height="520" class="fade"></span><span class="chips" aria-hidden="true"><img src="img/sm/dumpling-squishy.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/kuromi-diary.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/butterfly-pen.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/diamond-bracelet.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/bath-bomb.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/popsicle-highlighter.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/donut-unicorn-eraser.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"></span></span>
+      <span class="row"><span class="nm">Birthday Hamper · Girls</span><span class="price">₹999</span></span>
+    </button>
+      <div class="bfoot"><span class="ct">8 items</span><div class="act"><button class="plus" data-bagplus="hamper-girls" aria-label="Add Birthday Hamper · Girls to bag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div></div>
+    </div><div class="bagcard" style="--pc:var(--blush)"><button class="fav " data-fav="b:kuromi" aria-pressed="false" aria-label="Save Kuromi Kawaii · Girls to favourites"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7.5-4.6-9.3-9.2C1.5 7.6 3.6 4.5 7 4.5c2 0 3.5 1.1 5 3 1.5-1.9 3-3 5-3 3.4 0 5.5 3.1 4.3 6.3C19.5 15.4 12 20 12 20z"/></svg></button><button class="bagopen" data-openbag="kuromi" aria-haspopup="dialog">
+      <span class="ph"><span class="cv"><img src="img/kuromi-diary.webp" alt="Kuromi Kawaii · Girls" loading="lazy" decoding="async" width="416" height="520" class="fade"></span><span class="chips" aria-hidden="true"><img src="img/sm/korean-gel-pen.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/animal-memo-pad.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/rabbit-eraser.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/magnetic-bookmark.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"></span></span>
+      <span class="row"><span class="nm">Kuromi Kawaii · Girls</span><span class="price">₹259</span></span>
+    </button>
+      <div class="bfoot"><span class="ct">5 items</span><div class="act"><button class="plus" data-bagplus="kuromi" aria-label="Add Kuromi Kawaii · Girls to bag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div></div>
     </div><div class="bagcard" style="--pc:var(--butter)"><button class="fav " data-fav="b:rg-mini" aria-pressed="false" aria-label="Save Return Gift · Mini to favourites"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7.5-4.6-9.3-9.2C1.5 7.6 3.6 4.5 7 4.5c2 0 3.5 1.1 5 3 1.5-1.9 3-3 5-3 3.4 0 5.5 3.1 4.3 6.3C19.5 15.4 12 20 12 20z"/></svg></button><button class="bagopen" data-openbag="rg-mini" aria-haspopup="dialog">
       <span class="ph"><span class="cv"><img src="img/crayons-set.webp" alt="Return Gift · Mini" loading="lazy" decoding="async" width="416" height="520" class="fade"></span><span class="chips" aria-hidden="true"><img src="img/sm/labubu-gel-pen.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/plane-sharpener.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/fast-food-eraser.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/popsicle-highlighter.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"></span></span>
       <span class="row"><span class="nm">Return Gift · Mini</span><span class="price">₹199</span></span>
@@ -997,16 +1042,6 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
       <span class="row"><span class="nm">Return Gift · Deluxe</span><span class="price">₹499</span></span>
     </button>
       <div class="bfoot"><span class="ct">7 items</span><div class="act"><button class="plus" data-bagplus="rg-deluxe" aria-label="Add Return Gift · Deluxe to bag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div></div>
-    </div><div class="bagcard" style="--pc:var(--sky)"><button class="fav " data-fav="b:hamper-boys" aria-pressed="false" aria-label="Save Birthday Hamper · Boys to favourites"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7.5-4.6-9.3-9.2C1.5 7.6 3.6 4.5 7 4.5c2 0 3.5 1.1 5 3 1.5-1.9 3-3 5-3 3.4 0 5.5 3.1 4.3 6.3C19.5 15.4 12 20 12 20z"/></svg></button><button class="bagopen" data-openbag="hamper-boys" aria-haspopup="dialog">
-      <span class="ph"><span class="cv"><img src="img/dumpling-squishy.webp" alt="Birthday Hamper · Boys" loading="lazy" decoding="async" width="416" height="520" class="fade"></span><span class="chips" aria-hidden="true"><img src="img/sm/activity-set.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/reward-stamps.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/racing-pencils.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/eraser-combo.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/bath-bomb.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/light-up-pen.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/shuttlecock-sharpener.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"></span></span>
-      <span class="row"><span class="nm">Birthday Hamper · Boys</span><span class="price">₹999</span></span>
-    </button>
-      <div class="bfoot"><span class="ct">8 items</span><div class="act"><button class="plus" data-bagplus="hamper-boys" aria-label="Add Birthday Hamper · Boys to bag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div></div>
-    </div><div class="bagcard" style="--pc:var(--blush)"><button class="fav " data-fav="b:hamper-girls" aria-pressed="false" aria-label="Save Birthday Hamper · Girls to favourites"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7.5-4.6-9.3-9.2C1.5 7.6 3.6 4.5 7 4.5c2 0 3.5 1.1 5 3 1.5-1.9 3-3 5-3 3.4 0 5.5 3.1 4.3 6.3C19.5 15.4 12 20 12 20z"/></svg></button><button class="bagopen" data-openbag="hamper-girls" aria-haspopup="dialog">
-      <span class="ph"><span class="cv"><img src="img/7pc-aesthetic.webp" alt="Birthday Hamper · Girls" loading="lazy" decoding="async" width="416" height="520" class="fade"></span><span class="chips" aria-hidden="true"><img src="img/sm/dumpling-squishy.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/kuromi-diary.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/butterfly-pen.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/diamond-bracelet.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/bath-bomb.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/popsicle-highlighter.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"><img src="img/sm/donut-unicorn-eraser.webp" alt="" loading="lazy" decoding="async" width="416" height="520" class="fade"></span></span>
-      <span class="row"><span class="nm">Birthday Hamper · Girls</span><span class="price">₹999</span></span>
-    </button>
-      <div class="bfoot"><span class="ct">8 items</span><div class="act"><button class="plus" data-bagplus="hamper-girls" aria-label="Add Birthday Hamper · Girls to bag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div></div>
     </div><!-- /PRERENDER:bags --></div>
     </div>
   </section>
@@ -1042,6 +1077,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
         </label>
       </div>
       <div class="tabs" id="catTabs" role="group" aria-label="Categories"></div>
+      <div class="budget" id="budget" role="group" aria-label="Budget"></div>
       <div class="grid" id="grid"><!-- PRERENDER:grid --><article class="card" style="--i:0">
       <div class="ph"><button class="phbtn" data-prod="korean-gel-pen" aria-haspopup="dialog" aria-label="View Korean Kawaii Erasable Gel Pen 0.5mm"><img src="img/korean-gel-pen.webp" alt="Korean Kawaii Erasable Gel Pen 0.5mm" loading="lazy" decoding="async" width="416" height="520" class="fade"></button>
         <button class="fav " data-fav="p:korean-gel-pen" aria-pressed="false" aria-label="Save Korean Kawaii Erasable Gel Pen 0.5mm to favourites"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20s-7.5-4.6-9.3-9.2C1.5 7.6 3.6 4.5 7 4.5c2 0 3.5 1.1 5 3 1.5-1.9 3-3 5-3 3.4 0 5.5 3.1 4.3 6.3C19.5 15.4 12 20 12 20z"/></svg></button><div class="act"><button class="plus" data-add="korean-gel-pen" aria-label="Add Korean Kawaii Erasable Gel Pen 0.5mm to bag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div></div>
@@ -1162,6 +1198,22 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
 <li><img src="img/bath-bomb.webp" alt="Kids Bath Bomb" loading="lazy" width="104" height="130"> <b>Kids Bath Bomb</b> ₹99. Colourful fizzy bath bomb, assorted scents.</li>
 </ul>
 </div></section></noscript><!-- /PRERENDER:catalog -->
+
+  <section class="every" aria-labelledby="everyTitle">
+    <div class="wrap">
+      <div class="everybox">
+        <div class="txt">
+          <span class="kick">The little details matter</span>
+          <h2 id="everyTitle">In every order</h2>
+          <p>A thank-you card and a TadaBoo bookmark, tucked in with whatever you pick. Our little tada for you.</p>
+        </div>
+        <div class="pics">
+          <img class="tc" src="img/thank-you-card.webp" alt="TadaBoo thank-you card" loading="lazy" width="900" height="600">
+          <img class="bm" src="img/bookmark.webp" alt="TadaBoo bookmark" loading="lazy" width="240" height="720">
+        </div>
+      </div>
+    </div>
+  </section>
 
   <section class="revsec" id="reviews" aria-labelledby="revTitle" hidden>
     <div class="wrap">
@@ -1341,7 +1393,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
 
   // Re-rendering replaces buttons, so put keyboard focus back on the matching control
   // (Add -> its stepper, stepper at 0 -> its Add button, filter -> same filter).
-  const FOCUS = ["data-inc", "data-dec", "data-add", "data-bagplus", "data-addbag", "data-bf", "data-cat", "data-openbag", "data-page", "data-fav", "data-prod"];
+  const FOCUS = ["data-inc", "data-dec", "data-add", "data-bagplus", "data-addbag", "data-bf", "data-cat", "data-budget", "data-openbag", "data-page", "data-fav", "data-prod"];
   function keep(fn) {
     const a = document.activeElement, attr = a && FOCUS.find((n) => a.hasAttribute?.(n));
     const box = attr && a.closest("[id]");
@@ -1440,9 +1492,12 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
   const chips = (b) => b.items.filter((id) => id !== (b.cover || b.items[0])).map((id) => pic(thumb(id))).join("");
   const stockTag = (k) => { const a = avail(k); return a <= 0 ? (k[0] === "b" ? `<span class="inbag">Sold out</span>` : "") : a <= 3 ? `<span class="inbag">Only ${a} left</span>` : ""; };
   const askLink = (name) => `<a class="btn line" target="_blank" rel="noopener" href="https://wa.me/${T.whatsapp}?text=${encodeURIComponent(`Hi TadaBoo! Is ${name} back in stock?`)}">Sold out · ask us on WhatsApp</a>`;
+  const notifyLink = (name) => `<a class="notify" target="_blank" rel="noopener" href="https://wa.me/${T.whatsapp}?text=${encodeURIComponent(`Hi TadaBoo! Please tell me when ${name} is back in stock.`)}" aria-label="Tell me on WhatsApp when ${esc(name)} is back">${waIcon}Notify me</a>`;
+  // Sold-out bags go to the end of the list (a bag already in the shopper's bag stays where it is).
+  const soldBag = (b) => !qty("b:" + b.id) && avail("b:" + b.id) <= 0;
   function bagCard(b) {
     const n = qty("b:" + b.id);
-    const act = n ? stepper("b:" + b.id, n) : avail("b:" + b.id) <= 0 ? "" : `<button class="plus" data-bagplus="${b.id}" aria-label="Add ${esc(b.name)} to bag">${plusIcon}</button>`;
+    const act = n ? stepper("b:" + b.id, n) : avail("b:" + b.id) <= 0 ? notifyLink(b.name) : `<button class="plus" data-bagplus="${b.id}" aria-label="Add ${esc(b.name)} to bag">${plusIcon}</button>`;
     return `<div class="bagcard${!n && avail("b:" + b.id) <= 0 ? " sold" : ""}" style="--pc:var(--${["sky", "mint", "butter", "blush"].includes(b.tint) ? b.tint : "sky"})">${favBtn("b:" + b.id)}<button class="bagopen" data-openbag="${b.id}" aria-haspopup="dialog">
       <span class="ph"><span class="cv">${pic(cover(b), "", b.name)}</span><span class="chips" aria-hidden="true">${chips(b)}</span>${(n ? `<span class="inbag">In bag · ${n}${avail("b:" + b.id) <= n ? " · all we have" : ""}</span>` : stockTag("b:" + b.id)) || (BEST.has("b:" + b.id) ? `<span class="star">★ Best seller</span>` : "")}</span>
       <span class="row"><span class="nm">${esc(b.name)}</span>${priceTag(b)}</span>
@@ -1452,7 +1507,8 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
   }
   function renderBags() {
     $("#bagFilters").innerHTML = bagFilters.map(([id, l]) => `<button class="pill" aria-pressed="${id === bagF}" data-bf="${id}">${l}</button>`).join("");
-    $("#bagGrid").innerHTML = T.bags.filter(bagMatch).map(bagCard).join("");
+    const list = T.bags.filter(bagMatch);
+    $("#bagGrid").innerHTML = [...list.filter((b) => !soldBag(b)), ...list.filter(soldBag)].map(bagCard).join("");
   }
   $("#bagFilters").addEventListener("click", (e) => { const c = e.target.closest("[data-bf]"); if (c) { bagF = c.dataset.bf; keep(renderBags); announce(`${$("#bagGrid").children.length} gift bags`); } });
   $("#bagGrid").addEventListener("click", (e) => {
@@ -1462,7 +1518,11 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
   });
 
   // ---------- Shop ----------
-  let cat = "all", query = "", sort = "cat", page = 0;
+  let cat = "all", query = "", sort = "cat", page = 0, maxP = 0;
+  const BUDGETS = [0, 50, 100, 300];
+  function renderBudget() {
+    $("#budget").innerHTML = `<span class="ql" aria-hidden="true">Budget</span>` + BUDGETS.map((v) => `<button class="pill" type="button" aria-pressed="${v === maxP}" data-budget="${v}">${v ? "Up to " + inr(v) : "Any price"}</button>`).join("");
+  }
   const PER = 12;
   try { const c = localStorage.getItem(KEY + "-cat"); if (T.categories.some((x) => x.id === c)) cat = c; } catch {}
   function renderTabs() {
@@ -1493,6 +1553,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     const q = query.trim().toLowerCase();
     // Search looks across the whole shop; the category tabs only browse.
     let list = T.products.filter((p) => q ? (p.name + " " + p.desc + " " + p.tags.join(" ")).toLowerCase().includes(q) : (cat === "all" || p.cat === cat));
+    if (maxP) list = list.filter((p) => p.price <= maxP);
     if (sort === "lo") list = [...list].sort((a, b) => a.price - b.price);
     if (sort === "hi") list = [...list].sort((a, b) => b.price - a.price);
     // The shop shows a dozen at a time, page by page, so it never reads as one long wall of photos.
@@ -1501,12 +1562,20 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     const shown = list.slice(page * PER, page * PER + PER);
     const nums = Array.from({ length: pages }, (_, n) => `<button class="pill pg" data-page="${n}" aria-label="Page ${n + 1}"${n === page ? ' aria-current="page"' : ""}>${n + 1}</button>`).join("");
     const pager = pages > 1 ? `<nav class="pager" aria-label="Shop pages"><button class="pill pg" data-page="${page - 1}" aria-label="Previous page"${page ? "" : " disabled"}>‹</button>${nums}<button class="pill pg" data-page="${page + 1}" aria-label="Next page"${page < pages - 1 ? "" : " disabled"}>›</button><span class="of">${page * PER + 1}–${page * PER + shown.length} of ${list.length}</span></nav>` : "";
-    $("#grid").innerHTML = list.length ? shown.map((p, i) => productCard(p).replace('<article class="card">', `<article class="card${wave ? " in" : ""}" style="--i:${i}">`)).join("") + pager : `<div class="empty"><p>Nothing matches “${esc(query)}”. Try “pen”, “diary” or “squishy”.</p></div>`;
-    $("#shopMeta").textContent = q ? `${list.length} results` : cat === "all" ? `${list.length} items` : `${T.categories.find((c) => c.id === cat)?.name || ""} · ${list.length} items`;
+    $("#grid").innerHTML = list.length ? shown.map((p, i) => productCard(p).replace('<article class="card">', `<article class="card${wave ? " in" : ""}" style="--i:${i}">`)).join("") + pager : `<div class="empty"><p>${maxP && T.products.some((p) => q ? (p.name + " " + p.desc + " " + p.tags.join(" ")).toLowerCase().includes(q) : (cat === "all" || p.cat === cat)) ? `Nothing here up to ${inr(maxP)}. Try a higher budget or another category.` : `Nothing matches “${esc(query)}”. Try “pen”, “diary” or “squishy”.`}</p></div>`;
+    $("#shopMeta").textContent = (q ? `${list.length} results` : cat === "all" ? `${list.length} items` : `${T.categories.find((c) => c.id === cat)?.name || ""} · ${list.length} items`) + (maxP ? ` · up to ${inr(maxP)}` : "");
     wave = false;
     return list.length;
   }
   $("#catTabs").addEventListener("click", (e) => { const c = e.target.closest("[data-cat]"); if (!c) return; cat = c.dataset.cat; page = 0; try { localStorage.setItem(KEY + "-cat", cat); } catch {} keep(() => { renderTabs(); renderGrid(); }); });
+  $("#budget").addEventListener("click", (e) => { const c = e.target.closest("[data-budget]"); if (!c) return; maxP = +c.dataset.budget; page = 0; let n; keep(() => { renderBudget(); n = renderGrid(); }); announce(n ? `${n} products` : "No products match"); });
+  // Quick picks under the hero: a budget opens the shop at that price, an occasion opens those gift bags.
+  $("#quick").addEventListener("click", (e) => {
+    const c = e.target.closest("[data-quick]"); if (!c) return;
+    const v = c.dataset.quick, go = (sel) => $(sel).scrollIntoView({ behavior: reduced ? "auto" : "smooth" });
+    if (+v) { maxP = +v; cat = "all"; query = ""; $("#q").value = ""; page = 0; renderTabs(); renderBudget(); const n = renderGrid(); go("#shop"); announce(`${n} products up to ${inr(maxP)}`); }
+    else { bagF = v; renderBags(); go("#bags"); announce(`${$("#bagGrid").children.length} gift bags`); }
+  });
   let st;
   $("#q").addEventListener("input", (e) => { query = e.target.value; page = 0; renderTabs(); const n = renderGrid(); clearTimeout(st); st = setTimeout(() => announce(n ? `${n} products` : "No products match"), 500); });
   $("#sort").addEventListener("change", (e) => { sort = e.target.value; page = 0; renderGrid(); });
@@ -2150,11 +2219,16 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
       return `<figure class="rev p${(i % 4) + 1}"><div class="who">${photo ? `<img src="${photo}" alt="" width="56" height="56" loading="lazy">` : `<span class="ini" aria-hidden="true">${esc(String(r.name || "?").trim().charAt(0).toUpperCase())}</span>`}
         <span><b>${esc(r.name || "Customer")}</b>${r.city ? `<span>${esc(r.city)}</span>` : ""}</span></div>
         ${rating >= 1 && rating <= 5 ? `<span class="stars" role="img" aria-label="${rating} out of 5 stars">${"★".repeat(rating)}${"☆".repeat(5 - rating)}</span>` : ""}
-        <blockquote>${esc(r.quote)}</blockquote>
+        <blockquote${String(r.quote).length > 220 ? ' class="clamp"' : ""}>${esc(r.quote)}</blockquote>${String(r.quote).length > 220 ? `<button type="button" class="morerev" data-morerev aria-expanded="false">Read more</button>` : ""}
         ${k ? `<figcaption class="got">Bought: <button type="button" ${k[0] === "b" ? `data-openbag="${k.slice(2)}"` : `data-prod="${k.slice(2)}"`}>${esc(nameOf(k))}</button></figcaption>` : ""}</figure>`;
-    }).join("");
+    }).join("") + `<div class="rev share"><h3>Got your TadaBoo?</h3><p>Send us a photo or a few words. We would love to show it here.</p>
+        <div class="acts"><a class="btn wa sm" target="_blank" rel="noopener" href="https://wa.me/${T.whatsapp}?text=${encodeURIComponent("Hi TadaBoo! Here is my review:")}">Share on WhatsApp</a><a class="link" target="_blank" rel="noopener" href="https://www.instagram.com/ta_da_boo">Tag us on Instagram</a></div></div>`;
+    $("#navRev").hidden = false;
+    const rated = ok.map((r) => Math.round(Number(r.rating)) || 0).filter((n) => n >= 1 && n <= 5);
+    if (rated.length) { const t = $("#trustRev"); t.innerHTML = `<span class="st" aria-hidden="true">★</span> ${(rated.reduce((a, n) => a + n, 0) / rated.length).toFixed(1)} from customers`; t.hidden = false; }
   }
   $("#reviews").addEventListener("click", (e) => {
+    const mr = e.target.closest("[data-morerev]"); if (mr) { const open = mr.getAttribute("aria-expanded") !== "true"; mr.previousElementSibling.classList.toggle("clamp", !open); mr.setAttribute("aria-expanded", open); mr.textContent = open ? "Show less" : "Read more"; return; }
     const pr = e.target.closest("[data-prod]"); if (pr) openDrawer({ product: pr.dataset.prod });
     const ob = e.target.closest("[data-openbag]"); if (ob) { detailQty = 1; openDrawer({ bag: ob.dataset.openbag }); }
   });
@@ -2174,15 +2248,19 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
   }
   const returning = !!(Object.keys(cart).length || myOrders.length || favs.length || seenList.length);
   if (returning) { const m = $("#mine"); m.classList.add("first"); $("main").prepend(m); }
-  renderTabs(); renderAll();
+  renderTabs(); renderBudget(); renderAll();
   fetch("stock.json", { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).then((d) => {
     if (!isObj(d) || !isObj(d.items) || !isObj(d.bags)) return;
     STOCK = d; applyStock(); clampCart(); save(); keep(renderAll);
   }).catch(() => {});
   // Product pages (/p/<id>, /bag/<id>) link here as ?open=p:<id> or ?open=b:<id>: open that item, ready to add.
-  const deep = /^([pb]):([a-z0-9-]+)$/.exec(new URLSearchParams(location.search).get("open") || "");
+  // "Add to bag" on those pages links as ?add=…: the item goes into the bag first (once; the address is cleaned
+  // straight after, so a refresh does not add it again). Stock is checked when stock.json arrives (clampCart).
+  const qs = new URLSearchParams(location.search), addQ = qs.get("add");
+  const deep = /^([pb]):([a-z0-9-]+)$/.exec(addQ || qs.get("open") || "");
   if (deep && (deep[1] === "p" ? P[deep[2]] : B[deep[2]])) {
-    detailQty = 1; openDrawer(deep[1] === "p" ? { product: deep[2] } : { bag: deep[2] });
+    if (addQ) { const k = deep[1] + ":" + deep[2]; if (!qty(k)) { cart[k] = 1; newOrderIfSent(); save(); renderAll(); } toast(`Added ${nameOf(k)} to your bag`); }
+    detailQty = 1; openDrawer(addQ ? {} : deep[1] === "p" ? { product: deep[2] } : { bag: deep[2] });
     history.replaceState(null, "", location.pathname + location.hash);
   }
 

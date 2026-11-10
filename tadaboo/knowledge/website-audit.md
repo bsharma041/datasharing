@@ -146,3 +146,22 @@ Owner asked for every item of a bag to be visible on its card, a larger circle o
 | Low | Arrow keys didn't flip items | ← / → step through a bag's items |
 | Low | Long back label wrapped on phones | Visible "Back" with a full accessible name |
 | Low | Bag images square vs 4:5 elsewhere | Bag covers back to 4:5 |
+
+---
+
+# Audit round 3 (attractiveness and ease of use): 11 Nov 2026
+
+Walk-through of the live site on a phone and a desktop. Eight changes, all checked in a local preview, including one served with the `_headers` security policy.
+
+| # | Finding | Change |
+|---|---|---|
+| 1 | Product and bag pages (`/p/…`, `/bag/…`) were dead ends: "Add to bag" only opened the item in the shop | The button links to `/?add=<p|b>:<id>`, which puts the item in the bag and opens the bag. Pages also get a menu, a delivery line, a sticky buy bar on phones and "You may also like". Sold-out pages offer "Tell me when it's back" on WhatsApp |
+| 2 | Sold-out gift bags sat among the ones in stock, with no next step | Sold-out bags go last (page script and `prerender.mjs`), each with a "Notify me" WhatsApp link |
+| 3 | On phones the hero photo started below the first screen | Photo sits right under the buttons; the delivery facts follow it. A trust line shows the review average, UPI and the free card + bookmark |
+| 4 | No way to shop by budget | "Quick picks" under the hero and a Budget row in the shop (up to ₹50 / ₹100 / ₹300) |
+| 5 | Nothing showed the thank-you card and bookmark | "In every order" section before the reviews |
+| 6 | Reviews: long quotes, half-empty row, no menu link | Long quotes fold behind "Read more"; a "Got your TadaBoo?" card asks for reviews; "Reviews" is in the menu when there are reviews |
+| 7 | Product close-up had empty bands around landscape photos | The photo box takes the photo's own shape |
+| 8 | Fonts came from Google Fonts | Fonts are in `website/fonts/` (SIL Open Font License); the CSP no longer allows Google Fonts |
+
+**Order check.** The checkout code was not edited. In the local preview the bag, delivery charge by PIN code and total worked, and "Place order" was refused by the order inbox as expected (it only answers tadaboo.com and `*.tadaboo-shop.pages.dev`), so the site kept the bag and offered WhatsApp. A real order can only be confirmed on a Cloudflare Pages preview of the branch or on the live site.
