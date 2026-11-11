@@ -10,7 +10,7 @@ Numbers below are a snapshot. For anything current, re-read the Stockroom (see "
 - **Customers**: parents buying for kids (school, birthdays, party return gifts), gift-givers, stationery collectors.
 - **Market**: India. Prices in ₹. Launch: October 2026; no sales recorded yet in the Stockroom.
 - **How people order**: on the website ("Place order": goes to the WebsitePublisher order inbox, then the buyer pays by UPI) or by call/WhatsApp on **97306 24700** (the website can also prefill a WhatsApp order). UPI payment is buyer-initiated; there is no payment gateway, so match each UPI credit to its order ID before packing.
-- **Promise**: "You pick. We pack. TADA!" Every order goes in the original **white TadaBoo bag** with a TadaBoo sticker, the **thank-you card** and the **"Read. Dream. Imagine. Repeat!" bookmark**.
+- **Promise**: "You pick. We pack. TADA!" Every order comes with a **thank-you card** and the **"Read. Dream. Imagine. Repeat!" bookmark** (one each per order). Never promise or mention the white TadaBoo carry bag.
 
 ### Customer-facing rules (from the catalogue; do not change without the owner)
 - **Custom bags**: selected items must total **more than ₹299**. Customers pay only for the items they choose.
@@ -128,7 +128,7 @@ Payment methods seen: ICICI debit card, Amazon credit card, account transfer.
 1. ~~Stockroom gift bags out of date~~ **Resolved 13 Oct 2026:** the Stockroom now holds the 12 catalogue collections (ids `cat-<bag id>`, pencil boxes counted as 12 units); the 9 older bags (Aesthetic Bloom, Aesthetic Muse, Back to School ₹549, Fun Explorer, K-Style Cutie, Make & Create ₹499, Mini Surprise, Snoopy & Friends, Sweet Treats) are archived, not deleted.
 2. **Pencil units.** The Stockroom tracks 2B pencils as single pencils (₹15, 120 each in stock); the catalogue sells boxes of 12 at ₹109. A box sale must consume 12 units.
 3. ~~Bookmark not in the gift kit~~ **Resolved 26 Oct 2026:** the gift kit is paper bag + sticker + thank-you card + bookmark (≈₹37.4). **Plastic pouch stock is −7:** used in 7 sales but never purchased, so those sales carry ₹0 pouch cost; record a pouch purchase (or an opening count) to fix.
-4. **Return-gift capacity.** Return Gift Mini and Classic can make only 4 bags each (Cute Crayons Set: 4 in stock). Party orders usually need 10–20 identical bags.
+4. ~~Return-gift capacity~~ **Resolved 11 Nov 2026:** Mini and Classic no longer use the Cute Crayons Set; Mini can make 12 bags, Classic 5 (A7 notebook). Party orders usually need 10–20 identical bags, so restock A7 notebooks for Classic.
 5. **No sales recorded yet**, so stock figures are units purchased.
 6. **Uncategorised items** in the Stockroom: bath bomb, dumpling squishy, chocolate squishy (no category); fountain pen and pop-up pens under "Trendy (to classify)".
 7. **Not in the catalogue**: ChibiCharm Sticky Notes (no price), Pineapple Paper Cutter (archived).

@@ -1,6 +1,19 @@
 {
  "items": [
   {
+   "id": "05dw1ltcs3mir1rs2tw1",
+   "name": "2 in 1 Puzzle and Whiteboard Set | Wholesale Double Sided Dry Erase Board with Jigsaw for Kids",
+   "type": "product",
+   "category": "Activity & Craft Sets",
+   "supplier": "91Supplies",
+   "sell": 69,
+   "landed": 28.27,
+   "stock": 20,
+   "margin": 59.0,
+   "archived": false,
+   "note": ""
+  },
+  {
    "id": "1ky5ytmlsiba20bdpexg",
    "name": "Bookmark",
    "type": "packaging",
@@ -27,6 +40,32 @@
    "note": ""
   },
   {
+   "id": "4u1mztsw2f43uzt7751i",
+   "name": "Shipping box 9*6*3",
+   "type": "packaging",
+   "category": "Shipping",
+   "supplier": "Amazon",
+   "sell": null,
+   "landed": null,
+   "stock": 0,
+   "margin": null,
+   "archived": false,
+   "note": ""
+  },
+  {
+   "id": "5o64bqyxhqbszlrx33va",
+   "name": "Astronaut Single Tip Highlighter 6 Colours Set | Pastel Highlighter Pen with Transparent Zipper Pouch, Best for Students and School Kids",
+   "type": "product",
+   "category": "Activity & Craft Sets",
+   "supplier": "91Supplies",
+   "sell": 149,
+   "landed": 67.42,
+   "stock": 12,
+   "margin": 54.8,
+   "archived": false,
+   "note": ""
+  },
+  {
    "id": "7j1kki5qus1llbyd2lbl",
    "name": "BUN Dumpling Squishy Mystery Box Set | Wholesale Surprise Colour Squishy Dumplings for Kids and Office Desk",
    "type": "product",
@@ -36,6 +75,45 @@
    "landed": 141.5,
    "stock": 12,
    "margin": 43.2,
+   "archived": false,
+   "note": ""
+  },
+  {
+   "id": "ev42nosez9s9qu1k3ba1",
+   "name": "Duct tape",
+   "type": "packaging",
+   "category": "Shipping",
+   "supplier": "",
+   "sell": null,
+   "landed": null,
+   "stock": 0,
+   "margin": null,
+   "archived": false,
+   "note": ""
+  },
+  {
+   "id": "f02l90osomhkaoukoqzc",
+   "name": "Purring Cat HB Pencil Set | Wholesale 10 Pcs Futuristic Cat Theme Pencil Pack with Eraser and Sharpener",
+   "type": "product",
+   "category": "Pens & Pencils",
+   "supplier": "91Supplies",
+   "sell": 149,
+   "landed": 65.24,
+   "stock": 12,
+   "margin": 56.2,
+   "archived": false,
+   "note": ""
+  },
+  {
+   "id": "fqfd63trdya1wts156ou",
+   "name": "3D Coloring Murals Embossed Coloring Sheet for Kids",
+   "type": "product",
+   "category": "Activity & Craft Sets",
+   "supplier": "91Supplies",
+   "sell": 59,
+   "landed": 25.01,
+   "stock": 12,
+   "margin": 57.6,
    "archived": false,
    "note": ""
   },
@@ -241,11 +319,11 @@
    "category": "Sharpeners & Erasers",
    "supplier": "PaperZen",
    "sell": 25,
-   "landed": 10.14,
-   "stock": 12,
-   "margin": 59.4,
+   "landed": 9.22,
+   "stock": 60,
+   "margin": 63.1,
    "archived": false,
-   "note": ""
+   "note": "Includes the former 'Donut Eraser' (Trendy, 48 bought), merged 11 Nov 2026."
   },
   {
    "id": "it-hamburger-glue",
@@ -553,11 +631,11 @@
    "category": "Sharpeners & Erasers",
    "supplier": "Trendy",
    "sell": 20,
-   "landed": 8.99,
-   "stock": 48,
-   "margin": 55.1,
-   "archived": false,
-   "note": ""
+   "landed": null,
+   "stock": 0,
+   "margin": null,
+   "archived": true,
+   "note": "Merged into Donut Unicorn Eraser (same product), 11 Nov 2026. Its purchase and sales now point to it-donut-unicorn-eraser."
   },
   {
    "id": "it-trendy-08",
@@ -565,12 +643,12 @@
    "type": "product",
    "category": "Smart Stationery & DIY Craft",
    "supplier": "Trendy",
-   "sell": 129,
-   "landed": 58.42,
-   "stock": 6,
-   "margin": 54.7,
+   "sell": 15,
+   "landed": 5.84,
+   "stock": 60,
+   "margin": 61.1,
    "archived": false,
-   "note": ""
+   "note": "Tracked per piece (earlier recorded as packs of 10 at 129)"
   },
   {
    "id": "it-trendy-09",
@@ -677,6 +755,58 @@
    "note": ""
   },
   {
+   "id": "o6godpysy0ww3ed2zsv2",
+   "name": "Dual Tip Brush Pen 12 Colours Set | Wholesale Colour Marker Pen in Round Container for Art and School Supplies",
+   "type": "product",
+   "category": "Activity & Craft Sets",
+   "supplier": "91Supplies",
+   "sell": 179,
+   "landed": 80.46,
+   "stock": 12,
+   "margin": 55.0,
+   "archived": false,
+   "note": ""
+  },
+  {
+   "id": "pk-box-large",
+   "name": "Shipping box L (13×10.5×5.5 in)",
+   "type": "packaging",
+   "category": "Shipping",
+   "supplier": "",
+   "sell": null,
+   "landed": null,
+   "stock": 0,
+   "margin": null,
+   "archived": false,
+   "note": "For up to 20 bags. Cost not set yet: record the purchase to set it. Volumetric weight ≈2.46 kg (bills as 2.5 kg, or actual weight if heavier)."
+  },
+  {
+   "id": "pk-box-medium",
+   "name": "Shipping box M (9×8.5×4 in)",
+   "type": "packaging",
+   "category": "Shipping",
+   "supplier": "",
+   "sell": null,
+   "landed": null,
+   "stock": 0,
+   "margin": null,
+   "archived": false,
+   "note": "For up to 10 bags. Cost not set yet: record the purchase to set it. Volumetric weight ≈1.003 kg, just over 1 kg (may bill as 1.5 kg); a 3.5–3.9 in height keeps it at 1 kg."
+  },
+  {
+   "id": "pk-box-small",
+   "name": "Shipping box S (7.5×4.5×3.5 in)",
+   "type": "packaging",
+   "category": "Shipping",
+   "supplier": "",
+   "sell": null,
+   "landed": null,
+   "stock": 0,
+   "margin": null,
+   "archived": false,
+   "note": "For 1–2 bags. Cost not set yet: record the purchase to set it. Courier volumetric weight ≈0.39 kg (bills as 0.5 kg)."
+  },
+  {
    "id": "pk-paper-bag",
    "name": "Paper bag",
    "type": "packaging",
@@ -687,7 +817,7 @@
    "stock": 205,
    "margin": null,
    "archived": false,
-   "note": "Gift-kit packaging. Enter your count and cost."
+   "note": ""
   },
   {
    "id": "pk-pouch",
@@ -696,8 +826,8 @@
    "category": "Basic",
    "supplier": "",
    "sell": null,
-   "landed": null,
-   "stock": 0,
+   "landed": 8.6,
+   "stock": 10,
    "margin": null,
    "archived": false,
    "note": "Placeholder for low-value orders: type and cost to be decided."
@@ -713,7 +843,7 @@
    "stock": 200,
    "margin": null,
    "archived": false,
-   "note": "Gift-kit packaging. Enter your count and cost."
+   "note": ""
   },
   {
    "id": "pk-thank-you-card",
@@ -726,7 +856,7 @@
    "stock": 200,
    "margin": null,
    "archived": false,
-   "note": "Gift-kit packaging. Enter your count and cost."
+   "note": ""
   },
   {
    "id": "sjyw6kcu5knaynk3mtxv",
@@ -738,6 +868,19 @@
    "landed": 129.91,
    "stock": 12,
    "margin": 34.7,
+   "archived": false,
+   "note": ""
+  },
+  {
+   "id": "wwhb7ptx30u0plm8ydgz",
+   "name": "Pokemon HB Pencil Set with Sharpener | Pikachu Character 12 Pcs Pencil Set for Wholesale School Supplies",
+   "type": "product",
+   "category": "Pens & Pencils",
+   "supplier": "91Supplies",
+   "sell": 149,
+   "landed": 67.42,
+   "stock": 12,
+   "margin": 54.8,
    "archived": false,
    "note": ""
   },
@@ -841,6 +984,31 @@
    "capacity": 4
   },
   {
+   "id": "bag-k-style-cutie-old",
+   "name": "K-Style Cutie (Old Version)",
+   "price": 249,
+   "contents": [
+    "Korean Kawaii Erasable Gel Pen 0.5mm",
+    "Plane Shaped Pencil Sharpener",
+    "Kuromi Shaker Beads Diary",
+    "Donut Unicorn Eraser",
+    "Kawaii Sticky Note Memo Pad, Cute Funny Animal Themed Sticky Pads, Cute Kawaii Stationery Wholesale",
+    "A7 Kawaii Mini Spiral Notebook"
+   ],
+   "itemIds": [
+    "it-korean-gel-pen",
+    "it-plane-sharpener",
+    "it-kuromi-diary",
+    "it-donut-unicorn-eraser",
+    "it-aesthetic-sticky",
+    "it-a7-notebook"
+   ],
+   "itemCost": 124.2,
+   "sumOfParts": 314.0,
+   "margin": 50.1,
+   "capacity": 20
+  },
+  {
    "id": "bag-k-style-cutie",
    "name": "K-Style Cutie",
    "price": 249,
@@ -858,10 +1026,10 @@
     "it-donut-unicorn-eraser",
     "it-a7-notebook"
    ],
-   "itemCost": 102.4,
+   "itemCost": 101.5,
    "sumOfParts": 254.0,
-   "margin": 58.9,
-   "capacity": 12
+   "margin": 59.2,
+   "capacity": 20
   },
   {
    "id": "bag-make-create",
@@ -883,6 +1051,27 @@
    "sumOfParts": 467.0,
    "margin": 57.4,
    "capacity": 4
+  },
+  {
+   "id": "bag-mini-surprise-old",
+   "name": "Mini Surprise (Old Version)",
+   "price": 149,
+   "contents": [
+    "Rabbit Eraser",
+    "Badminton Shuttlecock Pencil Sharpener",
+    "Unicorn Print 2B Pencil (Box of 12)",
+    "Donut Sticky Note (Round)"
+   ],
+   "itemIds": [
+    "it-rabbit-eraser",
+    "it-shuttlecock-sharpener",
+    "it-unicorn-pencils",
+    "it-donut-sticky"
+   ],
+   "itemCost": 80.0,
+   "sumOfParts": 209.0,
+   "margin": 46.3,
+   "capacity": 6
   },
   {
    "id": "bag-mini-surprise",
@@ -944,9 +1133,334 @@
    "sumOfParts": 318.0,
    "margin": 62.4,
    "capacity": 6
+  },
+  {
+   "id": "cat-bts-plus",
+   "name": "Back to School · Plus",
+   "price": 309,
+   "contents": [
+    "Pokemon HB Pencil Set with Sharpener | Pikachu Character 12 Pcs Pencil Set for Wholesale School Supplies",
+    "A7 Kawaii Mini Spiral Notebook",
+    "Korean Kawaii Erasable Gel Pen 0.5mm",
+    "Kawaii Sticky Note Memo Pad, Cute Funny Animal Themed Sticky Pads, Cute Kawaii Stationery Wholesale"
+   ],
+   "itemIds": [
+    "wwhb7ptx30u0plm8ydgz",
+    "it-a7-notebook",
+    "it-korean-gel-pen",
+    "it-aesthetic-sticky"
+   ],
+   "itemCost": 133.5,
+   "sumOfParts": 309.0,
+   "margin": 56.8,
+   "capacity": 12
+  },
+  {
+   "id": "cat-bts-starter",
+   "name": "Back to School · Starter",
+   "price": 199,
+   "contents": [
+    "Unicorn Print 2B Pencil (Box of 12)",
+    "Labubu-themed Erasable Gel Pens",
+    "Helmet Shaped Pencil Sharpener",
+    "Ice Cream Cone Eraser"
+   ],
+   "itemIds": [
+    "it-unicorn-pencils",
+    "it-labubu-gel-pen",
+    "it-helmet-sharpener",
+    "it-icecream-eraser"
+   ],
+   "itemCost": 84.6,
+   "sumOfParts": 270.0,
+   "margin": 57.5,
+   "capacity": 10
+  },
+  {
+   "id": "cat-colour-studio",
+   "name": "Colour Studio",
+   "price": 526,
+   "contents": [
+    "Dual Tip Brush Pen 12 Colours Set | Wholesale Colour Marker Pen in Round Container for Art and School Supplies",
+    "Purring Cat HB Pencil Set | Wholesale 10 Pcs Futuristic Cat Theme Pencil Pack with Eraser and Sharpener",
+    "3D Coloring Murals Embossed Coloring Sheet for Kids",
+    "2 in 1 Puzzle and Whiteboard Set | Wholesale Double Sided Dry Erase Board with Jigsaw for Kids",
+    "DIY 3D Layering Sticker Set"
+   ],
+   "itemIds": [
+    "o6godpysy0ww3ed2zsv2",
+    "f02l90osomhkaoukoqzc",
+    "fqfd63trdya1wts156ou",
+    "05dw1ltcs3mir1rs2tw1",
+    "it-3d-sticker"
+   ],
+   "itemCost": 229.5,
+   "sumOfParts": 526.0,
+   "margin": 56.4,
+   "capacity": 12
+  },
+  {
+   "id": "cat-hamper-boys",
+   "name": "Birthday Hamper · Boys",
+   "price": 999,
+   "contents": [
+    "BUN Dumpling Squishy Mystery Box Set | Wholesale Surprise Colour Squishy Dumplings for Kids and Office Desk",
+    "3-in-1 Kids Activity Set",
+    "Stamps",
+    "Racing Car Themed 2B Pencil (Box of 12)",
+    "Eraser Combo",
+    "Kids Bath Bomb Gift Set with Surprise | Bulk 12 Piece Fizzer Box for Toddlers and Children Bath Time Fun",
+    "Lighting Pens",
+    "Badminton Shuttlecock Pencil Sharpener"
+   ],
+   "itemIds": [
+    "7j1kki5qus1llbyd2lbl",
+    "it-activity-set",
+    "it-trendy-08",
+    "it-racing-pencils",
+    "it-trendy-11",
+    "3jm3u9w11dms5ncmkwik",
+    "it-trendy-12",
+    "it-shuttlecock-sharpener"
+   ],
+   "itemCost": 470.3,
+   "sumOfParts": 1091.0,
+   "margin": 52.9,
+   "capacity": 4
+  },
+  {
+   "id": "cat-hamper-girls",
+   "name": "Birthday Hamper · Girls",
+   "price": 999,
+   "contents": [
+    "7 Pcs Aesthetic Stationery Set",
+    "BUN Dumpling Squishy Mystery Box Set | Wholesale Surprise Colour Squishy Dumplings for Kids and Office Desk",
+    "Kuromi Shaker Beads Diary",
+    "Butterfly Ornament Pen",
+    "DIY Diamond Art Bracelet Craft Kit",
+    "Kids Bath Bomb Gift Set with Surprise | Bulk 12 Piece Fizzer Box for Toddlers and Children Bath Time Fun",
+    "Popsicle Highlighter",
+    "Donut Unicorn Eraser"
+   ],
+   "itemIds": [
+    "it-7pc-aesthetic",
+    "7j1kki5qus1llbyd2lbl",
+    "it-kuromi-diary",
+    "it-butterfly-pen",
+    "it-diamond-bracelet",
+    "3jm3u9w11dms5ncmkwik",
+    "it-popsicle-highlighter",
+    "it-donut-unicorn-eraser"
+   ],
+   "itemCost": 504.5,
+   "sumOfParts": 999.0,
+   "margin": 49.5,
+   "capacity": 3
+  },
+  {
+   "id": "cat-kuromi",
+   "name": "Kuromi Kawaii · Girls",
+   "price": 319,
+   "contents": [
+    "Kuromi Shaker Beads Diary",
+    "Korean Kawaii Erasable Gel Pen 0.5mm",
+    "Kawaii Sticky Note Memo Pad, Cute Funny Animal Themed Sticky Pads, Cute Kawaii Stationery Wholesale",
+    "2-in-1 Toffee Eraser With Sharpener",
+    "Magnetic Bookmark"
+   ],
+   "itemIds": [
+    "it-kuromi-diary",
+    "it-korean-gel-pen",
+    "it-aesthetic-sticky",
+    "it-toffee-eraser",
+    "it-trendy-09"
+   ],
+   "itemCost": 136.4,
+   "sumOfParts": 319.0,
+   "margin": 57.2,
+   "capacity": 4
+  },
+  {
+   "id": "cat-make-create",
+   "name": "Make & Create",
+   "price": 497,
+   "contents": [
+    "Kids Stationery Set – 6-in-1 DIY Cartoon",
+    "DIY Diamond Art Bracelet Craft Kit",
+    "DIY 3D Layering Sticker Set",
+    "Hamburger Glue Stick"
+   ],
+   "itemIds": [
+    "it-6in1-set",
+    "it-diamond-bracelet",
+    "it-3d-sticker",
+    "it-hamburger-glue"
+   ],
+   "itemCost": 217.5,
+   "sumOfParts": 497.0,
+   "margin": 56.2,
+   "capacity": 4
+  },
+  {
+   "id": "cat-rg-classic",
+   "name": "Return Gift · Classic",
+   "price": 309,
+   "contents": [
+    "3D Coloring Murals Embossed Coloring Sheet for Kids",
+    "A7 Kawaii Mini Spiral Notebook",
+    "DIY 3D Layering Sticker Set",
+    "Labubu-themed Erasable Gel Pens",
+    "Plane Shaped Pencil Sharpener",
+    "Burger Eraser",
+    "Popsicle Highlighter"
+   ],
+   "itemIds": [
+    "fqfd63trdya1wts156ou",
+    "it-a7-notebook",
+    "it-3d-sticker",
+    "it-labubu-gel-pen",
+    "it-plane-sharpener",
+    "it-trendy-05",
+    "it-popsicle-highlighter"
+   ],
+   "itemCost": 127.2,
+   "sumOfParts": 309.0,
+   "margin": 58.8,
+   "capacity": 12
+  },
+  {
+   "id": "cat-rg-deluxe",
+   "name": "Return Gift · Deluxe",
+   "price": 494,
+   "contents": [
+    "Chocolate Bar Squishy Stress Relief Toy | Wholesale Squishy Chocolate Bars Assorted Brand Style Slow Rising Squishy for Kids and Gifts",
+    "A7 Kawaii Mini Spiral Notebook",
+    "DIY 3D Layering Sticker Set",
+    "Kawaii Sticky Note Memo Pad, Cute Funny Animal Themed Sticky Pads, Cute Kawaii Stationery Wholesale",
+    "Magnetic Bookmark",
+    "Donut Unicorn Eraser",
+    "Labubu-themed Erasable Gel Pens"
+   ],
+   "itemIds": [
+    "sjyw6kcu5knaynk3mtxv",
+    "it-a7-notebook",
+    "it-3d-sticker",
+    "it-aesthetic-sticky",
+    "it-trendy-09",
+    "it-donut-unicorn-eraser",
+    "it-labubu-gel-pen"
+   ],
+   "itemCost": 254.0,
+   "sumOfParts": 494.0,
+   "margin": 48.6,
+   "capacity": 10
+  },
+  {
+   "id": "cat-rg-mini",
+   "name": "Return Gift · Mini",
+   "price": 169,
+   "contents": [
+    "2 in 1 Puzzle and Whiteboard Set | Wholesale Double Sided Dry Erase Board with Jigsaw for Kids",
+    "Labubu-themed Erasable Gel Pens",
+    "Plane Shaped Pencil Sharpener",
+    "Burger Eraser",
+    "Popsicle Highlighter"
+   ],
+   "itemIds": [
+    "05dw1ltcs3mir1rs2tw1",
+    "it-labubu-gel-pen",
+    "it-plane-sharpener",
+    "it-trendy-05",
+    "it-popsicle-highlighter"
+   ],
+   "itemCost": 66.9,
+   "sumOfParts": 169.0,
+   "margin": 60.4,
+   "capacity": 12
+  },
+  {
+   "id": "cat-space-cadet",
+   "name": "Space Cadet · Boys",
+   "price": 399,
+   "contents": [
+    "Space Rocket Pencil Sharpner",
+    "Space Themed Sticky Notes Colorful Sticky Notes (with Bookmarking Index Tabs) | Wholesale Sticky Notes for Office & Stationery Retailers",
+    "A7 Kawaii Mini Spiral Notebook",
+    "Lighting Pens",
+    "Magnetic Bookmark",
+    "Plane Eraser"
+   ],
+   "itemIds": [
+    "it-trendy-01",
+    "it-kawaii-memo-pad",
+    "it-a7-notebook",
+    "it-trendy-12",
+    "it-trendy-09",
+    "it-trendy-06"
+   ],
+   "itemCost": 181.2,
+   "sumOfParts": 399.0,
+   "margin": 54.6,
+   "capacity": 10
+  },
+  {
+   "id": "cat-unicorn",
+   "name": "Unicorn Sparkle · Girls",
+   "price": 399,
+   "contents": [
+    "Unicorn Pen",
+    "Camera Sharpner",
+    "Donut Unicorn Eraser",
+    "A7 Kawaii Mini Spiral Notebook",
+    "DIY Diamond Art Bracelet Craft Kit",
+    "DIY 3D Layering Sticker Set",
+    "Popsicle Highlighter"
+   ],
+   "itemIds": [
+    "it-trendy-14",
+    "it-trendy-04",
+    "it-donut-unicorn-eraser",
+    "it-a7-notebook",
+    "it-diamond-bracelet",
+    "it-3d-sticker",
+    "it-popsicle-highlighter"
+   ],
+   "itemCost": 166.3,
+   "sumOfParts": 399.0,
+   "margin": 58.3,
+   "capacity": 12
+  },
+  {
+   "id": "cat-vroom",
+   "name": "Vroom Vroom · Boys",
+   "price": 289,
+   "contents": [
+    "Racing Car Themed 2B Pencil (Box of 12)",
+    "Helmet Shaped Pencil Sharpener",
+    "Lighting Pens",
+    "Car Sharpner"
+   ],
+   "itemIds": [
+    "it-racing-pencils",
+    "it-helmet-sharpener",
+    "it-trendy-12",
+    "it-trendy-03"
+   ],
+   "itemCost": 131.1,
+   "sumOfParts": 360.0,
+   "margin": 54.7,
+   "capacity": 10
   }
  ],
  "purchases": [
+  {
+   "date": "2026-11-11",
+   "supplier": "91Supplies",
+   "ref": "",
+   "lines": 6,
+   "value": 4232.0,
+   "note": "SBI Account"
+  },
   {
    "date": "2026-10-09",
    "supplier": "Pixel Prints",
@@ -970,6 +1484,14 @@
    "lines": 1,
    "value": 200.0,
    "note": ""
+  },
+  {
+   "date": "2026-11-02",
+   "supplier": "",
+   "ref": "",
+   "lines": 1,
+   "value": 86.0,
+   "note": "10 plastic pouches, total ₹86 (entered later; date is entry date)"
   },
   {
    "date": "2026-09-22",
@@ -996,5 +1518,5 @@
    "note": "ICICI Debit Card"
   }
  ],
- "totalSpend": 33989.3
+ "totalSpend": 38307.3
 }
