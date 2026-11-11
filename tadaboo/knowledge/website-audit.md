@@ -165,3 +165,17 @@ Walk-through of the live site on a phone and a desktop. Eight changes, all check
 | 8 | Fonts came from Google Fonts | Fonts are in `website/fonts/` (SIL Open Font License); the CSP no longer allows Google Fonts |
 
 **Order check.** The checkout code was not edited. In the local preview the bag, delivery charge by PIN code and total worked, and "Place order" was refused by the order inbox as expected (it only answers tadaboo.com and `*.tadaboo-shop.pages.dev`), so the site kept the bag and offered WhatsApp. A real order can only be confirmed on a Cloudflare Pages preview of the branch or on the live site.
+
+---
+
+# More visitors, batch 1: 11 Nov 2026
+
+Site had about 130 visits in 14 days, so the next gains are in being found and shared.
+
+| # | Change |
+|---|---|
+| 1 | Six gift guides under `/guides/` plus an index, built by `scripts/guides.mjs` (called from `prerender.mjs`). The words are written there; picks, prices and stock come from `catalog.js` + `stock.json` on every run, so guides never show an old price or a sold-out item. The older hand-written guide (which had gone stale on prices) is now built the same way |
+| 2 | "Share with a friend" in the product and gift bag views (phone share sheet, else WhatsApp) and "Share on WhatsApp" on `/p/` and `/bag/` pages. Share previews now carry price and description |
+| 3 | `sitemap.xml` is generated: home page and guides carry the stock date, so search engines see them as fresh |
+
+Still open: where visitors come from is not recorded; Merchant Center and Search Console are the owner's to connect.

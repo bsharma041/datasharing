@@ -21,6 +21,7 @@ import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
+import { buildGuides } from "./guides.mjs";
 
 const site = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "website");
 const SITE_URL = "https://www.tadaboo.com/";
@@ -214,6 +215,7 @@ p{margin:0 0 12px}.info{display:flex;flex-direction:column;gap:6px}
 .more li a{display:flex;flex-direction:column;gap:6px;background:var(--card);border-radius:18px;padding:8px 8px 12px;text-decoration:none;color:var(--ink);font-weight:600;font-size:.92rem;line-height:1.3;height:100%}
 .more li img{width:100%;height:auto;aspect-ratio:4/5;object-fit:cover;border-radius:12px}.more li b{color:var(--price);font-size:1rem}
 ul.items{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:8px}ul.items li{display:flex;align-items:center;gap:10px}ul.items img{width:48px;height:60px;object-fit:cover;border-radius:8px}
+.share{display:inline-flex;align-items:center;min-height:44px;color:#17795E}
 .small{font-size:.92rem;color:var(--muted)}footer{padding:24px 0 40px;color:var(--muted);font-size:.9rem}footer a{display:inline-block;padding:12px 0}`;
 // "You may also like": up to four other things that can be bought now. For a gift bag, other gift bags;
 // for a product, the gift bags that hold it, then its category neighbours (catalogue order, starting after it).
@@ -246,7 +248,8 @@ function productPage(e) {
 <meta name="description" content="${esc((e.desc + " " + inr(d.price) + ", delivered anywhere in India.").slice(0, 300))}">
 <link rel="canonical" href="${abs}">
 <link rel="icon" type="image/png" sizes="48x48" href="/favicon.png">
-<meta property="og:title" content="${esc(e.name)}"><meta property="og:image" content="${SITE_URL + e.image}"><meta property="og:url" content="${abs}">
+<meta property="og:type" content="product"><meta property="og:site_name" content="TadaBoo"><meta property="og:title" content="${esc(e.name)} · ${inr(d.price)}"><meta property="og:description" content="${esc((e.desc + " Delivered anywhere in India.").slice(0, 200))}"><meta property="og:image" content="${SITE_URL + e.image}"><meta property="og:url" content="${abs}">
+<meta property="product:price:amount" content="${d.price}"><meta property="product:price:currency" content="INR"><meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="/fonts/fonts.css">
 <style>${PAGE_CSS}</style>
 <script type="application/ld+json">${JSON.stringify(ld).replace(/</g, "\\u003c")}</script>
@@ -266,6 +269,7 @@ function productPage(e) {
     <div class="buy">${out
       ? `<a class="cta" href="https://wa.me/${T.whatsapp}?text=${encodeURIComponent(`Hi TadaBoo! Please tell me when ${e.name} is back in stock.`)}" target="_blank" rel="noopener">Tell me when it's back</a><a class="cta line" href="/?open=${e.kind}:${e.id}">See it in the shop</a>`
       : `<a class="cta" href="/?add=${e.kind}:${e.id}">Add to bag · ${inr(d.price)}</a><a class="cta line" href="https://wa.me/${T.whatsapp}?text=${encodeURIComponent(`Hi TadaBoo! A question about ${e.name}:`)}" target="_blank" rel="noopener">Ask on WhatsApp</a>`}</div>
+    <p style="margin:12px 0 0"><a class="share" href="https://wa.me/?text=${encodeURIComponent(`Look at this from TadaBoo: ${e.name}, ${inr(d.price)} ${abs}`)}" target="_blank" rel="noopener">Share on WhatsApp</a></p>
     <p class="small" style="margin-top:14px">Delivered anywhere in India in ${T.deliveryDays || "7–10 days"}. Delivery ${inr(D.rates.india)} (${inr(D.rates.remote)} to the North East), free when items total ${inr(D.freeAbove)} or more. Every order comes with a thank-you card and a bookmark.</p>
   </div>
   ${related(e)}
@@ -309,6 +313,8 @@ ${entries.map((e) => `  <url><loc>${SITE_URL + e.url}</loc></url>`).join("\n")}
 `,
 };
 for (const e of entries) gen[e.url + ".html"] = productPage(e);
+// Gift guides, their index and sitemap.xml (guides.mjs): same live prices and stock as the pages above.
+Object.assign(gen, buildGuides({ entries, T, D, P, SITE_URL, inr, esc, stockDay: String((STOCK && STOCK.asOf) || "2026-11-11").slice(0, 10) }));
 // Pages for products that left the catalogue are removed.
 const stale = [];
 for (const dir of ["p", "bag"]) {
