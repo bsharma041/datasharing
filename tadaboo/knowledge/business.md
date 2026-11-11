@@ -74,6 +74,13 @@ A fourth size may be added if orders need it. Bubble wrap and tape are still to 
 | Birthday Hamper · Boys | ₹999 | ₹470 | ₹491 | 49% | 4 | 3-in-1 Activity Set |
 | Birthday Hamper · Girls | ₹999 | ₹505 | ₹456 | 46% | 3 | 7 Pcs Aesthetic Set |
 
+**Changes 11 Nov 2026 (owner):** Vroom now Racing pencils + Helmet sharpener + Light-up pen + Car sharpener (₹289).
+Back to School · Plus uses the Pokemon pencil set instead of the 12 Pcs Pencil Gift Set (₹309). Return Gift · Classic: 3D colouring mural
+for Cute Crayons (₹309). Return Gift · Deluxe: Donut Unicorn Eraser for Rabbit Eraser (₹494). Return Gift · Mini: Puzzle & Whiteboard for
+Cute Crayons (₹169). Kuromi: Toffee Eraser + Sharpener for Rabbit Eraser (₹319). New **Colour Studio** (₹526, `cat-colour-studio`):
+brush pens, cat pencil set, 3D colouring mural, puzzle & whiteboard, 3D sticker set. Donut Eraser (`it-trendy-07`) merged into
+Donut Unicorn Eraser (same product; archived, its purchase and sales re-pointed). The table above is the 13 Oct snapshot.
+
 \*Upper bound: units purchased ÷ units per bag. Each item is counted for every bag independently, so bags that share items (e.g. A7 notebook, Labubu pen, magnetic bookmarks) compete for the same stock. Delivery/courier cost is not included.
 
 ## 4. Unit economics (landed cost = purchase price + share of GST, shipping, other)

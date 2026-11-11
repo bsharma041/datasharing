@@ -8,7 +8,7 @@
 //
 // Run it after sync_stock.py (stock.json), after editing catalog.js, and after changing the card
 // markup in index.html. Regions look like  <!-- PRERENDER:bags --> ... <!-- /PRERENDER:bags -->.
-//   bags     the 12 gift bag cards (same markup the page script builds on first load)
+//   bags     the gift bag cards (same markup the page script builds on first load)
 //   grid     the first page of the shop grid (12 of 50), same markup
 //   catalog  all products as a plain list inside <noscript> (never shown to shoppers with JavaScript)
 //   jsonld   schema.org ItemList of the gift bags (price, INR, availability from stock.json)
@@ -72,8 +72,10 @@ function productCard(p, i) {
       <span class="nm">${esc(p.name)}</span>${priceTag(p)}
     </article>`;
 }
+// Sold-out products go to the end of the shop list, as in renderGrid() in index.html.
+const prodLeft = (p) => STOCK && isNum(STOCK.items[p.sid]) ? Math.floor(Math.max(0, STOCK.items[p.sid]) / (p.units || 1)) : Infinity;
 function gridFirstPage() {
-  const list = T.products, pages = Math.max(1, Math.ceil(list.length / PER)), shown = list.slice(0, PER);
+  const list = [...T.products.filter((p) => prodLeft(p) > 0), ...T.products.filter((p) => prodLeft(p) <= 0)], pages = Math.max(1, Math.ceil(list.length / PER)), shown = list.slice(0, PER);
   const nums = Array.from({ length: pages }, (_, n) => `<button class="pill pg" data-page="${n}" aria-label="Page ${n + 1}"${n === 0 ? ' aria-current="page"' : ""}>${n + 1}</button>`).join("");
   const pager = pages > 1 ? `<nav class="pager" aria-label="Shop pages"><button class="pill pg" data-page="-1" aria-label="Previous page" disabled>‹</button>${nums}<button class="pill pg" data-page="1" aria-label="Next page">›</button><span class="of">1–${shown.length} of ${list.length}</span></nav>` : "";
   return shown.map(productCard).join("") + pager;
