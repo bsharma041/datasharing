@@ -4,7 +4,8 @@
 // products marked `fixedPrice: true` (sold as a set at a set price, e.g. a box of 12 pencils at ₹109
 // while the Stockroom prices single pencils at ₹15). Best sellers are switched on in the Stockroom
 // ("★ Best seller on the website"); `bestsellers` below is only used if stock.json has none.
-// To add a product: add a row here and a photo at img/<id>.webp.
+// To add a product: add a row here and a photo at img/<id>.webp (and a 240px copy at img/sm/<id>.webp).
+// `added: "YYYY-MM-DD"` marks a new arrival: "New" tag and first in the shop for 45 days. Remove it after that.
 window.TADABOO = {
   phone: "97306 24700",
   whatsapp: "919730624700",
@@ -60,14 +61,14 @@ window.TADABOO = {
     { id: "icecream-pen", sid: "it-icecream-pen", cat: "pens", name: "Ice Cream Cone Pen", price: 129, desc: "Ice-cream cone shaped pen, assorted colours.", tags: ["sweet", "girls"] },
     { id: "popup-pen", sid: "it-trendy-13", cat: "pens", name: "Pop Up Pen – Panda & Cupcake", price: 129, desc: "Topped with a squishy pop-up panda or cupcake.", tags: ["sweet", "kawaii"] },
     { id: "popsicle-highlighter", sid: "it-popsicle-highlighter", cat: "pens", name: "Popsicle Highlighter", price: 30, desc: "Popsicle-shaped highlighters.", tags: ["sweet", "return", "school"] },
-    { id: "astronaut-highlighters", sid: "5o64bqyxhqbszlrx33va", cat: "pens", name: "Astronaut Pastel Highlighters (Set of 6)", price: 149, desc: "Six pastel highlighters in a clear zip pouch, astronaut theme.", tags: ["school", "space", "any"] },
-    { id: "brush-pens", sid: "o6godpysy0ww3ed2zsv2", cat: "pens", name: "Dual Tip Brush Pens (12 Colours)", price: 179, desc: "12 colours in a round tub; brush tip one end, fine tip the other.", tags: ["crafty", "school", "any"] },
+    { id: "astronaut-highlighters", added: "2026-11-11", sid: "5o64bqyxhqbszlrx33va", cat: "pens", name: "Astronaut Pastel Highlighters (Set of 6)", price: 149, desc: "Six pastel highlighters in a clear zip pouch, astronaut theme.", tags: ["school", "space", "any"] },
+    { id: "brush-pens", added: "2026-11-11", sid: "o6godpysy0ww3ed2zsv2", cat: "pens", name: "Dual Tip Brush Pens (12 Colours)", price: 179, desc: "12 colours in a round tub; brush tip one end, fine tip the other.", tags: ["crafty", "school", "any"] },
 
     // Pencils, Notebooks & Notes
     { id: "unicorn-pencils", fixedPrice: true, units: 12, sid: "it-unicorn-pencils", cat: "paper", name: "Unicorn Print 2B Pencil (Box of 12)", price: 109, desc: "Box of 12 for ₹109, or single pencils at ₹15.", tags: ["school", "girls", "unicorn"] },
     { id: "racing-pencils", fixedPrice: true, units: 12, sid: "it-racing-pencils", cat: "paper", name: "Racing Car Themed 2B Pencil (Box of 12)", price: 109, desc: "Box of 12 for ₹109, or single pencils at ₹15.", tags: ["school", "boys", "vroom"] },
-    { id: "cat-pencil-set", sid: "f02l90osomhkaoukoqzc", cat: "paper", name: "Purring Cat HB Pencil Set (10 Pcs)", price: 149, desc: "10 HB pencils with an eraser and sharpener; cat hero designs, assorted colours.", tags: ["school", "kawaii", "any"] },
-    { id: "pokemon-pencil-set", sid: "wwhb7ptx30u0plm8ydgz", cat: "paper", name: "Pokemon Pikachu HB Pencil Set (12 Pcs)", price: 149, desc: "12 HB Pikachu pencils with a sharpener.", tags: ["school", "any"] },
+    { id: "cat-pencil-set", added: "2026-11-11", sid: "f02l90osomhkaoukoqzc", cat: "paper", name: "Purring Cat HB Pencil Set (10 Pcs)", price: 149, desc: "10 HB pencils with an eraser and sharpener; cat hero designs, assorted colours.", tags: ["school", "kawaii", "any"] },
+    { id: "pokemon-pencil-set", added: "2026-11-11", sid: "wwhb7ptx30u0plm8ydgz", cat: "paper", name: "Pokemon Pikachu HB Pencil Set (12 Pcs)", price: 149, desc: "12 HB Pikachu pencils with a sharpener.", tags: ["school", "any"] },
     { id: "a7-notebook", sid: "it-a7-notebook", cat: "paper", name: "A7 Kawaii Mini Spiral Notebook", price: 80, desc: "Pocket notebook, ruled pages, cute animal covers.", tags: ["kawaii", "return", "school"] },
     { id: "snoopy-diary", sid: "it-snoopy-diary", cat: "paper", name: "Snoopy Diary", price: 149, desc: "Snoopy-themed diary, assorted designs.", tags: ["any", "kawaii"] },
     { id: "clipboard-diary", sid: "it-clipboard-diary", cat: "paper", name: "Kawaii Mini Clipboard Notepad Diary", price: 99, desc: "Mini clipboard-style notepad.", tags: ["kawaii", "school"] },
@@ -97,8 +98,8 @@ window.TADABOO = {
 
     // Make & Create
     { id: "3d-sticker", sid: "it-3d-sticker", cat: "make", name: "DIY 3D Layering Sticker Set", price: 70, desc: "Ferris wheel, food and ocean themes.", tags: ["crafty", "return"] },
-    { id: "puzzle-whiteboard", sid: "05dw1ltcs3mir1rs2tw1", cat: "make", name: "2-in-1 Puzzle and Whiteboard Set", price: 69, desc: "Jigsaw puzzle plus a mini dry-erase board with marker; dino, unicorn and jungle designs.", tags: ["crafty", "return", "any"] },
-    { id: "3d-coloring-mural", sid: "fqfd63trdya1wts156ou", cat: "make", name: "3D Embossed Colouring Mural", price: 59, desc: "Raised-outline colouring sheet with mini markers; animals, space and ocean designs.", tags: ["crafty", "return", "any"] },
+    { id: "puzzle-whiteboard", added: "2026-11-11", sid: "05dw1ltcs3mir1rs2tw1", cat: "make", name: "2-in-1 Puzzle and Whiteboard Set", price: 69, desc: "Jigsaw puzzle plus a mini dry-erase board with marker; dino, unicorn and jungle designs.", tags: ["crafty", "return", "any"] },
+    { id: "3d-coloring-mural", added: "2026-11-11", sid: "fqfd63trdya1wts156ou", cat: "make", name: "3D Embossed Colouring Mural", price: 59, desc: "Raised-outline colouring sheet with mini markers; animals, space and ocean designs.", tags: ["crafty", "return", "any"] },
     { id: "diamond-bracelet", sid: "it-diamond-bracelet", cat: "make", name: "DIY Diamond Art Bracelet Craft Kit", price: 99, desc: "Make-your-own diamond-art bracelet.", tags: ["crafty", "girls"] },
     { id: "activity-set", sid: "it-activity-set", cat: "make", name: "3-in-1 Kids Activity Set", price: 199, desc: "Stickers, puzzle, mini watercolours and colouring.", tags: ["crafty", "boys"] },
     { id: "6in1-set", sid: "it-6in1-set", cat: "make", name: "Kids Stationery Set – 6-in-1 DIY Cartoon", price: 199, desc: "Pencils, sharpener, eraser, brush, watercolours and tray.", tags: ["crafty", "school"] },

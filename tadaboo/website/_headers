@@ -1,7 +1,7 @@
 # Cache rules for Netlify and Cloudflare Pages (other hosts ignore this file).
 # Photos rarely change; the page and catalogue must update quickly after an edit.
 /img/*
-  Cache-Control: public, max-age=2592000, stale-while-revalidate=86400
+  Cache-Control: public, max-age=86400, stale-while-revalidate=2592000
 /fonts/*
   Cache-Control: public, max-age=31536000, immutable
 /catalog.js
@@ -16,7 +16,7 @@
 # Website orders load the WebsitePublisher form client (cdn.) and post to its API.
 # Inline style attributes are used by the page, so style-src needs 'unsafe-inline'.
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.websitepublisher.ai 'sha256-GXo9nrkUrGY4b9mCRNVmpykXWoSaleT70gPvHOYQUME='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://tadaboo-orders.bsharma-04.workers.dev https://api.websitepublisher.ai https://*.websitepublisher.ai; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.websitepublisher.ai 'sha256-j/0VrVckfml7JagtyDnTnUn3LQic0a7KnEf+tBo20F8='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://tadaboo-orders.bsharma-04.workers.dev https://api.websitepublisher.ai https://*.websitepublisher.ai; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()

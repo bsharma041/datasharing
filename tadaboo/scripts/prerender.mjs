@@ -75,7 +75,9 @@ function productCard(p, i) {
 // Sold-out products go to the end of the shop list, as in renderGrid() in index.html.
 const prodLeft = (p) => STOCK && isNum(STOCK.items[p.sid]) ? Math.floor(Math.max(0, STOCK.items[p.sid]) / (p.units || 1)) : Infinity;
 function gridFirstPage() {
-  const list = [...T.products.filter((p) => prodLeft(p) > 0), ...T.products.filter((p) => prodLeft(p) <= 0)], pages = Math.max(1, Math.ceil(list.length / PER)), shown = list.slice(0, PER);
+  // New arrivals (`added` in catalog.js) lead, as in renderGrid(); the page script drops them back after 45 days.
+  const byNew = [...T.products.filter((p) => p.added), ...T.products.filter((p) => !p.added)];
+  const list = [...byNew.filter((p) => prodLeft(p) > 0), ...byNew.filter((p) => prodLeft(p) <= 0)], pages = Math.max(1, Math.ceil(list.length / PER)), shown = list.slice(0, PER);
   const nums = Array.from({ length: pages }, (_, n) => `<button class="pill pg" data-page="${n}" aria-label="Page ${n + 1}"${n === 0 ? ' aria-current="page"' : ""}>${n + 1}</button>`).join("");
   const pager = pages > 1 ? `<nav class="pager" aria-label="Shop pages"><button class="pill pg" data-page="-1" aria-label="Previous page" disabled>‹</button>${nums}<button class="pill pg" data-page="1" aria-label="Next page">›</button><span class="of">1–${shown.length} of ${list.length}</span></nav>` : "";
   return shown.map(productCard).join("") + pager;
@@ -328,4 +330,10 @@ if (process.argv.includes("--check")) {
   for (const f of changed) { fs.mkdirSync(path.dirname(path.join(site, f)), { recursive: true }); fs.writeFileSync(path.join(site, f), gen[f]); }
   for (const f of stale) fs.unlinkSync(path.join(site, f));
   console.log(`${html !== before ? "Updated" : "Already up to date:"} index.html (${T.bags.length} gift bags, ${T.products.length} products, prices from ${STOCK ? "stock.json" : "catalog.js"}). ${changed.length + stale.length} product files changed; ${summary}.`);
+}
+
+// Reminder only (does not change any output): "New" tags are meant to last 45 days.
+{
+  const old = T.products.filter((p) => p.added && Date.now() - Date.parse(p.added) > 45 * 864e5).map((p) => p.id);
+  if (old.length) console.log(`Note: remove \`added\` from these catalog.js rows, they are no longer new: ${old.join(", ")}.`);
 }
