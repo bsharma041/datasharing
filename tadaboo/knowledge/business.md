@@ -32,16 +32,16 @@ Numbers below are a snapshot. For anything current, re-read the Stockroom (see "
 
 Voice: warm, playful, short sentences, lots of "TADA!". Uppercase headings in the catalogue ("READY, SET... GIFT!", "THE LITTLE DETAILS MATTER!"). Pills: PICK · MIX · DISCOVER · GIFT.
 
-## 3. Catalogue (50 products, 5 categories)
+## 3. Catalogue (56 products, 5 categories)
 
 Full data with descriptions and Stockroom ids: `tadaboo/website/catalog.js`. Photos: `tadaboo/website/img/<id>.webp`.
 
 | Category | Products | Price range |
 |---|---|---|
-| Pens & Highlighters | 11 | ₹20–₹129 |
-| Pencils, Notebooks & Notes | 10 | ₹50–₹149 |
+| Pens & Highlighters | 13 | ₹20–₹179 |
+| Pencils, Notebooks & Notes | 12 | ₹50–₹149 |
 | Sharpeners & Erasers | 16 | ₹20–₹99 |
-| Make & Create | 7 | ₹70–₹199 |
+| Make & Create | 9 | ₹59–₹199 |
 | Gift Sets & Squishy Fun | 6 | ₹99–₹299 |
 
 ### Gift collections (12, catalogue pp. 7–9)

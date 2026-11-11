@@ -10,7 +10,7 @@
 // markup in index.html. Regions look like  <!-- PRERENDER:bags --> ... <!-- /PRERENDER:bags -->.
 //   bags     the 12 gift bag cards (same markup the page script builds on first load)
 //   grid     the first page of the shop grid (12 of 50), same markup
-//   catalog  all 50 products as a plain list inside <noscript> (never shown to shoppers with JavaScript)
+//   catalog  all products as a plain list inside <noscript> (never shown to shoppers with JavaScript)
 //   jsonld   schema.org ItemList of the gift bags (price, INR, availability from stock.json)
 // It also writes p/<id>.html and bag/<id>.html (one page per product and gift bag), google-feed.xml
 // (Google Merchant Center product feed) and sitemap-products.xml; --check checks those too.
