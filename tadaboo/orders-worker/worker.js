@@ -3,7 +3,8 @@
 //   POST /order                 public, from www.tadaboo.com: { fields: {...} } → stores the order as "new"
 //   GET  /orders?status=new     owner only (Authorization: Bearer <ADMIN_TOKEN>) → { data: [order, ...] }
 //   POST /orders/<id>/status    owner only, { status: "won" | "rejected" | "new" }
-//   POST /hit                   public, from www.tadaboo.com: { new: true|false } → adds one visit to today's count
+//   POST /hit                   public, from www.tadaboo.com: { new, src, land } → adds one visit to today's count
+//                               (src = where the visitor came from, land = kind of page; see SRC and LAND)
 //   GET  /views?days=30         owner only → { days: { "2026-10-29": { visits, new }, ... } } (dates in India time)
 //
 // Visits: the site sends one hit per browser session (sessionStorage), `new` on the first visit from that device
@@ -25,6 +26,10 @@ const MAX_FIELD = 4000, MAX_BODY = 20000, PER_IP_PER_HOUR = 10;
 const STATUSES = ['new', 'won', 'rejected'];
 // One KV write per visit (Cloudflare's free plan allows 1,000 writes a day in all).
 const VIEW_TTL = 400 * 86400;
+// Labels website/visit.js may send with a visit. Anything else is counted as 'unknown'.
+const SRC = ['direct', 'google', 'instagram', 'whatsapp', 'facebook', 'youtube', 'search', 'ai', 'share', 'campaign', 'other'];
+const LAND = ['home', 'product', 'bag', 'guide', 'other'];
+const label = (v, list) => (list.includes(v) ? v : 'unknown');
 const istDate = (t = Date.now()) => new Date(t + 5.5 * 3600e3).toISOString().slice(0, 10);
 const WP = { url: 'https://api.websitepublisher.ai/iapi/project/30289/leads/submit-lead', form: 'tadaboo_order' };
 
@@ -93,7 +98,8 @@ async function copyToWebsitePublisher(env, key, order) {
   if (o) { o.copy = copy; await env.ORDERS.put(key, JSON.stringify(o), { metadata: { status: o.status } }); }
 }
 
-// One visit = one small KV key v:<date>:<n|r>:<random> (n = first visit from that device), kept 3 days.
+// One visit = one small KV key v:<date>:<n|r>:<src>:<land>:<random> (n = first visit from that device), kept 3 days.
+// (Keys written before sources were recorded are v:<date>:<n|r>:<random>; they count as 'unknown'.)
 // KV has no atomic add and its reads can be a minute old, so keys are counted rather than a number bumped.
 async function hit(req, env, origin) {
   const h = cors(origin, env);
@@ -101,18 +107,23 @@ async function hit(req, env, origin) {
   const text = await req.text();
   if (text.length > 200) return new Response(null, { status: 413, headers: h });
   let body = {}; try { body = JSON.parse(text || '{}'); } catch { /* count it anyway */ }
-  await env.ORDERS.put(`v:${istDate()}:${body?.new === true ? 'n' : 'r'}:${crypto.randomUUID()}`, '', { expirationTtl: 3 * 86400 });
+  await env.ORDERS.put(`v:${istDate()}:${body?.new === true ? 'n' : 'r'}:${label(body?.src, SRC)}:${label(body?.land, LAND)}:${crypto.randomUUID()}`, '', { expirationTtl: 3 * 86400 });
   return new Response(null, { status: 204, headers: h });
 }
 
 async function countDay(env, date) {
   let visits = 0, fresh = 0, cursor;
+  const src = {}, land = {};
   do {
     const page = await env.ORDERS.list({ prefix: `v:${date}:`, cursor });
-    for (const k of page.keys) { visits++; if (k.name.startsWith(`v:${date}:n:`)) fresh++; }
+    for (const k of page.keys) {
+      visits++; if (k.name.startsWith(`v:${date}:n:`)) fresh++;
+      const p = k.name.split(':'), s = p.length >= 6 ? p[3] : 'unknown', l = p.length >= 6 ? p[4] : 'unknown';
+      src[s] = (src[s] || 0) + 1; land[l] = (land[l] || 0) + 1;
+    }
     cursor = page.list_complete ? null : page.cursor;
   } while (cursor);
-  return { visits, new: fresh };
+  return { visits, new: fresh, src, land };
 }
 
 // Today is counted live; a finished day is counted once and kept as views:<date> for 400 days.
@@ -124,7 +135,7 @@ async function listViews(url, env) {
     if (i === 0) { out[d] = await countDay(env, d); continue; }
     let v = await env.ORDERS.get(`views:${d}`, 'json');
     if (!v) { v = await countDay(env, d); await env.ORDERS.put(`views:${d}`, JSON.stringify(v), { expirationTtl: VIEW_TTL }); }
-    out[d] = { visits: v.visits || 0, new: v.new || 0 };
+    out[d] = { visits: v.visits || 0, new: v.new || 0, ...(v.src ? { src: v.src, land: v.land || {} } : {}) };
   }
   return json({ days: out, at: new Date().toISOString() });
 }

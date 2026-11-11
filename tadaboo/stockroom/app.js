@@ -415,6 +415,19 @@ function viewHome() {
 
 // Visits to www.tadaboo.com, copied here from the order inbox by the hourly update (settings/web.views).
 const istDay = (t = Date.now()) => new Date(t + 5.5 * 3600e3).toISOString().slice(0, 10);
+// Where visitors came from and where they landed, last 30 days (labels set by website/visit.js).
+const VIEW_SRC = { direct: 'Typed or saved link', google: 'Google', instagram: 'Instagram', whatsapp: 'WhatsApp', facebook: 'Facebook', youtube: 'YouTube', search: 'Other search', ai: 'AI assistants', share: 'Shared by a customer', campaign: 'Other tagged link', other: 'Other websites', unknown: 'Not recorded' };
+const VIEW_LAND = { home: 'Home page', product: 'A product page', bag: 'A gift bag page', guide: 'A gift guide', other: 'Other pages', unknown: 'Not recorded' };
+function viewsBreakdown(days, dates) {
+  const sum = (f) => { const t = {}; for (const d of dates) for (const [k, v] of Object.entries(days[d]?.[f] || {})) t[k] = (t[k] || 0) + n(v); return t; };
+  const block = (title, t, names) => {
+    const rows = Object.entries(t).filter(([k, v]) => v > 0 && k !== 'unknown').sort((a, b) => b[1] - a[1]), all = rows.reduce((a, r) => a + r[1], 0);
+    if (!all) return '';
+    return `<div><div class="eyebrow" style="margin-bottom:6px">${title}</div>${rows.map(([k, v]) => `<div style="display:flex;align-items:center;gap:8px;margin:4px 0"><span style="flex:0 0 46%;font-size:.9rem">${esc(names[k] || k)}</span><span style="flex:1;height:10px;background:var(--line,#eee);border-radius:6px;overflow:hidden"><i style="display:block;height:100%;width:${(v / all) * 100}%;background:var(--teal)"></i></span><span class="small" style="flex:0 0 auto;min-width:64px;text-align:right">${v} · ${pct(v / all)}</span></div>`).join('')}</div>`;
+  };
+  const a = block('Where visitors came from · 30 days', sum('src'), VIEW_SRC), b = block('Where they landed · 30 days', sum('land'), VIEW_LAND);
+  return a || b ? `<div class="stack" style="gap:14px">${a}${b}</div>` : '';
+}
 function viewsCard() {
   const v = S.web?.views, days = v?.days && typeof v.days === 'object' ? v.days : null;
   if (!days) return '';
@@ -433,6 +446,7 @@ function viewsCard() {
       <div class="kpi"><span class="eyebrow">Orders, 7 days</span><span class="v">${o7}</span><span class="small muted">${!w ? 'No visits yet' : o7 <= w ? `${pct(o7 / w)} of visits` : 'since counting started'}</span></div>
     </div>
     <div role="img" aria-label="Visits per day, last 14 days: ${esc(spark.map((d) => n(days[d]?.visits)).join(', '))}" style="display:flex;align-items:flex-end;gap:3px;height:48px">${spark.map((d) => `<i title="${esc(fmtDate(d))}: ${n(days[d]?.visits)}" style="flex:1;min-height:2px;height:${(n(days[d]?.visits) / top) * 100}%;background:${d === istDay() ? 'var(--accent)' : 'var(--teal)'};border-radius:3px 3px 0 0"></i>`).join('')}</div>
+    ${viewsBreakdown(days, last(30))}
     <p class="small muted">One visit = one person opening the site (repeat opens in the same browser session count once). Counting started ${esc(fmtDate(start))}.</p>
   </div>`;
 }

@@ -47,7 +47,7 @@ details{background:var(--card);border-radius:14px;padding:2px 16px;margin-bottom
 .glist b{display:block;font:600 1.15rem/1.3 "Bricolage Grotesque",sans-serif;margin-bottom:2px}.glist span{color:var(--muted);font-weight:400;font-size:.95rem}
 footer{padding:24px 0 40px;color:var(--muted);font-size:.9rem}footer a{display:inline-block;padding:12px 0}`;
 
-export function buildGuides({ entries, T, D, P, SITE_URL, inr, esc, stockDay }) {
+export function buildGuides({ entries, T, D, P, SITE_URL, inr, esc, stockDay, VISIT = "" }) {
   const live = (e) => e.left === null || e.left > 0;
   const bags = entries.filter((e) => e.kind === "b" && live(e)), items = entries.filter((e) => e.kind === "p" && live(e));
   const bagOf = (e) => T.bags.find((b) => b.id === e.id), prodOf = (e) => P[e.id];
@@ -181,6 +181,7 @@ export function buildGuides({ entries, T, D, P, SITE_URL, inr, esc, stockDay }) 
 <style>
 ${CSS}
 </style>${extra}
+${VISIT}
 </head>
 <body>
 <header><div class="wrap"><a class="wm" href="/"><span class="t">TADA</span><span class="s">✦</span>BOO</a><a class="back" href="/">← Back to the shop</a></div></header>`;

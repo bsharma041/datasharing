@@ -1323,6 +1323,8 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
 
 <!-- Bump ?v= when catalog.js gains fields the page needs, so no buyer runs a new page on a cached old catalogue. -->
 <script src="catalog.js?v=9"></script>
+<!-- Visit count. data-hit is catalog.js orders.url with /hit in place of /order. -->
+<script src="visit.js" data-hit="https://tadaboo-orders.bsharma-04.workers.dev/hit" defer></script>
 <script>
 (() => {
   const T = window.TADABOO;
@@ -1826,7 +1828,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
   document.addEventListener("click", (e) => {
     const s = e.target.closest("[data-share]"); if (!s) return;
     const [kind, id] = s.dataset.share.split(":"), x = kind === "p" ? P[id] : B[id]; if (!x) return;
-    const url = `https://www.tadaboo.com/${kind === "p" ? "p" : "bag"}/${id}`, text = `Look at this from TadaBoo: ${x.name}, ${inr(x.price)}`;
+    const url = `https://www.tadaboo.com/${kind === "p" ? "p" : "bag"}/${id}?s=share`, text = `Look at this from TadaBoo: ${x.name}, ${inr(x.price)}`;
     if (navigator.share) navigator.share({ title: x.name, text, url }).catch(() => {});
     else window.open(`https://wa.me/?text=${encodeURIComponent(text + " " + url)}`, "_blank", "noopener");
   });
@@ -1859,18 +1861,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     else if (view.orders) renderOrders();
     else renderCart();
   }
-  // ---------- Visit count ----------
-  // One visit per browser session to the order inbox (/hit), flagged new on this device's first visit.
-  // Nothing about the visitor is sent or stored. text/plain keeps it a simple request (no CORS preflight).
-  (() => {
-    try {
-      if (!T.orders?.url || navigator.webdriver || sessionStorage.getItem("tb_visit")) return;
-      sessionStorage.setItem("tb_visit", "1");
-      let fresh = false;
-      try { fresh = !localStorage.getItem("tb_seen"); localStorage.setItem("tb_seen", "1"); } catch {}
-      fetch(T.orders.url.replace(/\/order$/, "/hit"), { method: "POST", keepalive: true, headers: { "content-type": "text/plain" }, body: JSON.stringify({ new: fresh }) }).catch(() => {});
-    } catch {}
-  })();
+  // Visit count: visit.js (shared with the product pages and guides).
   // ---------- Website checkout ----------
   // Orders go to TadaBoo's order inbox (catalog.js `orders.url`; WebsitePublisher if unset); WhatsApp stays as the other way.
   // The script loads only when someone is about to order; if it can't load or the send fails,

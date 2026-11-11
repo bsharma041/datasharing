@@ -179,3 +179,7 @@ Site had about 130 visits in 14 days, so the next gains are in being found and s
 | 3 | `sitemap.xml` is generated: home page and guides carry the stock date, so search engines see them as fresh |
 
 Still open: where visitors come from is not recorded; Merchant Center and Search Console are the owner's to connect.
+
+# More visitors, batch 2 (visitor sources): 11 Nov 2026
+
+`website/visit.js` runs on every page (home, product, gift bag, guide) and sends one visit per browser session with two labels: `src` (direct, google, instagram, whatsapp, facebook, youtube, search, ai, share, campaign, other) and `land` (home, product, bag, guide, other). Before this only the home page counted visits. The order inbox stores them in the visit key and `/views` returns `src` and `land` per day; the Stockroom's visits card shows both for the last 30 days. Links for posts can be tagged `?s=ig`, `?s=wa` or `?utm_source=…`; the share buttons add `?s=share`. The privacy policy says visits are counted this way.

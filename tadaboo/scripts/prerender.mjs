@@ -232,6 +232,8 @@ function related(e) {
   picks = picks.slice(0, 4);
   return picks.length ? `<section class="more" aria-labelledby="moreTitle"><h2 id="moreTitle">You may also like</h2><ul>${picks.map(moreCard).join("")}</ul></section>` : "";
 }
+// Visit count on every generated page (website/visit.js), sent to the order inbox.
+const VISIT = T.orders && T.orders.url ? `<script src="/visit.js" data-hit="${esc(T.orders.url.replace(/\/order$/, "/hit"))}" defer></script>` : "";
 function productPage(e) {
   const abs = SITE_URL + e.url, d = e.d, out = e.left !== null && e.left <= 0;
   const ld = { "@context": "https://schema.org", "@type": "Product", name: e.name, image: [SITE_URL + e.image, ...e.extra.map((s) => SITE_URL + s)], description: e.desc, sku: (e.kind === "b" ? "bag-" : "") + e.id,
@@ -253,6 +255,7 @@ function productPage(e) {
 <link rel="stylesheet" href="/fonts/fonts.css">
 <style>${PAGE_CSS}</style>
 <script type="application/ld+json">${JSON.stringify(ld).replace(/</g, "\\u003c")}</script>
+${VISIT}
 </head>
 <body>
 <header><div class="wrap"><a class="wm" href="/"><span class="t">TADA</span><span class="s">✦</span>BOO</a><nav aria-label="Shop"><a href="/#bags">Gift bags</a><a href="/#shop">Shop</a><a href="/#order">How to order</a></nav></div></header>
@@ -269,7 +272,7 @@ function productPage(e) {
     <div class="buy">${out
       ? `<a class="cta" href="https://wa.me/${T.whatsapp}?text=${encodeURIComponent(`Hi TadaBoo! Please tell me when ${e.name} is back in stock.`)}" target="_blank" rel="noopener">Tell me when it's back</a><a class="cta line" href="/?open=${e.kind}:${e.id}">See it in the shop</a>`
       : `<a class="cta" href="/?add=${e.kind}:${e.id}">Add to bag · ${inr(d.price)}</a><a class="cta line" href="https://wa.me/${T.whatsapp}?text=${encodeURIComponent(`Hi TadaBoo! A question about ${e.name}:`)}" target="_blank" rel="noopener">Ask on WhatsApp</a>`}</div>
-    <p style="margin:12px 0 0"><a class="share" href="https://wa.me/?text=${encodeURIComponent(`Look at this from TadaBoo: ${e.name}, ${inr(d.price)} ${abs}`)}" target="_blank" rel="noopener">Share on WhatsApp</a></p>
+    <p style="margin:12px 0 0"><a class="share" href="https://wa.me/?text=${encodeURIComponent(`Look at this from TadaBoo: ${e.name}, ${inr(d.price)} ${abs}?s=share`)}" target="_blank" rel="noopener">Share on WhatsApp</a></p>
     <p class="small" style="margin-top:14px">Delivered anywhere in India in ${T.deliveryDays || "7–10 days"}. Delivery ${inr(D.rates.india)} (${inr(D.rates.remote)} to the North East), free when items total ${inr(D.freeAbove)} or more. Every order comes with a thank-you card and a bookmark.</p>
   </div>
   ${related(e)}
@@ -314,7 +317,7 @@ ${entries.map((e) => `  <url><loc>${SITE_URL + e.url}</loc></url>`).join("\n")}
 };
 for (const e of entries) gen[e.url + ".html"] = productPage(e);
 // Gift guides, their index and sitemap.xml (guides.mjs): same live prices and stock as the pages above.
-Object.assign(gen, buildGuides({ entries, T, D, P, SITE_URL, inr, esc, stockDay: String((STOCK && STOCK.asOf) || "2026-11-11").slice(0, 10) }));
+Object.assign(gen, buildGuides({ entries, T, D, P, SITE_URL, inr, esc, VISIT, stockDay: String((STOCK && STOCK.asOf) || "2026-11-11").slice(0, 10) }));
 // Pages for products that left the catalogue are removed.
 const stale = [];
 for (const dir of ["p", "bag"]) {
