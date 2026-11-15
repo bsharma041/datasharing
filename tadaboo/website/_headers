@@ -13,6 +13,12 @@
 /stock.json
   Cache-Control: public, max-age=0, must-revalidate
 
+# Sitemaps are for search engines to read, not to list as results.
+/sitemap.xml
+  X-Robots-Tag: noindex
+/sitemap-products.xml
+  X-Robots-Tag: noindex
+
 # Security headers. The inline script is allowed by its hash: after editing the <script> in
 # index.html, run `python3 tadaboo/scripts/csp_hash.py` or the live shop will stop working.
 # Website orders load the WebsitePublisher form client (cdn.) and post to its API.
