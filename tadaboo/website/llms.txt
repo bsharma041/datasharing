@@ -6,10 +6,11 @@ TadaBoo sells stationery and ready-to-gift bags in India. Shoppers pick a ready-
 
 ## What we sell
 
-- Gift bags: 12 ready-made gift bags, priced from ₹199 to ₹999 (Indian rupees, INR). They cover Back to School, return gifts, themed bags for boys and girls, and birthday hampers.
-- Shop: 56 products (pens and highlighters, pencils, notebooks and notes, sharpeners and erasers, craft kits, gift sets and squishies).
+- Gift bags: 13 ready-made gift bags, priced from ₹169 to ₹999 (Indian rupees, INR). They cover Back to School, return gifts, themed bags for boys and girls, craft and colouring, and birthday hampers.
+- Shop: 56 products (Pens & Highlighters; Pencils, Notebooks & Notes; Sharpeners & Erasers; Make & Create; Gift Sets & Squishy Fun).
 - Custom bags: items you pick for a custom bag must total more than ₹299. Ready-made gift bags have no minimum.
 - Colours, characters or designs may vary with availability. The product type and value always stay the same.
+- Every order comes with a thank-you card and a TadaBoo bookmark.
 
 ## Delivery and payment
 
@@ -26,5 +27,19 @@ TadaBoo sells stationery and ready-to-gift bags in India. Shoppers pick a ready-
 ## Pages
 
 - [Shop and gift bags](https://www.tadaboo.com/): the gift bags, all products, and how to order
+- [Stationery](https://www.tadaboo.com/stationery/)
+- [Pens & Highlighters](https://www.tadaboo.com/stationery/pens-highlighters)
+- [Pencils, Notebooks & Notes](https://www.tadaboo.com/stationery/pencils-notebooks)
+- [Sharpeners & Erasers](https://www.tadaboo.com/stationery/sharpeners-erasers)
+- [Make & Create](https://www.tadaboo.com/stationery/craft-kits)
+- [Gift Sets & Squishy Fun](https://www.tadaboo.com/stationery/gift-sets-squishies)
+- [Gift bags and birthday hampers](https://www.tadaboo.com/gift-bags/)
+- [Gift guides](https://www.tadaboo.com/guides/): return gifts by budget, gifts for a whole class, birthday gifts and hampers
+- [Return gift ideas under ₹300](https://www.tadaboo.com/guides/return-gift-ideas-under-300)
+- [Return gifts under ₹200](https://www.tadaboo.com/guides/return-gifts-under-200)
+- [Return gifts for a class of 30](https://www.tadaboo.com/guides/return-gifts-for-a-class-of-30)
+- [Birthday gifts for girls](https://www.tadaboo.com/guides/birthday-gifts-for-girls)
+- [Birthday gifts for boys](https://www.tadaboo.com/guides/birthday-gifts-for-boys)
+- [Birthday hampers under ₹1,000](https://www.tadaboo.com/guides/birthday-hampers-under-1000)
 - [Policies and privacy](https://www.tadaboo.com/policies): delivery, returns and replacements, cancellation and refunds, terms, contact
-- [Return gift ideas for kids under ₹300](https://www.tadaboo.com/guides/return-gift-ideas-under-300): budget table, ready-made bags and single items from ₹20, tips for parents
+- Every product and gift bag has its own page; the full list is in https://www.tadaboo.com/sitemap.xml

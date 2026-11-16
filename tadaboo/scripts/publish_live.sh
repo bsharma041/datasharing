@@ -18,8 +18,9 @@ cd "$repo"
 json="tadaboo/website/stock.json tadaboo/website/reviews.json"
 files="$json tadaboo/website/index.html"   # index.html only changes when prerender.mjs rewrote it from the new stock
 # Product pages, the Google Merchant feed and the product sitemap are rebuilt from stock.json by prerender.mjs.
-gen="tadaboo/website/p tadaboo/website/bag tadaboo/website/google-feed.xml tadaboo/website/sitemap-products.xml"
-other=$(git status --porcelain --untracked-files=all | awk '{print $2}' | grep -v -x -F -e tadaboo/website/stock.json -e tadaboo/website/reviews.json -e tadaboo/website/index.html -e tadaboo/website/google-feed.xml -e tadaboo/website/sitemap-products.xml | grep -v -E '^tadaboo/website/(p|bag)/[a-z0-9-]+\.html$' || true)
+# So are the gift guides, the category pages (stationery/, gift-bags/), sitemap.xml and llms.txt: they show live prices and stock.
+gen="tadaboo/website/p tadaboo/website/bag tadaboo/website/guides tadaboo/website/stationery tadaboo/website/gift-bags tadaboo/website/google-feed.xml tadaboo/website/sitemap-products.xml tadaboo/website/sitemap.xml tadaboo/website/llms.txt"
+other=$(git status --porcelain --untracked-files=all | awk '{print $2}' | grep -v -x -F -e tadaboo/website/stock.json -e tadaboo/website/reviews.json -e tadaboo/website/index.html -e tadaboo/website/google-feed.xml -e tadaboo/website/sitemap-products.xml -e tadaboo/website/sitemap.xml -e tadaboo/website/llms.txt | grep -v -E '^tadaboo/website/(p|bag|guides|stationery|gift-bags)/[a-z0-9-]+\.html$' || true)
 [ -z "$other" ] || { echo "Other files changed, refusing to publish:"; echo "$other"; exit 3; }
 for f in $json; do python3 -c "import json,sys; json.load(open(sys.argv[1]))" "$f"; done   # never ship broken JSON
 # Plain-HTML copy of names, prices and photos for crawlers (idempotent; the task may already have run it).

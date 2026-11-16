@@ -22,6 +22,7 @@ import path from "node:path";
 import vm from "node:vm";
 import { fileURLToPath } from "node:url";
 import { buildGuides } from "./guides.mjs";
+import { buildCollections } from "./collections.mjs";
 
 const site = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "website");
 const SITE_URL = "https://www.tadaboo.com/";
@@ -89,7 +90,7 @@ function gridFirstPage() {
 function catalogList() {
   const groups = T.categories.map((c) => `<h3>${esc(c.name)}</h3>
 <ul>
-${T.products.filter((p) => p.cat === c.id).map((p) => `<li><img src="${img(p.id)}" alt="${esc(p.name)}" loading="lazy" width="104" height="130"> <b>${esc(p.name)}</b> ${inr(p.price)}. ${esc(p.desc)}</li>`).join("\n")}
+${T.products.filter((p) => p.cat === c.id).map((p) => `<li><img src="${img(p.id)}" alt="${esc(p.name)}" loading="lazy" width="104" height="130"> <a href="p/${p.id}"><b>${esc(p.name)}</b></a> ${inr(p.price)}. ${esc(p.desc)}</li>`).join("\n")}
 </ul>`).join("\n");
   return `<noscript><section id="all-products" aria-labelledby="allProductsTitle" style="padding:32px 0"><div class="wrap">
 <h2 id="allProductsTitle">All products</h2>
@@ -216,6 +217,7 @@ p{margin:0 0 12px}.info{display:flex;flex-direction:column;gap:6px}
 .more li img{width:100%;height:auto;aspect-ratio:4/5;object-fit:cover;border-radius:12px}.more li b{color:var(--price);font-size:1rem}
 ul.items{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:8px}ul.items li{display:flex;align-items:center;gap:10px}ul.items img{width:48px;height:60px;object-fit:cover;border-radius:8px}
 .share{display:inline-flex;align-items:center;min-height:44px;color:#17795E}
+.crumbs{grid-column:1/-1;margin:0;font-size:.92rem;color:var(--muted)}
 .small{font-size:.92rem;color:var(--muted)}footer{padding:24px 0 40px;color:var(--muted);font-size:.9rem}footer a{display:inline-block;padding:12px 0}`;
 // "You may also like": up to four other things that can be bought now. For a gift bag, other gift bags;
 // for a product, the gift bags that hold it, then its category neighbours (catalogue order, starting after it).
@@ -240,13 +242,18 @@ function productPage(e) {
     ...(e.brand ? { brand: { "@type": "Brand", name: e.brand } } : {}),
     offers: { "@type": "Offer", url: abs, price: d.price, priceCurrency: "INR", itemCondition: "https://schema.org/NewCondition",
       ...(e.left === null ? {} : { availability: "https://schema.org/" + (out ? "OutOfStock" : "InStock") }) } };
+  // Breadcrumb: Shop > Stationery > category for a product, Shop > Gift bags for a gift bag (shown on the page and as schema.org data).
+  const cat = e.kind === "p" ? COL.catOf[P[e.id].cat] : null;
+  const trail = e.kind === "b" ? [["Gift bags", "gift-bags/"]] : cat ? [["Stationery", "stationery/"], [cat.name, cat.url]] : [];
+  const crumbLd = { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [["Shop", ""], ...trail, [e.name, e.url]].map(([n, u], i) => ({ "@type": "ListItem", position: i + 1, name: n, item: SITE_URL + u })) };
+  const title = e.kind === "b" ? `${e.name} · Gift Bag for Kids` : `${e.name} · Buy Online in India`;
   const items = e.contents ? `<p class="small" style="margin-top:14px">What's inside</p><ul class="items">${e.contents.map((id) => `<li><img src="/${thumb(id)}" alt="" loading="lazy" width="48" height="60"><a href="/p/${id}">${esc(P[id].name)}</a></li>`).join("")}</ul>` : "";
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${esc(e.name)} · TadaBoo</title>
+<title>${esc(title)} · TadaBoo</title>
 <meta name="description" content="${esc((e.desc + " " + inr(d.price) + ", delivered anywhere in India.").slice(0, 300))}">
 <link rel="canonical" href="${abs}">
 <link rel="icon" type="image/png" sizes="48x48" href="/favicon.png">
@@ -255,11 +262,13 @@ function productPage(e) {
 <link rel="stylesheet" href="/fonts/fonts.css">
 <style>${PAGE_CSS}</style>
 <script type="application/ld+json">${JSON.stringify(ld).replace(/</g, "\\u003c")}</script>
+<script type="application/ld+json">${JSON.stringify(crumbLd).replace(/</g, "\\u003c")}</script>
 ${VISIT}
 </head>
 <body>
 <header><div class="wrap"><a class="wm" href="/"><span class="t">TADA</span><span class="s">✦</span>BOO</a><nav aria-label="Shop"><a href="/#bags">Gift bags</a><a href="/#shop">Shop</a><a href="/#order">How to order</a></nav></div></header>
 <main class="wrap">
+  <nav class="crumbs" aria-label="Breadcrumb"><a href="/">Shop</a>${trail.map(([n, u]) => ` › <a href="/${u}">${esc(n)}</a>`).join("")}</nav>
   <img class="photo" src="/${e.image}" alt="${esc(e.name)}" width="520" height="650">
   <div class="info">
     <h1>${esc(e.name)}</h1>
@@ -277,7 +286,7 @@ ${VISIT}
   </div>
   ${related(e)}
 </main>
-<footer><div class="wrap">© TadaBoo · <a href="/">Shop</a> · <a href="/policies">Policies &amp; privacy</a></div></footer>
+<footer><div class="wrap">© TadaBoo · <a href="/">Shop</a> · <a href="/stationery/">Stationery</a> · <a href="/gift-bags/">Gift bags</a> · <a href="/guides/">Gift guides</a> · <a href="/policies">Policies &amp; privacy</a></div></footer>
 </body>
 </html>
 `;
@@ -298,6 +307,8 @@ function feedItem(e) {
   return `<item>\n  ${parts.join("\n  ")}\n</item>`;
 }
 const feedEntries = entries.filter((e) => !e.skip);
+// Category pages (collections.mjs): /stationery/, one page per shop category, /gift-bags/.
+const COL = buildCollections({ entries, T, D, P, SITE_URL, inr, esc, VISIT });
 const gen = {
   "google-feed.xml": `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
@@ -317,10 +328,52 @@ ${entries.map((e) => `  <url><loc>${SITE_URL + e.url}</loc></url>`).join("\n")}
 };
 for (const e of entries) gen[e.url + ".html"] = productPage(e);
 // Gift guides, their index and sitemap.xml (guides.mjs): same live prices and stock as the pages above.
-Object.assign(gen, buildGuides({ entries, T, D, P, SITE_URL, inr, esc, VISIT, stockDay: String((STOCK && STOCK.asOf) || "2026-11-11").slice(0, 10) }));
+const GUIDES = buildGuides({ entries, T, D, P, SITE_URL, inr, esc, VISIT, pages: COL.pages, stockDay: String((STOCK && STOCK.asOf) || "2026-11-11").slice(0, 10) });
+Object.assign(gen, COL.files, GUIDES);
+// llms.txt: the shop in plain words for AI assistants. Counts, prices and the page list come from the
+// catalogue, so it can no longer fall behind the shop. Facts only; nothing here addresses the reader.
+{
+  const bagPrices = entries.filter((e) => e.kind === "b").map((e) => e.d.price), nP = entries.filter((e) => e.kind === "p").length;
+  const guideTitle = (f) => ((/<title>(.*?) · TadaBoo<\/title>/.exec(GUIDES[f]) || [])[1] || "").replace(/&amp;/g, "&");
+  gen["llms.txt"] = `# TadaBoo
+
+> Cute stationery, craft kits, squishies and curated gift bags. Thoughtfully packed, lovingly gifted. "Little things that make you go TADA!"
+
+TadaBoo sells stationery and ready-to-gift bags in India. Shoppers pick a ready-made gift bag, or build their own from the shop. Orders can be placed on the website or on WhatsApp.
+
+## What we sell
+
+- Gift bags: ${bagPrices.length} ready-made gift bags, priced from ${inr(Math.min(...bagPrices))} to ${inr(Math.max(...bagPrices))} (Indian rupees, INR). They cover Back to School, return gifts, themed bags for boys and girls, craft and colouring, and birthday hampers.
+- Shop: ${nP} products (${(T.categories || []).map((c) => c.name).join("; ")}).
+- Custom bags: items you pick for a custom bag must total more than ${inr(T.customMin)}. Ready-made gift bags have no minimum.
+- Colours, characters or designs may vary with availability. The product type and value always stay the same.
+- Every order comes with a thank-you card and a TadaBoo bookmark.
+
+## Delivery and payment
+
+- We deliver anywhere in India, in ${T.deliveryDays || "7–10 days"} from your order.
+- Orders with items worth ${inr(D.freeAbove)} or more ship free. Smaller orders pay ${inr(D.rates.india)}, or ${inr(D.rates.remote)} to the North East (Assam, Arunachal Pradesh, Manipur, Meghalaya, Mizoram, Nagaland, Sikkim and Tripura).
+- Payment is by UPI, for the order total including delivery.
+
+## Contact
+
+- WhatsApp and phone: ${T.phone}
+- Email: hello@tadaboo.com
+- Instagram: https://www.instagram.com/ta_da_boo
+
+## Pages
+
+- [Shop and gift bags](${SITE_URL}): the gift bags, all products, and how to order
+${COL.pages.map((p) => `- [${p.name}](${SITE_URL}${p.url})`).join("\n")}
+- [Gift guides](${SITE_URL}guides/): return gifts by budget, gifts for a whole class, birthday gifts and hampers
+${Object.keys(GUIDES).filter((f) => /^guides\/[a-z0-9-]+\.html$/.test(f) && f !== "guides/index.html").map((f) => `- [${guideTitle(f)}](${SITE_URL}${f.replace(/\.html$/, "")})`).join("\n")}
+- [Policies and privacy](${SITE_URL}policies): delivery, returns and replacements, cancellation and refunds, terms, contact
+- Every product and gift bag has its own page; the full list is in ${SITE_URL}sitemap.xml
+`;
+}
 // Pages for products that left the catalogue are removed.
 const stale = [];
-for (const dir of ["p", "bag"]) {
+for (const dir of ["p", "bag", "stationery", "gift-bags"]) {
   const abs = path.join(site, dir);
   if (fs.existsSync(abs)) for (const f of fs.readdirSync(abs)) if (!gen[`${dir}/${f}`]) stale.push(`${dir}/${f}`);
 }

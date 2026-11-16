@@ -7,7 +7,7 @@
 //
 // To add a guide: add an entry to GUIDES below and run  node tadaboo/scripts/prerender.mjs
 
-const CSS = `:root{--bg:#FFF8F0;--card:#fff;--ink:#23264A;--muted:#5C5F78;--orange:#FF6B2C;--price:#B83A0A;--line:#F0E2D4;color-scheme:light}
+export const CSS = `:root{--bg:#FFF8F0;--card:#fff;--ink:#23264A;--muted:#5C5F78;--orange:#FF6B2C;--price:#B83A0A;--line:#F0E2D4;color-scheme:light}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.7 "Figtree",system-ui,sans-serif}
 .wrap{max-width:780px;margin:0 auto;padding:0 16px}
@@ -47,7 +47,7 @@ details{background:var(--card);border-radius:14px;padding:2px 16px;margin-bottom
 .glist b{display:block;font:600 1.15rem/1.3 "Bricolage Grotesque",sans-serif;margin-bottom:2px}.glist span{color:var(--muted);font-weight:400;font-size:.95rem}
 footer{padding:24px 0 40px;color:var(--muted);font-size:.9rem}footer a{display:inline-block;padding:12px 0}`;
 
-export function buildGuides({ entries, T, D, P, SITE_URL, inr, esc, stockDay, VISIT = "" }) {
+export function buildGuides({ entries, T, D, P, SITE_URL, inr, esc, stockDay, VISIT = "", pages = [] }) {
   const live = (e) => e.left === null || e.left > 0;
   const bags = entries.filter((e) => e.kind === "b" && live(e)), items = entries.filter((e) => e.kind === "p" && live(e));
   const bagOf = (e) => T.bags.find((b) => b.id === e.id), prodOf = (e) => P[e.id];
@@ -185,7 +185,7 @@ ${VISIT}
 </head>
 <body>
 <header><div class="wrap"><a class="wm" href="/"><span class="t">TADA</span><span class="s">✦</span>BOO</a><a class="back" href="/">← Back to the shop</a></div></header>`;
-  const foot = `<footer><div class="wrap">© TadaBoo · <a href="/">Back to the shop</a> · <a href="/guides/">Gift guides</a> · <a href="/policies">Policies &amp; privacy</a></div></footer>
+  const foot = `<footer><div class="wrap">© TadaBoo · <a href="/">Back to the shop</a> · <a href="/stationery/">Stationery</a> · <a href="/gift-bags/">Gift bags</a> · <a href="/guides/">Gift guides</a> · <a href="/policies">Policies &amp; privacy</a></div></footer>
 </body>
 </html>
 `;
@@ -232,11 +232,13 @@ ${foot}`;
   <div class="box"><h3>Rather just browse?</h3><a class="cta" href="/#bags">Shop gift bags</a><a class="cta line" href="/#shop">See the shop</a></div>
 </main>
 ${foot}`;
-  // Main sitemap. The home page and guides change whenever stock or prices do, so they carry the stock date.
+  // Main sitemap: every page of the site in the one file Google Search Console already reads. The home page,
+  // category pages, guides and product pages change whenever stock or prices do, so they carry the stock date.
   const u = (loc, mod) => `  <url><loc>${SITE_URL}${loc}</loc><lastmod>${mod}</lastmod></url>`;
   out["sitemap.xml"] = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${[u("", stockDay), u("policies", "2026-10-27"), u("guides/", stockDay), ...built.map((gd) => u(`guides/${gd.slug}`, stockDay > gd.published ? stockDay : gd.published))].join("\n")}
+${[u("", stockDay), u("policies", "2026-10-27"), u("guides/", stockDay), ...built.map((gd) => u(`guides/${gd.slug}`, stockDay > gd.published ? stockDay : gd.published)),
+  ...pages.map((p) => u(p.url, stockDay)), ...entries.map((e) => u(e.url, stockDay))].join("\n")}
 </urlset>
 `;
   return out;
