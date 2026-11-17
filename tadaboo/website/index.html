@@ -680,6 +680,7 @@ img.fade.ld{opacity:1}
 .pager .pg{min-width:44px;padding:0 12px;font-variant-numeric:tabular-nums}
 @media (max-width:400px){.pager{gap:5px}.pager .pg{min-width:42px;min-height:42px;padding:0 8px}}
 .pager .of{width:100%;text-align:center;font-size:.88rem;color:var(--muted)}
+.seeall{grid-column:1/-1;display:flex;justify-content:center;padding-top:12px}
 .bagcard:hover,.card:hover{transform:translateY(-4px)}
 .fly{position:fixed;z-index:80;border-radius:12px;object-fit:cover;pointer-events:none;transition:transform .65s cubic-bezier(.5,-.2,.6,1),opacity .65s}
 .toast{position:fixed;left:50%;bottom:calc(92px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:90;background:var(--btn);color:var(--btn-fg);padding:10px 18px;border-radius:999px;font-weight:500;font-size:.95rem;box-shadow:var(--shadow);max-width:calc(100% - 32px);text-align:center}
@@ -894,6 +895,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
 .bulk{align-items:center}
 .bulk .pill{min-height:38px;min-width:48px;justify-content:center}
 .more{font-size:.85rem;text-align:center}
+.partysum{display:block;font-size:.9rem;font-weight:600;color:var(--ok);text-align:center}
 .more a{font-weight:600;text-decoration:underline;text-underline-offset:4px;color:var(--ink)}
 .arrive{display:flex;align-items:center;gap:8px;font-size:.9rem;color:var(--ink);background:var(--mint);border-radius:14px;padding:10px 12px}
 .arrive svg{width:18px;height:18px;flex:none;color:var(--ok)}
@@ -932,6 +934,8 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
 .rev.share h3{font-size:1.25rem}
 .rev.share p{margin:0;color:var(--muted)}
 .rev.share .acts{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center}
+/* Wide screens: the invitation runs as one slim row under the reviews, so the grid never ends on a lone card. */
+@media (min-width:900px){.rev.share{grid-column:1/-1;display:grid;grid-template-columns:auto 1fr auto;align-items:center;column-gap:20px;padding-block:16px}.rev.share p{max-width:52ch}}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
 }
@@ -1074,6 +1078,13 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     </button>
       <div class="bfoot"><span class="ct">8 items</span><div class="act"><button class="plus" data-bagplus="hamper-girls" aria-label="Add Birthday Hamper · Girls to bag"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div></div>
     </div><!-- /PRERENDER:bags --></div>
+    </div>
+  </section>
+
+  <section class="revsec" id="reviews" aria-labelledby="revTitle" hidden>
+    <div class="wrap">
+      <div class="head"><div><span class="kick">Happy customers</span><h2 id="revTitle">What our customers say</h2></div></div>
+      <div class="revs" id="revList"></div>
     </div>
   </section>
 
@@ -1252,12 +1263,6 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     </div>
   </section>
 
-  <section class="revsec" id="reviews" aria-labelledby="revTitle" hidden>
-    <div class="wrap">
-      <div class="head"><div><span class="kick">Happy customers</span><h2 id="revTitle">What our customers say</h2></div></div>
-      <div class="revs" id="revList"></div>
-    </div>
-  </section>
 
   <section class="order-sec" id="order">
     <div class="wrap order">
@@ -1563,6 +1568,8 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     $("#budget").innerHTML = `<span class="ql" aria-hidden="true">Budget</span>` + BUDGETS.map((v) => `<button class="pill" type="button" aria-pressed="${v === maxP}" data-budget="${v}">${v ? "Up to " + inr(v) : "Any price"}</button>`).join("");
   }
   const PER = 12;
+  // On first view the home page shows a short preview; "See all" (or any filter, search or sort) opens the full shop.
+  const PREVIEW = 10; let expanded = false;
   try { const c = localStorage.getItem(KEY + "-cat"); if (T.categories.some((x) => x.id === c)) cat = c; } catch {}
   function renderTabs() {
     const tabs = [{ id: "all", name: "All" }, ...T.categories];
@@ -1603,6 +1610,13 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     if (sort === "cat" && !q) list = [...list.filter(isNew), ...list.filter((p) => !isNew(p))];
     list = [...list.filter((p) => !soldProd(p)), ...list.filter(soldProd)];
     // The shop shows a dozen at a time, page by page, so it never reads as one long wall of photos.
+    if (!expanded && !q && cat === "all" && !maxP && sort === "cat" && list.length > PREVIEW) {
+      $("#grid").innerHTML = list.slice(0, PREVIEW).map((p, i) => productCard(p).replace(/^<article class="card( sold)?">/, (m, sold) => `<article class="card${sold || ""}" style="--i:${i}">`)).join("")
+        + `<div class="seeall"><button class="btn line" type="button" data-seeall>See all ${list.length} items</button></div>`;
+      $("#shopMeta").textContent = `${list.length} items`; wave = false;
+      return list.length;
+    }
+    expanded = true;
     const pages = Math.max(1, Math.ceil(list.length / PER));
     page = Math.min(page, pages - 1);
     const shown = list.slice(page * PER, page * PER + PER);
@@ -1630,6 +1644,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     const a = e.target.closest("[data-add]");
     if (a) { const id = a.dataset.add; flyToBag(a.closest(".card").querySelector("img"), img(id)); setQty("p:" + id, 1); announce(`Added ${P[id].name}`); }
     const pv = e.target.closest("[data-prod]"); if (pv) { openDrawer({ product: pv.dataset.prod }); announce(`${P[pv.dataset.prod].name}, ${inr(P[pv.dataset.prod].price)}`); }
+    if (e.target.closest("[data-seeall]")) { expanded = true; wave = !reduced; renderGrid(); $("#grid").querySelector(`.card:nth-child(${PREVIEW + 1}) button`)?.focus({ preventScroll: true }); announce($(".pager .of")?.textContent || ""); return; }
     const pg = e.target.closest("[data-page]"); if (pg && !pg.disabled) goPage(+pg.dataset.page);
   });
 
@@ -1720,7 +1735,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
       </div>
       <div class="sbar" aria-hidden="true"><span class="dots">${Array.from({ length: n }, (_, i) => `<i${i ? "" : ' class="on"'}></i>`).join("")}</span><span id="spos">1 / ${n}</span></div>
       <div class="row"><h3>${esc(b.name)}</h3>${priceTag(b)}</div>${offerNote(b)}
-      ${w > b.price ? `<span class="worth">Worth ${inr(w)} bought separately</span>` : ""}
+      ${w > b.price ? `<span class="worth">Worth ${inr(w)} bought separately</span>` : w === b.price ? `<span class="worth">Same price as the ${n} items on their own, packed together and ready to gift</span>` : ""}
       ${shareBtn("b", b)}
       ${(() => { const q = quote(form.pin, 0), when = eta(q || { zone: "india" }); return when ? `<span class="arrive"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg><span>Order today, arrives <b>${when}</b>${q ? ` in ${esc(q.region)}` : ""}</span></span>` : ""; })()}
       <span class="group-t">Inside · ${b.items.length} items</span>
@@ -1746,7 +1761,10 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     const opts = [5, 10, 15, 20].filter((n) => n <= room);
     if (b.occasion === "return" && !opts.length) return `<a class="btn line sm" target="_blank" rel="noopener" href="https://wa.me/${T.whatsapp}?text=${encodeURIComponent(`Hi TadaBoo! I need __ × ${b.name} for a party on __. Can you arrange them?`)}">${room} ready now · Need 10–20 for a party? WhatsApp us</a>`;
     const chips = b.occasion === "return" && room > 1 ? `<div class="qchips bulk" role="group" aria-label="Quick quantity"><span class="small">Party quantity:</span>${opts.map((n) => `<button class="pill" type="button" data-setq="${n}" aria-pressed="${detailQty === n}">${n}</button>`).join("")}</div>` : "";
-    return chips + (Number.isFinite(room) && detailQty >= room ? needMore(b, avail(k)) : "");
+    // Party maths in one line: how many, what it costs, and whether delivery is free.
+    const items = b.price * detailQty, free = Number.isFinite(D.freeAbove) && items >= D.freeAbove;
+    const sum = b.occasion === "return" && detailQty > 1 ? `<span class="partysum num">${detailQty} bags · ${inr(items)} · ${free ? "free delivery" : `${inr(D.freeAbove - items)} more for free delivery`}</span>` : "";
+    return chips + sum + (Number.isFinite(room) && detailQty >= room ? needMore(b, avail(k)) : "");
   }
   function orderText() {
     const t = totals();
@@ -2271,7 +2289,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
         <div class="acts"><a class="btn wa sm" target="_blank" rel="noopener" href="https://wa.me/${T.whatsapp}?text=${encodeURIComponent("Hi TadaBoo! Here is my review:")}">Share on WhatsApp</a><a class="link" target="_blank" rel="noopener" href="https://www.instagram.com/ta_da_boo">Tag us on Instagram</a></div></div>`;
     $("#navRev").hidden = false;
     const rated = ok.map((r) => Math.round(Number(r.rating)) || 0).filter((n) => n >= 1 && n <= 5);
-    if (rated.length) { const t = $("#trustRev"); t.innerHTML = `<span class="st" aria-hidden="true">★</span> ${(rated.reduce((a, n) => a + n, 0) / rated.length).toFixed(1)} from customers`; t.hidden = false; }
+    if (rated.length) { const t = $("#trustRev"); t.innerHTML = `<span class="st" aria-hidden="true">★</span> ${(rated.reduce((a, n) => a + n, 0) / rated.length).toFixed(1)} · ${rated.length} customer review${rated.length === 1 ? "" : "s"}`; t.hidden = false; }
   }
   $("#reviews").addEventListener("click", (e) => {
     const mr = e.target.closest("[data-morerev]"); if (mr) { const open = mr.getAttribute("aria-expanded") !== "true"; mr.previousElementSibling.classList.toggle("clamp", !open); mr.setAttribute("aria-expanded", open); mr.textContent = open ? "Show less" : "Read more"; return; }
@@ -2293,7 +2311,8 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     }
   }
   const returning = !!(Object.keys(cart).length || myOrders.length || favs.length || seenList.length);
-  if (returning) { const m = $("#mine"); m.classList.add("first"); $("main").prepend(m); }
+  // Returning visitors: their saved things sit right under the hero, never above the brand promise.
+  if (returning) { const m = $("#mine"); m.classList.add("first"); $(".hero").after(m); }
   renderTabs(); renderBudget(); renderAll();
   fetch("stock.json", { cache: "no-cache" }).then((r) => (r.ok ? r.json() : null)).then((d) => {
     if (!isObj(d) || !isObj(d.items) || !isObj(d.bags)) return;
