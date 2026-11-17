@@ -441,13 +441,6 @@ section{padding-block:clamp(64px,8vw,96px)}
 .bags-sec{background:var(--stone)}
 .bags{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:28px 22px;margin-top:24px}
 .bagcard{display:flex;flex-direction:column;gap:12px;min-width:0;position:relative}
-.bagfill{background:var(--btn);color:var(--btn-fg);border-radius:22px;padding:clamp(18px,3vw,32px);display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:8px;text-decoration:none;min-height:220px;transition:transform .3s cubic-bezier(.16,1,.3,1)}
-.bagfill:hover{transform:translateY(-3px)}
-.bagfill .bf-t{font-size:.9rem;color:var(--gold)}
-.bagfill b{font:700 clamp(1.3rem,1rem + 1.2vw,1.9rem)/1.1 var(--f-display)}
-.bagfill .bf-s{font-size:.95rem;opacity:.85;max-width:34ch}
-.bagfill .btn{margin-top:8px;background:var(--card);color:var(--ink);border-color:var(--card)}
-@media (max-width:560px){.bagfill{border-radius:18px;padding:14px;min-height:0}.bagfill .bf-s{display:none}}
 .bagcard>.fav{top:18px;right:18px}
 @media (max-width:560px){.bagcard>.fav{top:13px;right:13px}}
 .bagopen{border:0;background:none;padding:0;text-align:left;cursor:pointer;color:inherit;text-decoration:none;display:flex;flex-direction:column;gap:12px;min-width:0;width:100%}
@@ -1095,13 +1088,6 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     </div>
   </section>
 
-  <section class="revsec" id="reviews" aria-labelledby="revTitle" hidden>
-    <div class="wrap">
-      <div class="head"><div><span class="kick">Happy customers</span><h2 id="revTitle">What our customers say</h2></div></div>
-      <div class="revs" id="revList"></div>
-    </div>
-  </section>
-
   <section id="build">
     <div class="wrap">
       <div class="band">
@@ -1119,6 +1105,14 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
       </div>
     </div>
   </section>
+
+  <section class="revsec" id="reviews" aria-labelledby="revTitle" hidden>
+    <div class="wrap">
+      <div class="head"><div><span class="kick">Happy customers</span><h2 id="revTitle">What our customers say</h2></div></div>
+      <div class="revs" id="revList"></div>
+    </div>
+  </section>
+
 
   <section class="shop-sec" id="shop">
     <div class="wrap">
@@ -1575,16 +1569,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     $("#bagFilters").innerHTML = bagFilters.map(([id, l]) => `<button class="pill" aria-pressed="${id === bagF}" data-bf="${id}">${l}</button>`).join("");
     const list = T.bags.filter(bagMatch);
     $("#bagGrid").innerHTML = [...list.filter((b) => !soldBag(b)), ...list.filter(soldBag)].map(bagCard).join("");
-    fillBagRow();
   }
-  // When the last row of gift bags is short, a "Build your own" tile takes the empty columns.
-  function fillBagRow() {
-    const g = $("#bagGrid"); g.querySelector(".bagfill")?.remove();
-    const cols = getComputedStyle(g).gridTemplateColumns.split(" ").filter(Boolean).length, n = g.querySelectorAll(".bagcard").length, r = n % cols;
-    if (!n || !r || cols < 2) return;
-    g.insertAdjacentHTML("beforeend", `<a class="bagfill" href="#build" style="grid-column:span ${cols - r}"><span class="bf-t">Can't decide?</span><b>Build your own bag</b><span class="bf-s">Pick any favourites worth more than ${inr(T.customMin || 299)}. We pack them for you.</span><span class="btn sm">Start picking</span></a>`);
-  }
-  let fillT; addEventListener("resize", () => { clearTimeout(fillT); fillT = setTimeout(fillBagRow, 150); });
   $("#bagFilters").addEventListener("click", (e) => { const c = e.target.closest("[data-bf]"); if (c) { bagF = c.dataset.bf; keep(renderBags); announce(`${$("#bagGrid").querySelectorAll(".bagcard").length} gift bags`); } });
   $("#bagGrid").addEventListener("click", (e) => {
     const c = e.target.closest("[data-openbag]"); if (c) openDrawer({ bag: c.dataset.openbag });
