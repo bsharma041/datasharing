@@ -60,16 +60,16 @@ const priceTag = (x) => `<span class="price">${inr(x.price)}</span>`;
 function bagCard(b) {
   const chips = b.items.filter((id) => id !== (b.cover || b.items[0])).map((id) => pic(thumb(id))).join("");
   const act = `<button class="plus" data-bagplus="${b.id}" aria-label="Add ${esc(b.name)} to bag">${plusIcon}</button>`;
-  return `<div class="bagcard" style="--pc:var(--${["sky", "mint", "butter", "blush"].includes(b.tint) ? b.tint : "sky"})">${favBtn("b:" + b.id, b.name)}<button class="bagopen" data-openbag="${b.id}" aria-haspopup="dialog">
+  return `<div class="bagcard" style="--pc:var(--${["sky", "mint", "butter", "blush"].includes(b.tint) ? b.tint : "sky"})">${favBtn("b:" + b.id, b.name)}<a class="bagopen" href="bag/${b.id}" data-openbag="${b.id}" aria-haspopup="dialog">
       <span class="ph"><span class="cv">${pic(cover(b), b.name)}</span><span class="chips" aria-hidden="true">${chips}</span></span>
       <span class="row"><span class="nm">${esc(b.name)}</span>${priceTag(b)}</span>
-    </button>
+    </a>
       <div class="bfoot"><span class="ct">${b.items.length} items</span><div class="act">${act}</div></div>
     </div>`;
 }
 function productCard(p, i) {
   return `<article class="card" style="--i:${i}">
-      <div class="ph"><button class="phbtn" data-prod="${p.id}" aria-haspopup="dialog" aria-label="View ${esc(p.name)}">${pic(img(p.id), p.name)}</button>
+      <div class="ph"><a class="phbtn" href="p/${p.id}" data-prod="${p.id}" aria-haspopup="dialog" aria-label="View ${esc(p.name)}">${pic(img(p.id), p.name)}</a>
         ${favBtn("p:" + p.id, p.name)}<div class="act"><button class="plus" data-add="${p.id}" aria-label="Add ${esc(p.name)} to bag">${plusIcon}</button></div></div>
       <span class="nm">${esc(p.name)}</span>${priceTag(p)}
     </article>`;
