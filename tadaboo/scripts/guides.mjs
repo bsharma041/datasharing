@@ -226,6 +226,7 @@ ${foot}`;
 <main class="wrap">
   <h1>Gift guides</h1>
   <p class="lede">Short answers for busy parents. Every guide shows today's prices and only what is in stock.</p>
+  <h2>All guides</h2>
   <ul class="glist">
     ${built.map((gd) => `<li><a href="/guides/${gd.slug}"><b>${esc(gd.title)}</b><span>${esc(gd.lede)}</span></a></li>`).join("\n    ")}
   </ul>

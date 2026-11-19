@@ -99,6 +99,7 @@ ${VISIT}
   <h1>${esc(c.h1)}</h1>
   <p class="lede">${esc(c.lede)}</p>
   ${facts(c.list)}
+  <h2>All ${c.list.length} to choose from</h2>
   ${cards(c.list)}
   ${holders.length ? `<h2>Already packed as a gift</h2>\n  <p>These ready-made gift bags include something from this page.</p>\n  ${cards(holders)}` : ""}
 
