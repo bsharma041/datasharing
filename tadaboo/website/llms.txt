@@ -41,5 +41,6 @@ TadaBoo sells stationery and ready-to-gift bags in India. Shoppers pick a ready-
 - [Birthday gifts for girls](https://www.tadaboo.com/guides/birthday-gifts-for-girls)
 - [Birthday gifts for boys](https://www.tadaboo.com/guides/birthday-gifts-for-boys)
 - [Birthday hampers under ₹1,000](https://www.tadaboo.com/guides/birthday-hampers-under-1000)
+- [About TadaBoo](https://www.tadaboo.com/about): who runs the shop, how ordering and payment work, contact
 - [Policies and privacy](https://www.tadaboo.com/policies): delivery, returns and replacements, cancellation and refunds, terms, contact
 - Every product and gift bag has its own page; the full list is in https://www.tadaboo.com/sitemap.xml

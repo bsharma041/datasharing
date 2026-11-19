@@ -283,10 +283,11 @@ ${VISIT}
       : `<a class="cta" href="/?add=${e.kind}:${e.id}">Add to bag · ${inr(d.price)}</a><a class="cta line" href="https://wa.me/${T.whatsapp}?text=${encodeURIComponent(`Hi TadaBoo! A question about ${e.name}:`)}" target="_blank" rel="noopener">Ask on WhatsApp</a>`}</div>
     <p style="margin:12px 0 0"><a class="share" href="https://wa.me/?text=${encodeURIComponent(`Look at this from TadaBoo: ${e.name}, ${inr(d.price)} ${abs}?s=share`)}" target="_blank" rel="noopener">Share on WhatsApp</a></p>
     <p class="small" style="margin-top:14px">Delivered anywhere in India in ${T.deliveryDays || "7–10 days"}. Delivery ${inr(D.rates.india)} (${inr(D.rates.remote)} to the North East), free when items total ${inr(D.freeAbove)} or more. Every order comes with a thank-you card and a bookmark.</p>
+    <p class="small">Colours, characters or designs may vary from the photo with availability. The product type and value stay the same. <a href="/policies#returns">Replacements and refunds</a> · Pay by UPI · <a href="/about">About TadaBoo</a></p>
   </div>
   ${related(e)}
 </main>
-<footer><div class="wrap">© TadaBoo · <a href="/">Shop</a> · <a href="/stationery/">Stationery</a> · <a href="/gift-bags/">Gift bags</a> · <a href="/guides/">Gift guides</a> · <a href="/policies">Policies &amp; privacy</a></div></footer>
+<footer><div class="wrap">© TadaBoo · <a href="/">Shop</a> · <a href="/stationery/">Stationery</a> · <a href="/gift-bags/">Gift bags</a> · <a href="/guides/">Gift guides</a> · <a href="/about">About us</a> · <a href="/policies">Policies &amp; privacy</a></div></footer>
 </body>
 </html>
 `;
@@ -367,6 +368,7 @@ TadaBoo sells stationery and ready-to-gift bags in India. Shoppers pick a ready-
 ${COL.pages.map((p) => `- [${p.name}](${SITE_URL}${p.url})`).join("\n")}
 - [Gift guides](${SITE_URL}guides/): return gifts by budget, gifts for a whole class, birthday gifts and hampers
 ${Object.keys(GUIDES).filter((f) => /^guides\/[a-z0-9-]+\.html$/.test(f) && f !== "guides/index.html").map((f) => `- [${guideTitle(f)}](${SITE_URL}${f.replace(/\.html$/, "")})`).join("\n")}
+- [About TadaBoo](${SITE_URL}about): who runs the shop, how ordering and payment work, contact
 - [Policies and privacy](${SITE_URL}policies): delivery, returns and replacements, cancellation and refunds, terms, contact
 - Every product and gift bag has its own page; the full list is in ${SITE_URL}sitemap.xml
 `;

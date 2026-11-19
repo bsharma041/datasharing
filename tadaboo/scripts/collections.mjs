@@ -76,7 +76,7 @@ ${VISIT}
 </head>
 <body>
 <header><div class="wrap"><a class="wm" href="/"><span class="t">TADA</span><span class="s">✦</span>BOO</a><a class="back" href="/">← Back to the shop</a></div></header>`;
-  const foot = `<footer><div class="wrap">© TadaBoo · <a href="/">Back to the shop</a> · <a href="/stationery/">Stationery</a> · <a href="/gift-bags/">Gift bags</a> · <a href="/guides/">Gift guides</a> · <a href="/policies">Policies &amp; privacy</a></div></footer>
+  const foot = `<footer><div class="wrap">© TadaBoo · <a href="/">Back to the shop</a> · <a href="/stationery/">Stationery</a> · <a href="/gift-bags/">Gift bags</a> · <a href="/guides/">Gift guides</a> · <a href="/about">About us</a> · <a href="/policies">Policies &amp; privacy</a></div></footer>
 </body>
 </html>
 `;
