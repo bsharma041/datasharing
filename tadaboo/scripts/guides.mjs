@@ -83,7 +83,7 @@ export function buildGuides({ entries, T, D, P, SITE_URL, inr, esc, stockDay, VI
         return [sumTable(b.map((e) => e.d.price), [10, 20, 30]),
           section("Ready-made bags", "Each bag is a ready set, so no shopping trip needed. Every order comes with a thank-you card and a bookmark. Need a whole class of one bag? WhatsApp us and we'll check stock.", b),
           `<p><a class="cta" href="/#bags">See all gift bags</a></p>`,
-          section("Or build your own", `Pick single items and we pack them. A custom bag needs items worth more than ${inr(T.customMin)} in total.`, it),
+          section("Or build your own", `Pick single items and we pack them. With single items, your order needs items worth more than ${inr(T.customMin)} before delivery.`, it),
           `<p><a class="cta line" href="/#build">Build a custom bag</a></p>`];
       },
       tips: ["<b>Pick one theme.</b> Matching bags look like a proper gift.", "<b>Order a few extra.</b> Someone always brings a cousin.", `<b>Order two weeks ahead.</b> Delivery anywhere in India takes ${days}.`],
@@ -97,7 +97,7 @@ export function buildGuides({ entries, T, D, P, SITE_URL, inr, esc, stockDay, VI
         this.desc = `Return gifts under ₹200 for kids' birthday parties: ${b.length ? `ready-packed bags from ${inr(b[0].d.price)}, ` : ""}pens, erasers and craft sets${it.length ? ` from ${inr(it[0].d.price)}` : ""}. Delivered anywhere in India.`;
         return [sumTable([...b.map((e) => e.d.price), ...it.slice(0, 2).map((e) => e.d.price)].sort((x, y) => x - y), [10, 20, 30]),
           section("Ready-packed bags under ₹200", "Open the box, hand them out. Every order comes with a thank-you card and a bookmark.", b),
-          section("Single gifts under ₹100", `One useful thing beats five forgettable ones. Mix any of these; a custom bag needs items worth more than ${inr(T.customMin)} in total, which a party order crosses easily.`, it),
+          section("Single gifts under ₹100", `One useful thing beats five forgettable ones. Mix any of these; an order with single items needs more than ${inr(T.customMin)} of items before delivery, which a party order crosses easily.`, it),
           `<p><a class="cta" href="/#shop">See everything in the shop</a></p>`];
       },
       tips: ["<b>Choose things that get used.</b> Pens, erasers and notebooks go to school the next day.", "<b>Same gift for everyone.</b> It saves the \"why did she get that one\" talk.", `<b>Order two weeks ahead.</b> Delivery takes ${days}.`],
@@ -162,7 +162,7 @@ export function buildGuides({ entries, T, D, P, SITE_URL, inr, esc, stockDay, VI
   <p><a class="cta" href="/#bags">See all gift bags</a><a class="cta line" href="${wa}" target="_blank" rel="noopener">WhatsApp us</a></p>`];
       },
       tips: ["<b>Check the stock tag on the photo.</b> Hampers are packed in small numbers.", `<b>Delivery is free from ${inr(free)}.</b> Below that it is ${inr(D.rates.india)}.`, `<b>Order two weeks before the birthday.</b> Delivery takes ${days}.`],
-      faq: [["Can I change what is inside a hamper?", `Build your own instead: pick single items worth more than ${inr(T.customMin)} and we pack them together.`]] },
+      faq: [["Can I change what is inside a hamper?", `Build your own instead: pick single items (more than ${inr(T.customMin)} of items, before delivery) and we pack them together.`]] },
   ];
 
   const head = (title, desc, url, extra = "") => `<!doctype html>

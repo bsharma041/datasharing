@@ -9,7 +9,7 @@
 window.TADABOO = {
   phone: "97306 24700",
   whatsapp: "919730624700",
-  customMin: 299, // custom bags: chosen items must total more than this
+  customMin: 299, // with any single item in the bag, items (gift bags included, delivery excluded) must total more than this
   deliveryDays: "7–10 days", // from order to the buyer's door, anywhere in India
   // Delivery: every order ships (no pickup). The checkout works out the charge from the buyer's PIN code.
   // Items worth ₹999 or more ship free anywhere in India. Below that: ₹99 anywhere in India, or ₹149 to
