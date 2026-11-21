@@ -30,15 +30,15 @@ window.TADABOO = {
   // The hourly task copies them into the Stockroom; each carries the Stockroom order code.
   // Without `url` the site falls back to the WebsitePublisher inbox (project 30289, form "tadaboo_order").
   orders: { url: "https://tadaboo-orders.bsharma-04.workers.dev/order", project: 30289, form: "tadaboo_order" },
-  // UPI ID for the "Pay with UPI" button after a website order, e.g. "tadaboo@okaxis".
-  // Leave empty until the owner adds it: the site then says payment details follow on confirmation.
-  upi: "8415037227@axl",
+  // Payment is through Razorpay (below). A UPI ID here, e.g. "tadaboo@okaxis", would add a UPI QR with the
+  // exact amount under "Pay now"; it is left empty so every payment and refund goes through Razorpay.
+  upi: "",
   upiName: "TadaBoo",
   // Optional fixed UPI QR image (from your bank or PhonePe/Paytm/BharatPe Business app), saved in website/img/,
   // e.g. "img/upi-qr.png". Used only when `upi` is empty; with a UPI ID the site makes a QR with the exact amount.
   upiQr: "",
-  // Razorpay Checkout: true shows "Pay now" (UPI, cards, netbanking) after a website order, with the UPI QR
-  // below as the other way to pay. Needs RAZORPAY_KEY_ID and the secrets on the order worker (wrangler.toml).
+  // Razorpay Checkout: true shows "Pay now" (UPI, cards, netbanking, wallets) after a website order, and on
+  // unpaid orders in "My orders". Needs RAZORPAY_KEY_ID and the secrets on the order worker (wrangler.toml).
   razorpay: true,
   // Fallback best sellers ("p:<product id>" or "b:<bag id>"), shown only when the Stockroom marks none.
   bestsellers: [],

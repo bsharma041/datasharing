@@ -16,7 +16,7 @@ TadaBoo sells stationery and ready-to-gift bags in India. Shoppers pick a ready-
 
 - We deliver anywhere in India, in 7–10 days from your order.
 - Orders with items worth ₹999 or more ship free. Smaller orders pay ₹99, or ₹149 to the North East (Assam, Arunachal Pradesh, Manipur, Meghalaya, Mizoram, Nagaland, Sikkim and Tripura).
-- Payment is by UPI, for the order total including delivery.
+- Payment is online through Razorpay: UPI, debit or credit card, netbanking or a wallet, for the order total including delivery. Orders placed on WhatsApp get a Razorpay payment link.
 
 ## Contact
 
