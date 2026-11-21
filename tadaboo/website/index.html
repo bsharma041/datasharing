@@ -403,11 +403,13 @@ section{padding-block:clamp(64px,8vw,96px)}
 .bagbtn .count{background:var(--btn);color:var(--btn-fg);border-radius:999px;min-width:22px;height:22px;display:inline-grid;place-items:center;font-size:.75rem;padding:0 6px}
 .bagbtn.bump{animation:bump .45s ease}
 @keyframes bump{40%{transform:scale(1.08)}}
-@media (max-width:760px){
+/* Two-row header up to 960px: seven menu links don't fit beside the logo and bag below that. */
+@media (max-width:960px){
   html{scroll-padding-top:108px}
   .top .wrap{flex-wrap:wrap;gap:0 16px;min-height:0;padding-block:6px 0}
   .bagbtn{margin-left:auto}
-  .top nav{order:3;width:100%;margin:0 -4px;overflow-x:auto;scrollbar-width:none;gap:0}
+  .top nav{order:3;width:100%;margin:0 -4px;overflow-x:auto;scrollbar-width:none;gap:0;padding-right:28px;
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)}
   .top nav::-webkit-scrollbar{display:none}
   .top nav a{padding:0 12px;font-size:.9rem;white-space:nowrap}
   /* Hiding the menu row on scroll-down must not move the page: the header keeps the same room
@@ -415,7 +417,8 @@ section{padding-block:clamp(64px,8vw,96px)}
      correction reads as scrolling up, and the row pops back: a wobble loop. */
   .top{--navh:44px;transition:margin-bottom .3s cubic-bezier(.16,1,.3,1)}
   .top nav{height:var(--navh);overflow-y:hidden;transition:height .3s cubic-bezier(.16,1,.3,1),opacity .2s}
-  .top.tuck:not(:has(nav:focus-within)){margin-bottom:var(--navh)}
+  .top.tuck{margin-bottom:var(--navh)}
+  .top.tuck:has(nav:focus-within){margin-bottom:0}
   .top.tuck nav:not(:focus-within){height:0;opacity:0;visibility:hidden}
 }
 
@@ -571,7 +574,7 @@ footer .wm{font-size:1.25rem}
 .db{flex:1;overflow:auto;overscroll-behavior:contain;padding:20px;display:flex;flex-direction:column;gap:18px}
 .df{padding:14px 20px 20px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:10px}
 .df .btn{width:100%}
-.df .walink{align-self:center;font-weight:600;font-size:.92rem;text-decoration:underline;text-underline-offset:4px;min-height:36px;display:inline-flex;align-items:center;color:var(--ink)}
+.df .walink{align-self:center;font-weight:600;font-size:.92rem;text-decoration:underline;text-underline-offset:4px;min-height:44px;display:inline-flex;align-items:center;color:var(--ink)}
 .fine{font-size:.82rem;color:var(--muted);margin:0}
 .fine a{color:var(--ink);font-weight:600}
 @media (max-width:560px){.df{padding:10px 16px 12px;gap:6px}.progress{font-size:.72rem;gap:4px}.progress li{padding:6px 2px}}
@@ -620,7 +623,9 @@ footer .wm{font-size:1.25rem}
 .paywith{display:flex;flex-direction:column;gap:8px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px 14px}
 .paywith .pt{display:flex;justify-content:space-between;align-items:center;gap:10px;font-weight:600}
 .paywith .pm{display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;list-style:none}
-.paywith .pm li{font-size:.8rem;font-weight:600;color:var(--ink);background:var(--stone);border-radius:999px;padding:3px 10px}
+.paywith .pm{gap:0 4px}
+.paywith .pm li{font-size:.85rem;color:var(--muted)}
+.paywith .pm li+li::before{content:"·";margin-right:4px}
 .secure{display:inline-flex;align-items:center;gap:5px;font-size:.78rem;font-weight:600;color:var(--ok);white-space:nowrap}
 .secure svg{width:13px;height:13px;flex:none}
 #payNow svg{width:17px;height:17px;flex:none}
@@ -916,6 +921,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
 @media (max-width:560px){.card,.bagcard{padding:7px 7px 12px;border-radius:18px}.fav{width:36px;height:36px;top:6px;right:6px}}
 @media (min-width:901px){footer .wrap{padding-right:190px}}
 .addrow .btn{white-space:nowrap;padding:0 16px}
+.ocard .addrow{flex-wrap:wrap}
 @media (max-width:400px){.addrow{gap:8px}.fav.flat{width:44px;height:44px}}
 .mine.first{padding-block:clamp(16px,3vw,28px) 0}
 @media (max-width:560px){.hero h1{font-size:2.2rem}.hero-copy{gap:16px}.tags li a{padding:7px 11px}.hero-media>img{height:300px}}
@@ -1005,7 +1011,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
           <a class="btn" href="#bags">Shop gift bags</a>
           <a class="link" href="#build">Build your own</a>
         </div>
-        <p class="trust"><a href="#reviews" id="trustRev" hidden></a><span>Pay by UPI, card or netbanking</span><span>Free card + bookmark in every order</span></p>
+        <p class="trust"><a href="#reviews" id="trustRev" hidden></a><span>Pay by UPI, card, netbanking or wallet</span><span>Free card + bookmark in every order</span></p>
         <ul class="facts">
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h11v9H3zM14 10h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/></svg><span><b>Delivered in 7–10 days</b>Thoughtfully packed, lovingly gifted</span></li>
           <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12v9H4v-9M2 7h20v5H2zM12 21V7M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg><span><b>Free delivery from ₹999</b>₹99 below that (₹149 to the North East)</span></li>
@@ -1303,7 +1309,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
         <h2>How to order</h2>
         <p>We deliver anywhere in India: free from ₹999, otherwise ₹99 (₹149 to the North East). Delivered in 7–10 days.</p>
         <div class="ways">
-          <div class="way"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><h3>Right here</h3><p>Fill your bag, place the order and pay online: UPI, card or netbanking.</p><button class="btn sm" type="button" data-openbagbtn>View my bag</button></div>
+          <div class="way"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><h3>Right here</h3><p>Fill your bag, place the order and pay online: UPI, card, netbanking or wallet.</p><button class="btn sm" type="button" data-openbagbtn>View my bag</button></div>
           <div class="way wa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.6-5.2A8.5 8.5 0 1 1 21 11.5z"/></svg><h3>On WhatsApp</h3><p>Send us your bag in one tap, or ask us anything first.</p><a class="btn sm wa" href="https://wa.me/919730624700" target="_blank" rel="noopener" data-chat>Chat on WhatsApp</a></div>
         </div>
         <a class="call" href="tel:+919730624700" aria-label="Call us on 97306 24700"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg><span class="num">97306&nbsp;24700</span></a>
@@ -1866,7 +1872,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     body.innerHTML = `
       <div id="prog">${progress(0)}</div>
       ${bl.length ? `<span class="group-t">Gift bags</span>${bl.map(bline).join("")}` : ""}
-      ${pl.length ? `<span class="group-t">Custom bag</span>${pl.map(([k, n]) => { const p = P[k.slice(2)]; return line(k, n, thumb(p.id), p.name, p.price); }).join("")}
+      ${pl.length ? `<span class="group-t">Single items</span>${pl.map(([k, n]) => { const p = P[k.slice(2)]; return line(k, n, thumb(p.id), p.name, p.price); }).join("")}
         <div class="meter${m.done ? " done" : ""}"><span class="bar"><i style="width:${m.pct}%"></i></span><span>${m.msg}</span></div>` : ""}
       <div class="totals" id="totals">${totalsHtml()}</div>
       <form class="form" id="oform" autocomplete="on">
@@ -1880,13 +1886,13 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
       </form>
       ${PAY_URL ? `<div class="paywith"><span class="pt">Pay online <span class="secure">${lockIcon}Secured by Razorpay</span></span>
         <ul class="pm" aria-label="Ways to pay"><li>UPI</li><li>Cards</li><li>Netbanking</li><li>Wallets</li></ul>
-        <span class="fine">Place your order and the payment window opens. Your order is confirmed once you pay.</span></div>` : ""}
+        <span class="fine">Place your order and the payment window opens. Once you've paid, we call or WhatsApp you to confirm it.</span></div>` : ""}
       <p class="fine">Delivered in ${T.deliveryDays}. Prefer to chat? The WhatsApp link below sends this same order. We use your details only for this order${form.offers === true ? " and the offers you asked for" : ""}. <a href="policies.html" target="_blank" rel="noopener">Privacy &amp; returns</a></p>`;
     foot.innerHTML = t.customOk ? `
       <p class="err" id="ferr" role="alert" hidden></p>
       <button class="btn" id="placeOrder" type="button">${placeLabel()}</button>
       <a class="walink" id="sendWa" target="_blank" rel="noopener" href="#">or send this order on WhatsApp</a>`
-      : `<button class="btn" disabled>Place order</button><span class="small">${m.msg}${bl.length ? " Or remove the loose items to order your gift bags now." : ""}</span>
+      : `<button class="btn" disabled>${PAY_URL ? "Place order &amp; pay" : "Place order"}</button><span class="small">${m.msg}${bl.length ? " Or remove the single items to order your gift bags now." : ""}</span>
       <a class="btn line sm wa-ask" href="https://wa.me/${T.whatsapp}" target="_blank" rel="noopener" data-chat>Ask us on WhatsApp</a>`;
     updateWa();
     if (t.customOk && !T.orders.url) sapi().catch(() => {});
@@ -2042,10 +2048,10 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     $("#drawerBody").innerHTML = myOrders.length ? `<p class="muted small">Orders from this phone. Tap Order again to put the same things back in your bag.</p>
       ${myOrders.map((o, i) => `<div class="ocard p${(i % 4) + 1}">
         <div class="row"><b class="num">${esc(o.id)}</b><span class="price">${inr(o.total)}</span></div>
-        <span class="small muted">${o.at ? when(o.at) + " · " : ""}${o.how === "wa" ? "Sent on WhatsApp" : "Placed on the website"}${o.paid ? ' · <span class="ostat ok">Paid</span>' : PAY_URL && o.how === "site" ? ' · <span class="ostat wait">Payment pending</span>' : ""}${o.eta ? ` · arriving ${esc(o.eta)}` : ""}</span>
+        <span class="small muted">${o.at ? when(o.at) + " · " : ""}${o.how === "wa" ? "Sent on WhatsApp" : "Placed on the website"}${o.paid ? ' · <span class="ostat ok">Paid</span>' : payable(o) ? ' · <span class="ostat wait">Payment pending</span>' : ""}${o.eta && !payable(o) ? ` · arriving ${esc(o.eta)}` : ""}</span>
         <ul>${(o.items || []).slice(0, 6).map((x) => `<li>${esc(x)}</li>`).join("")}${(o.items || []).length > 6 ? `<li>+ ${(o.items || []).length - 6} more</li>` : ""}</ul>
-        <div class="addrow">${isObj(o.cart) && Object.keys(o.cart).some(valid) ? `<button class="btn sm" data-reorder-id="${esc(o.id)}">Order again</button>` : ""}
-          ${PAY_URL && o.how === "site" && !o.paid ? `<button class="btn sm" data-pay-id="${esc(o.id)}">Pay ${inr(o.total)}</button>` : ""}
+        <div class="addrow">${payable(o) ? `<button class="btn sm" data-pay-id="${esc(o.id)}">Pay ${inr(o.total)}</button>` : ""}
+          ${isObj(o.cart) && Object.keys(o.cart).some(valid) ? `<button class="btn ${payable(o) ? "line " : ""}sm" data-reorder-id="${esc(o.id)}">Order again</button>` : ""}
           <a class="btn line sm" target="_blank" rel="noopener" href="https://wa.me/${T.whatsapp}?text=${encodeURIComponent(`Hi TadaBoo! A question about my order ${o.id}:`)}">Ask about it</a></div>
       </div>`).join("")}
       <button class="clear" type="button" data-forget-orders style="align-self:center">Forget my orders on this phone</button>`
@@ -2059,24 +2065,32 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
   // Online payment through Razorpay Checkout (catalog.js `razorpay: true`). The order worker makes the
   // Razorpay order from the total it stored, and checks Razorpay's signature before marking the order paid.
   const PAY_URL = T.razorpay === true && T.orders.url ? T.orders.url.replace(/\/order$/, "/pay") : "";
+  // Pay online only for website orders placed since online payment went live, while the order is held
+  // (24 hours, with a day's grace; the worker applies the same rule). Older orders were paid by UPI.
+  const PAY_SINCE = Date.parse("2026-11-21T08:57:55Z"), PAY_HOURS = 48;
+  const payable = (o) => !!PAY_URL && !!o && o.how !== "wa" && !o.paid && o.at >= PAY_SINCE && Date.now() - o.at < PAY_HOURS * 3600e3;
   let rzpLib = null, shown = null;
-  const loadRzp = () => rzpLib || (rzpLib = new Promise((res, rej) => { if (window.Razorpay) return res(window.Razorpay); const sc = document.createElement("script"); sc.src = "https://checkout.razorpay.com/v1/checkout.js"; sc.onload = () => (window.Razorpay ? res(window.Razorpay) : rej()); sc.onerror = () => { rzpLib = null; rej(); }; document.head.append(sc); }));
+  const loadRzp = () => rzpLib || (rzpLib = new Promise((res, rej) => { if (window.Razorpay) return res(window.Razorpay); const sc = document.createElement("script"); sc.src = "https://checkout.razorpay.com/v1/checkout.js"; sc.onload = () => (window.Razorpay ? res(window.Razorpay) : (rzpLib = null, rej())); sc.onerror = () => { sc.remove(); rzpLib = null; rej(); }; document.head.append(sc); }));
   const markPaidHere = (id, pid) => {
     const lp = lastPlaced(); if (lp && lp.id === id) { lp.paid = pid; try { localStorage.setItem(PLACED_KEY, JSON.stringify(lp)); } catch {} }
     const m = myOrders.find((x) => x.id === id); if (m) { m.paid = pid; saveOrders(); }
   };
   async function payOnline(o, btn) {
     const msg = $("#payerr"), label = btn.innerHTML;
-    const post = (p, body) => fetch(PAY_URL + p, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json().catch(() => ({})));
+    const post = (p, body) => fetch(PAY_URL + p, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then(async (r) => ({ ...(await r.json().catch(() => ({}))), status: r.status }));
     const fail = (t) => { btn.disabled = false; btn.innerHTML = label; if (msg) { msg.textContent = t; msg.hidden = false; } else toast(t); };
     if (msg) msg.hidden = true; btn.disabled = true; btn.textContent = "Opening secure payment…";
     try {
-      const [Rzp, c] = await Promise.all([loadRzp(), post("/create", { order_id: o.id })]);
+      loadRzp().catch(() => {}); // start fetching Checkout while the payment is set up
+      let c = await post("/create", { order_id: o.id });
+      if (c.status === 404) { await new Promise((r) => setTimeout(r, 2500)); c = await post("/create", { order_id: o.id }); } // a just-placed order can take a moment to show up
       if (c.paid) { markPaidHere(o.id, o.paid || "paid"); return renderPlaced({ ...o, paid: o.paid || "paid" }); }
+      if (c.expired) return fail("This order is past its 24-hour hold, so it can't be paid online. WhatsApp us and we'll sort it out.");
       if (!c.success) return fail("Online payment isn't available right now. Please try again in a few minutes, or WhatsApp us for a payment link.");
+      const Rzp = await loadRzp();
       const rz = new Rzp({
         key: c.key, order_id: c.order_id, amount: c.amount, currency: "INR", name: "TadaBoo", description: "Order " + o.id,
-        prefill: { name: c.name, contact: c.phone }, notes: { order_id: o.id }, theme: { color: "#FF6B2C" },
+        prefill: { name: o.name || "", contact: o.phone || "" }, notes: { order_id: o.id }, theme: { color: "#FF6B2C" },
         modal: { ondismiss: () => { if (btn.isConnected) { btn.disabled = false; btn.innerHTML = label; } } },
         handler: (r) => {
           markPaidHere(o.id, r.razorpay_payment_id);
@@ -2090,7 +2104,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
   }
   function renderPlaced(o) {
     shown = o;
-    const due = PAY_URL && !o.paid;
+    const due = payable(o);
     header(due ? "Complete your payment" : o.paid ? "Payment received" : "Order placed");
     const first = String(o.name || "").split(/\s+/)[0];
     $("#drawerBody").innerHTML = `${progress(o.paid ? 3 : 2)}<div class="placed">
@@ -2144,7 +2158,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
       <a class="btn line sm" target="_blank" rel="noopener" href="${wa}">Questions? WhatsApp us</a>`
       : `<a class="btn wa" target="_blank" rel="noopener" href="${paidWa}">${waIcon}Paid? Send us the screenshot on WhatsApp</a>
       <span class="small">We confirm your order once we see the payment. Please pay within 24 hours, or the order is cancelled.</span>`;
-    if (PAY_URL) $("#drawerFoot").innerHTML = `<p class="err" id="payerr" role="alert" hidden></p>
+    if (due) $("#drawerFoot").innerHTML = `<p class="err" id="payerr" role="alert" hidden></p>
       <button class="btn" id="payNow" type="button">${lockIcon}Pay ${inr(o.total)} now</button>
       <span class="paytrust"><span class="secure">${lockIcon}Secured by Razorpay</span><span class="small">UPI · Cards · Netbanking · Wallets</span></span>
       <a class="walink" target="_blank" rel="noopener" href="${upi || UPI_QR ? paidWa : wa}">${upi || UPI_QR ? "Paid by UPI QR? Send the screenshot" : "Trouble paying? WhatsApp us"}</a>`;

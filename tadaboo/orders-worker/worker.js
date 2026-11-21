@@ -12,8 +12,12 @@
 //
 // Razorpay: var RAZORPAY_KEY_ID (wrangler.toml, public), secrets RAZORPAY_KEY_SECRET and RAZORPAY_WEBHOOK_SECRET.
 // The amount charged is the total stored with the order when it was placed, never a number sent with /pay/create.
-// A paid order carries `payment: { status: "paid", id, amount (₹), via, at }`; the owner checks the amount
-// against the order before dispatch (the site works the total out in the buyer's browser).
+// A paid order carries `payment: { status: "paid", id, amount (₹), via, at }`. The site works the total out in
+// the buyer's browser, so /order checks it adds up (items in the order code + a known delivery charge) and
+// /pay/create refuses an order that doesn't (`check`). Unit prices still come from the browser: the owner
+// checks the paid amount against the order before dispatch. A second payment for an already-paid order is
+// kept in `extra_payments` (to refund), never written over the first.
+// Online payment is only offered for orders placed after it went live (PAY_SINCE) and for PAY_HOURS after.
 //
 // Visits: the site sends one hit per browser session (sessionStorage), `new` on the first visit from that device
 // (localStorage). Nothing about the visitor is stored (no IP, no cookie): only a count per day.
@@ -64,6 +68,23 @@ async function hmac(secret, msg) {
 }
 const payReady = (env) => !!(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET);
 const ORDER_ID = /^TB-\d{6}-[A-Z0-9]{4}$/;
+const PAY_SINCE = Date.parse('2026-11-21T08:57:55Z'), PAY_HOURS = 48;
+// Delivery charges the site can add (catalog.js delivery.rates; free from FREE_ABOVE in items).
+const FEES = [99, 149], FREE_ABOVE = 999;
+// Does the total add up? Items from the order code (kind:id:qty:units:unitPrice, …) plus a known delivery charge.
+function totalCheck(f) {
+  const lines = String(f.order_code || '').split('|')[2] || '';
+  let items = 0;
+  for (const l of lines.split(',')) {
+    const p = l.split(':'), n = Number(p[2]), price = Number(p[4]);
+    if (p.length !== 5 || !Number.isInteger(n) || n < 1 || !Number.isFinite(price) || price < 0) return 'bad order code';
+    items += n * price;
+  }
+  const total = Number(f.total), fee = total - items;
+  if (!Number.isFinite(total) || items <= 0) return 'bad total';
+  if (items >= FREE_ABOVE ? fee !== 0 : !FEES.includes(fee)) return `total ${total} doesn't match items ${items} + delivery`;
+  return '';
+}
 
 async function readJson(req, max = 4000) {
   const text = await req.text();
@@ -76,6 +97,12 @@ async function markPaid(env, id, p) {
   const key = `order:${id}`, o = await env.ORDERS.get(key, 'json');
   if (!o) return false;
   if (o.payment?.status === 'paid' && o.payment.id === p.id) return true;
+  if (o.payment?.status === 'paid') {                                   // a second, different payment: keep both
+    o.extra_payments = (o.extra_payments || []).filter((x) => x.id !== p.id);
+    if (o.extra_payments.length < 5) o.extra_payments.push({ id: p.id, amount: p.amount, via: p.via, at: new Date().toISOString(), note: 'paid twice: refund this one' });
+    await env.ORDERS.put(key, JSON.stringify(o), { metadata: { status: o.status } });
+    return true;
+  }
   o.payment = { status: 'paid', id: p.id, amount: p.amount, via: p.via, at: new Date().toISOString(), rzp_order: p.rzp_order || o.rzp?.order_id || '' };
   if (o.rzp?.amount && Math.round(p.amount * 100) !== o.rzp.amount) o.payment.note = `amount differs from order (${o.rzp.amount / 100})`;
   await env.ORDERS.put(key, JSON.stringify(o), { metadata: { status: o.status } });
@@ -93,10 +120,12 @@ async function payCreate(req, env, origin) {
   if (!o) return json({ success: false, error: 'Order not found' }, 404, h);
   if (o.payment?.status === 'paid') return json({ success: false, error: 'Already paid', paid: true }, 409, h);
   if (o.status === 'rejected') return json({ success: false, error: 'Order cancelled' }, 409, h);
+  const placed = Date.parse(o.created_at);
+  if (!(placed >= PAY_SINCE) || Date.now() - placed > PAY_HOURS * 3600e3) return json({ success: false, error: 'Order too old to pay online', expired: true }, 410, h);
+  if (o.check) return json({ success: false, error: 'Order total needs checking' }, 422, h);
   const amount = Math.round(Number(o.fields?.total) * 100);
   if (!Number.isFinite(amount) || amount < 100 || amount > 5000000) return json({ success: false, error: 'Bad order total' }, 422, h);
-  const out = (rid) => json({ success: true, key: env.RAZORPAY_KEY_ID, order_id: rid, amount, currency: 'INR',
-    name: o.fields.name || '', phone: o.fields.phone || '' }, 200, h);
+  const out = (rid) => json({ success: true, key: env.RAZORPAY_KEY_ID, order_id: rid, amount, currency: 'INR' }, 200, h);
   // Reuse the Razorpay order made for this order (Checkout opened twice, page reloaded).
   if (o.rzp?.order_id && o.rzp.amount === amount) return out(o.rzp.order_id);
   let r, body;
@@ -175,6 +204,7 @@ async function placeOrder(req, env, origin, ctx) {
   if (!(await env.ORDERS.get(key))) {                                                     // same order sent twice: keep the first
     const order = { id, form_name: 'tadaboo_order', status: 'new', created_at: new Date().toISOString(), fields,
       metadata: { country: req.cf?.country || '', city: req.cf?.city || '' } };
+    const check = totalCheck(fields); if (check) order.check = check;
     await env.ORDERS.put(key, JSON.stringify(order), { metadata: { status: 'new' } });
     if (env.WP_KEY && ctx) ctx.waitUntil(copyToWebsitePublisher(env, key, order));
   }
