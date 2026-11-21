@@ -37,6 +37,9 @@ window.TADABOO = {
   // Optional fixed UPI QR image (from your bank or PhonePe/Paytm/BharatPe Business app), saved in website/img/,
   // e.g. "img/upi-qr.png". Used only when `upi` is empty; with a UPI ID the site makes a QR with the exact amount.
   upiQr: "",
+  // Razorpay Checkout: true shows "Pay now" (UPI, cards, netbanking) after a website order, with the UPI QR
+  // below as the other way to pay. Needs RAZORPAY_KEY_ID and the secrets on the order worker (wrangler.toml).
+  razorpay: false,
   // Fallback best sellers ("p:<product id>" or "b:<bag id>"), shown only when the Stockroom marks none.
   bestsellers: [],
 

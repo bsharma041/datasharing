@@ -1695,7 +1695,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
   // Drawer header: Back on the left, "Your bag" on the right. The title stays for screen readers.
   const backBtn = `<button class="back" data-back><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>Back</button>`;
   // Checkout steps: 0 bag, 1 delivery details, 2 pay.
-  const progress = (step) => `<ol class="progress" aria-label="Checkout steps">${["Bag", "Delivery", UPI_ID || UPI_QR ? "Pay by UPI" : "Pay"].map((l, i) => `<li class="${i < step ? "done" : i === step ? "on" : ""}"${i === step ? ' aria-current="step"' : ""}>${i < step ? "✓" : i + 1} · ${l}</li>`).join("")}</ol>`;
+  const progress = (step) => `<ol class="progress" aria-label="Checkout steps">${["Bag", "Delivery", !PAY_URL && (UPI_ID || UPI_QR) ? "Pay by UPI" : "Pay"].map((l, i) => `<li class="${i < step ? "done" : i === step ? "on" : ""}"${i === step ? ' aria-current="step"' : ""}>${i < step ? "✓" : i + 1} · ${l}</li>`).join("")}</ol>`;
   function header(title, { back = false, toBag = false } = {}) {
     const h = $("#drawerTitle"); h.textContent = title; h.classList.toggle("sr", back || toBag);
     $("#drawerLead").innerHTML = back ? backBtn : "";
@@ -2008,7 +2008,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     $("#drawerBody").innerHTML = myOrders.length ? `<p class="muted small">Orders from this phone. Tap Order again to put the same things back in your bag.</p>
       ${myOrders.map((o, i) => `<div class="ocard p${(i % 4) + 1}">
         <div class="row"><b class="num">${esc(o.id)}</b><span class="price">${inr(o.total)}</span></div>
-        <span class="small muted">${o.at ? when(o.at) + " · " : ""}${o.how === "wa" ? "Sent on WhatsApp" : "Placed on the website"}${o.eta ? ` · arriving ${esc(o.eta)}` : ""}</span>
+        <span class="small muted">${o.at ? when(o.at) + " · " : ""}${o.how === "wa" ? "Sent on WhatsApp" : "Placed on the website"}${o.paid ? " · Paid" : ""}${o.eta ? ` · arriving ${esc(o.eta)}` : ""}</span>
         <ul>${(o.items || []).slice(0, 6).map((x) => `<li>${esc(x)}</li>`).join("")}${(o.items || []).length > 6 ? `<li>+ ${(o.items || []).length - 6} more</li>` : ""}</ul>
         <div class="addrow">${isObj(o.cart) && Object.keys(o.cart).some(valid) ? `<button class="btn sm" data-reorder-id="${esc(o.id)}">Order again</button>` : ""}
           <a class="btn line sm" target="_blank" rel="noopener" href="https://wa.me/${T.whatsapp}?text=${encodeURIComponent(`Hi TadaBoo! A question about my order ${o.id}:`)}">Ask about it</a></div>
@@ -2021,7 +2021,40 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     const r = e.target.closest("[data-reorder-id]"); if (r) { const o = myOrders.find((x) => x.id === r.dataset.reorderId); if (o) reorder(o); }
     if (e.target.closest("[data-forget-orders]")) { myOrders.length = 0; try { localStorage.removeItem(ORDERS_KEY); localStorage.removeItem(PLACED_KEY); } catch {} renderOrders(); renderAll(); toast("Your order history is cleared from this phone"); $("#closeDrawer").focus(); }
   });
+  // Online payment through Razorpay Checkout (catalog.js `razorpay: true`). The order worker makes the
+  // Razorpay order from the total it stored, and checks Razorpay's signature before marking the order paid.
+  const PAY_URL = T.razorpay === true && T.orders.url ? T.orders.url.replace(/\/order$/, "/pay") : "";
+  let rzpLib = null, shown = null;
+  const loadRzp = () => rzpLib || (rzpLib = new Promise((res, rej) => { if (window.Razorpay) return res(window.Razorpay); const sc = document.createElement("script"); sc.src = "https://checkout.razorpay.com/v1/checkout.js"; sc.onload = () => (window.Razorpay ? res(window.Razorpay) : rej()); sc.onerror = () => { rzpLib = null; rej(); }; document.head.append(sc); }));
+  const markPaidHere = (id, pid) => {
+    const lp = lastPlaced(); if (lp && lp.id === id) { lp.paid = pid; try { localStorage.setItem(PLACED_KEY, JSON.stringify(lp)); } catch {} }
+    const m = myOrders.find((x) => x.id === id); if (m) { m.paid = pid; saveOrders(); }
+  };
+  async function payOnline(o, btn) {
+    const msg = $("#payerr"), label = `Pay ${inr(o.total)} now`;
+    const post = (p, body) => fetch(PAY_URL + p, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }).then((r) => r.json().catch(() => ({})));
+    const fail = (t) => { btn.disabled = false; btn.textContent = label; msg.textContent = t; msg.hidden = false; };
+    msg.hidden = true; btn.disabled = true; btn.textContent = "Opening secure payment…";
+    try {
+      const [Rzp, c] = await Promise.all([loadRzp(), post("/create", { order_id: o.id })]);
+      if (c.paid) { markPaidHere(o.id, o.paid || "paid"); return renderPlaced({ ...o, paid: o.paid || "paid" }); }
+      if (!c.success) return fail("Online payment isn't available right now. Please pay by UPI below.");
+      const rz = new Rzp({
+        key: c.key, order_id: c.order_id, amount: c.amount, currency: "INR", name: "TadaBoo", description: "Order " + o.id,
+        prefill: { name: c.name, contact: c.phone }, notes: { order_id: o.id }, theme: { color: "#FF6B2C" },
+        modal: { ondismiss: () => { if (btn.isConnected) { btn.disabled = false; btn.textContent = label; } } },
+        handler: (r) => {
+          markPaidHere(o.id, r.razorpay_payment_id);
+          renderPlaced({ ...o, paid: r.razorpay_payment_id }); announce(`Payment of ${inr(o.total)} received`);
+          post("/verify", { order_id: o.id, ...r }).catch(() => {}); // the webhook records it too, if this call is lost
+        },
+      });
+      rz.on("payment.failed", () => fail("That payment didn't go through. If money left your account, your bank returns it. Try again, or pay by UPI below."));
+      rz.open();
+    } catch { fail("Couldn't open online payment. Please pay by UPI below."); }
+  }
   function renderPlaced(o) {
+    shown = o;
     header("Order placed");
     const first = String(o.name || "").split(/\s+/)[0];
     $("#drawerBody").innerHTML = `${progress(2)}<div class="placed">
@@ -2045,10 +2078,17 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     const paidWa = `https://wa.me/${T.whatsapp}?text=${encodeURIComponent(`Hi TadaBoo! I've paid ${inr(o.total)} for order ${o.id}. Screenshot attached.`)}`;
     // QR: exact amount and note when we have the UPI ID, else the fixed QR image.
     const box = $("#payqr");
+    if (o.paid) {
+      box.innerHTML = `<b class="payamt">Paid ${inr(o.total)} ✓</b>${/^pay_/.test(o.paid) ? `<span class="small">Payment ID <span class="num">${esc(o.paid)}</span></span>` : ""}
+        <span class="small">Thank you! We'll call or WhatsApp you to confirm and then pack your order.</span>`;
+      box.hidden = false;
+      $("#drawerFoot").innerHTML = `<a class="btn line sm" target="_blank" rel="noopener" href="${wa}">Questions? WhatsApp us</a>`;
+      return;
+    }
     if (upi || UPI_QR) {
       const id = upi ? `<span class="upiid num">${esc(upi)}</span>` : "";
       box.innerHTML = upi
-        ? `<b class="payamt">Pay ${inr(o.total)} by UPI</b><span class="small">Scan the QR, or pay to this UPI ID</span>${id}
+        ? `<b class="payamt">${PAY_URL ? "Or pay" : "Pay"} ${inr(o.total)} by UPI</b><span class="small">Scan the QR, or pay to this UPI ID</span>${id}
           <span class="qrimg"><span class="qrwait">Loading QR…</span></span>
           <span class="small">UPI ID</span>${id}
           <span class="small">Add <b class="num">${esc(o.id)}</b> as the note. Scanning fills in the amount and note.</span>
@@ -2065,6 +2105,10 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
       <a class="btn line sm" target="_blank" rel="noopener" href="${wa}">Questions? WhatsApp us</a>`
       : `<a class="btn wa" target="_blank" rel="noopener" href="${paidWa}">${waIcon}Paid? Send us the screenshot on WhatsApp</a>
       <span class="small">We confirm your order once we see the payment. Please pay within 24 hours, or the order is cancelled.</span>`;
+    if (PAY_URL) $("#drawerFoot").innerHTML = `<button class="btn" id="payNow" type="button">Pay ${inr(o.total)} now</button>
+      <span class="small">UPI, cards, netbanking or wallets, through Razorpay's secure checkout.</span>
+      <p class="err" id="payerr" role="alert" hidden></p>
+      <a class="btn line sm" target="_blank" rel="noopener" href="${upi || UPI_QR ? paidWa : wa}">${upi || UPI_QR ? "Paid by UPI QR? Send the screenshot" : "Questions? WhatsApp us"}</a>`;
   }
   function updateWa() {
     // A lone surrogate (half an emoji, e.g. from a cut-off paste) makes encodeURIComponent throw.
@@ -2088,6 +2132,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     if (e.target.closest("#copyOrder")) { sent = true; copy(orderText(), "Order copied. Paste it in WhatsApp to " + T.phone); }
     if (e.target.closest("#sendWa")) { rememberWa(); sent = true; }
     if (e.target.closest("#placeOrder")) placeOrder(e.target.closest("#placeOrder"));
+    if (e.target.closest("#payNow") && shown) payOnline(shown, e.target.closest("#payNow"));
     if (e.target.closest("[data-back]")) {
       // Back: a bag's item -> that bag; anything opened from the bag -> the bag; else close.
       const left = view.product;

@@ -11,3 +11,10 @@ id = "154d433b7a344f09b99ac01f0903a9d0"
 
 # Owner token (never committed): npx wrangler@4 secret put ADMIN_TOKEN
 # The same token goes in ~/.tadaboo/orders.env as TADABOO_ORDERS_TOKEN (with TADABOO_ORDERS_URL).
+
+# Razorpay. The Key ID is public (Checkout shows it in the browser); the two secrets are never committed:
+#   npx wrangler@4 secret put RAZORPAY_KEY_SECRET       (Dashboard → Account & Settings → API Keys)
+#   npx wrangler@4 secret put RAZORPAY_WEBHOOK_SECRET   (the secret you type when adding the webhook)
+# Webhook URL: https://tadaboo-orders.bsharma-04.workers.dev/pay/webhook, events payment.captured and order.paid.
+[vars]
+RAZORPAY_KEY_ID = ""

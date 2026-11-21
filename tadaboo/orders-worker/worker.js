@@ -6,6 +6,14 @@
 //   POST /hit                   public, from www.tadaboo.com: { new, src, land } → adds one visit to today's count
 //                               (src = where the visitor came from, land = kind of page; see SRC and LAND)
 //   GET  /views?days=30         owner only → { days: { "2026-10-29": { visits, new }, ... } } (dates in India time)
+//   POST /pay/create            public, from www.tadaboo.com: { order_id } → a Razorpay order for that stored order's total
+//   POST /pay/verify            public, from www.tadaboo.com: Checkout's { order_id, razorpay_* } → marks the order paid
+//   POST /pay/webhook           from Razorpay (signed): payment.captured / order.paid → marks the order paid
+//
+// Razorpay: var RAZORPAY_KEY_ID (wrangler.toml, public), secrets RAZORPAY_KEY_SECRET and RAZORPAY_WEBHOOK_SECRET.
+// The amount charged is the total stored with the order when it was placed, never a number sent with /pay/create.
+// A paid order carries `payment: { status: "paid", id, amount (₹), via, at }`; the owner checks the amount
+// against the order before dispatch (the site works the total out in the buyer's browser).
 //
 // Visits: the site sends one hit per browser session (sessionStorage), `new` on the first visit from that device
 // (localStorage). Nothing about the visitor is stored (no IP, no cookie): only a count per day.
@@ -46,6 +54,98 @@ const sameSecret = (a, b) => {
   let d = 0; for (let i = 0; i < a.length; i++) d |= a.charCodeAt(i) ^ b.charCodeAt(i); return d === 0;
 };
 const isOwner = (req, env) => sameSecret((req.headers.get('authorization') || '').replace(/^Bearer\s+/i, ''), env.ADMIN_TOKEN);
+
+// ---- Razorpay ----
+const RZP = 'https://api.razorpay.com/v1';
+const hex = (buf) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+async function hmac(secret, msg) {
+  const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  return hex(await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(msg)));
+}
+const payReady = (env) => !!(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET);
+const ORDER_ID = /^TB-\d{6}-[A-Z0-9]{4}$/;
+
+async function readJson(req, max = 4000) {
+  const text = await req.text();
+  if (text.length > max) return null;
+  try { const b = JSON.parse(text); return b && typeof b === 'object' ? b : null; } catch { return null; }
+}
+
+// Note a payment on the stored order. Same payment seen twice (Checkout and webhook): kept once.
+async function markPaid(env, id, p) {
+  const key = `order:${id}`, o = await env.ORDERS.get(key, 'json');
+  if (!o) return false;
+  if (o.payment?.status === 'paid' && o.payment.id === p.id) return true;
+  o.payment = { status: 'paid', id: p.id, amount: p.amount, via: p.via, at: new Date().toISOString(), rzp_order: p.rzp_order || o.rzp?.order_id || '' };
+  if (o.rzp?.amount && Math.round(p.amount * 100) !== o.rzp.amount) o.payment.note = `amount differs from order (${o.rzp.amount / 100})`;
+  await env.ORDERS.put(key, JSON.stringify(o), { metadata: { status: o.status } });
+  return true;
+}
+
+async function payCreate(req, env, origin) {
+  const h = cors(origin, env);
+  if (!h) return json({ success: false, error: 'Origin not allowed' }, 403);
+  if (!payReady(env)) return json({ success: false, error: 'Online payment is not set up' }, 503, h);
+  const b = await readJson(req);
+  const id = String(b?.order_id || '');
+  if (!ORDER_ID.test(id)) return json({ success: false, error: 'Bad order id' }, 422, h);
+  const key = `order:${id}`, o = await env.ORDERS.get(key, 'json');
+  if (!o) return json({ success: false, error: 'Order not found' }, 404, h);
+  if (o.payment?.status === 'paid') return json({ success: false, error: 'Already paid', paid: true }, 409, h);
+  if (o.status === 'rejected') return json({ success: false, error: 'Order cancelled' }, 409, h);
+  const amount = Math.round(Number(o.fields?.total) * 100);
+  if (!Number.isFinite(amount) || amount < 100 || amount > 5000000) return json({ success: false, error: 'Bad order total' }, 422, h);
+  const out = (rid) => json({ success: true, key: env.RAZORPAY_KEY_ID, order_id: rid, amount, currency: 'INR',
+    name: o.fields.name || '', phone: o.fields.phone || '' }, 200, h);
+  // Reuse the Razorpay order made for this order (Checkout opened twice, page reloaded).
+  if (o.rzp?.order_id && o.rzp.amount === amount) return out(o.rzp.order_id);
+  let r, body;
+  try {
+    r = await fetch(`${RZP}/orders`, {
+      method: 'POST',
+      headers: { authorization: 'Basic ' + btoa(`${env.RAZORPAY_KEY_ID}:${env.RAZORPAY_KEY_SECRET}`), 'content-type': 'application/json' },
+      body: JSON.stringify({ amount, currency: 'INR', receipt: id, notes: { order_id: id } }),
+      signal: AbortSignal.timeout(15000),
+    });
+    body = await r.json().catch(() => null);
+  } catch { return json({ success: false, error: 'Payment service unreachable' }, 502, h); }
+  if (!r.ok || !body?.id) return json({ success: false, error: 'Payment service error' }, 502, h);
+  o.rzp = { order_id: body.id, amount, at: new Date().toISOString() };
+  await env.ORDERS.put(key, JSON.stringify(o), { metadata: { status: o.status } });
+  return out(body.id);
+}
+
+// Checkout's success callback. The signature proves Razorpay saw this payment for our Razorpay order.
+async function payVerify(req, env, origin) {
+  const h = cors(origin, env);
+  if (!h) return json({ success: false, error: 'Origin not allowed' }, 403);
+  if (!payReady(env)) return json({ success: false, error: 'Online payment is not set up' }, 503, h);
+  const b = await readJson(req);
+  const id = String(b?.order_id || ''), ro = String(b?.razorpay_order_id || ''), rp = String(b?.razorpay_payment_id || ''), sig = String(b?.razorpay_signature || '');
+  if (!ORDER_ID.test(id) || !/^order_\w{6,40}$/.test(ro) || !/^pay_\w{6,40}$/.test(rp) || !/^[0-9a-f]{64}$/.test(sig)) return json({ success: false, error: 'Bad payment details' }, 422, h);
+  const o = await env.ORDERS.get(`order:${id}`, 'json');
+  if (!o || o.rzp?.order_id !== ro) return json({ success: false, error: 'Order not found' }, 404, h);
+  if (!sameSecret(await hmac(env.RAZORPAY_KEY_SECRET, `${ro}|${rp}`), sig)) return json({ success: false, error: 'Signature mismatch' }, 400, h);
+  await markPaid(env, id, { id: rp, amount: o.rzp.amount / 100, via: 'checkout', rzp_order: ro });
+  return json({ success: true, id, paid: true }, 200, h);
+}
+
+// Razorpay webhook (Dashboard → Webhooks, events payment.captured and order.paid). Catches payments
+// where the buyer closed the page before Checkout called back.
+async function payWebhook(req, env) {
+  if (!env.RAZORPAY_WEBHOOK_SECRET) return json({ success: false }, 503);
+  const raw = await req.text();
+  if (raw.length > 100000) return json({ success: false }, 413);
+  const sig = req.headers.get('x-razorpay-signature') || '';
+  if (!sameSecret(await hmac(env.RAZORPAY_WEBHOOK_SECRET, raw), sig)) return json({ success: false }, 400);
+  let ev; try { ev = JSON.parse(raw); } catch { return json({ success: false }, 400); }
+  const p = ev?.payload?.payment?.entity;
+  if (!['payment.captured', 'order.paid'].includes(ev?.event) || !p?.id) return json({ success: true, ignored: true });
+  const id = String(p.notes?.order_id || ev?.payload?.order?.entity?.receipt || '');
+  if (!ORDER_ID.test(id)) return json({ success: true, ignored: true });
+  await markPaid(env, id, { id: p.id, amount: (p.amount || 0) / 100, via: 'webhook', rzp_order: p.order_id || '' });
+  return json({ success: true });
+}
 
 async function placeOrder(req, env, origin, ctx) {
   const h = cors(origin, env);
@@ -173,6 +273,9 @@ export default {
     if (req.method === 'OPTIONS') { const h = cors(origin, env); return new Response(null, { status: h ? 204 : 403, headers: h || {} }); }
     if (url.pathname === '/order' && req.method === 'POST') return placeOrder(req, env, origin, ctx);
     if (url.pathname === '/hit' && req.method === 'POST') return hit(req, env, origin);
+    if (url.pathname === '/pay/create' && req.method === 'POST') return payCreate(req, env, origin);
+    if (url.pathname === '/pay/verify' && req.method === 'POST') return payVerify(req, env, origin);
+    if (url.pathname === '/pay/webhook' && req.method === 'POST') return payWebhook(req, env);
     if (url.pathname === '/views' && req.method === 'GET') return isOwner(req, env) ? listViews(url, env) : json({ success: false, error: 'Unauthorized' }, 401);
     if (url.pathname === '/orders' && req.method === 'GET') return isOwner(req, env) ? listOrders(url, env) : json({ success: false, error: 'Unauthorized' }, 401);
     const m = /^\/orders\/(TB-\d{6}-[A-Z0-9]{4})\/status$/.exec(url.pathname);

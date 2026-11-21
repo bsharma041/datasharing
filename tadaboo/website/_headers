@@ -22,9 +22,10 @@
 # Security headers. The inline script is allowed by its hash: after editing the <script> in
 # index.html, run `python3 tadaboo/scripts/csp_hash.py` or the live shop will stop working.
 # Website orders load the WebsitePublisher form client (cdn.) and post to its API.
+# Razorpay Checkout: its script (checkout.), its payment frame (api.) and its logging (lumberjack.).
 # Inline style attributes are used by the page, so style-src needs 'unsafe-inline'.
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.websitepublisher.ai 'sha256-s76SVhgn11aE6OtayajEEoTzjBGT6q3Qf2KgknuE01k='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://tadaboo-orders.bsharma-04.workers.dev https://api.websitepublisher.ai https://*.websitepublisher.ai; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.websitepublisher.ai https://checkout.razorpay.com 'sha256-JErPEy2Q+kW3j8/DrkyGC17+tyJB3wc4PpPuldUIPLg='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://*.razorpay.com; frame-src https://api.razorpay.com https://checkout.razorpay.com; connect-src 'self' https://tadaboo-orders.bsharma-04.workers.dev https://api.razorpay.com https://lumberjack.razorpay.com https://api.websitepublisher.ai https://*.websitepublisher.ai; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
