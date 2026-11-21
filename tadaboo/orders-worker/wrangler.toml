@@ -17,4 +17,4 @@ id = "154d433b7a344f09b99ac01f0903a9d0"
 #   npx wrangler@4 secret put RAZORPAY_WEBHOOK_SECRET   (the secret you type when adding the webhook)
 # Webhook URL: https://tadaboo-orders.bsharma-04.workers.dev/pay/webhook, events payment.captured and order.paid.
 [vars]
-RAZORPAY_KEY_ID = ""
+RAZORPAY_KEY_ID = "rzp_live_U2lc9Qn4v6NEdp"

@@ -39,7 +39,7 @@ window.TADABOO = {
   upiQr: "",
   // Razorpay Checkout: true shows "Pay now" (UPI, cards, netbanking) after a website order, with the UPI QR
   // below as the other way to pay. Needs RAZORPAY_KEY_ID and the secrets on the order worker (wrangler.toml).
-  razorpay: false,
+  razorpay: true,
   // Fallback best sellers ("p:<product id>" or "b:<bag id>"), shown only when the Stockroom marks none.
   bestsellers: [],
 
