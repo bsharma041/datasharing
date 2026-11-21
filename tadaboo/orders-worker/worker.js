@@ -30,7 +30,7 @@
 // each NEW order is also filed in WebsitePublisher's lead capture (form tadaboo_order), in the background.
 // The Stockroom reads those leads through the owner's WebsitePublisher connector while it is open, so a
 // website order shows up there within a minute. The order is stored here first either way; the copy's result
-// is kept on the order as `copy` ("ok" or "failed: …") and the hourly task still imports from this inbox.
+// is kept as KV copy:<id> ("ok" or "failed: …", shown as `copy` in /orders) and the hourly task still imports from this inbox.
 
 const ALLOWED_ORIGINS = ['https://www.tadaboo.com', 'https://tadaboo.com', 'https://tadaboo-shop.pages.dev'];
 const REQUIRED = ['order_id', 'name', 'phone', 'address', 'pincode', 'items', 'total', 'order_code'];
@@ -69,20 +69,23 @@ async function hmac(secret, msg) {
 const payReady = (env) => !!(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET);
 const ORDER_ID = /^TB-\d{6}-[A-Z0-9]{4}$/;
 const PAY_SINCE = Date.parse('2026-11-21T08:57:55Z'), PAY_HOURS = 48;
-// Delivery charges the site can add (catalog.js delivery.rates; free from FREE_ABOVE in items).
-const FEES = [99, 149], FREE_ABOVE = 999;
+// Delivery charge by PIN code (catalog.js delivery: remote prefixes pay 149, the rest 99; free from FREE_ABOVE in items).
+const REMOTE_PIN = ['78', '79', '737'], FEE = { india: 99, remote: 149 }, FREE_ABOVE = 999;
+const feeFor = (pin) => (REMOTE_PIN.some((p) => String(pin || '').trim().startsWith(p)) ? FEE.remote : FEE.india);
+const NUM = /^\d{1,6}(\.\d{1,2})?$/;
 // Does the total add up? Items from the order code (kind:id:qty:units:unitPrice, …) plus a known delivery charge.
 function totalCheck(f) {
   const lines = String(f.order_code || '').split('|')[2] || '';
   let items = 0;
   for (const l of lines.split(',')) {
     const p = l.split(':'), n = Number(p[2]), price = Number(p[4]);
-    if (p.length !== 5 || !Number.isInteger(n) || n < 1 || !Number.isFinite(price) || price < 0) return 'bad order code';
+    if (p.length !== 5 || !/^[bi]$/.test(p[0]) || !/^\d{1,4}$/.test(p[2]) || !/^\d{1,3}$/.test(p[3]) || !NUM.test(p[4]) || n < 1) return 'bad order code';
     items += n * price;
   }
-  const total = Number(f.total), fee = total - items;
-  if (!Number.isFinite(total) || items <= 0) return 'bad total';
-  if (items >= FREE_ABOVE ? fee !== 0 : !FEES.includes(fee)) return `total ${total} doesn't match items ${items} + delivery`;
+  const total = Number(f.total), fee = Math.round((total - items) * 100) / 100;
+  if (!NUM.test(String(f.total).trim()) || items <= 0) return 'bad total';
+  const want = items >= FREE_ABOVE ? 0 : feeFor(f.pincode);
+  if (fee !== want) return `total ${total} doesn't match items ${items} + delivery ${want}`;
   return '';
 }
 
@@ -93,42 +96,65 @@ function totalCheck(f) {
 // midnight. A floor, not an exact match: tampering only ever lowers a price, and a sale starting or ending
 // mid-checkout must not block an honest buyer. If index.html's pricing rules change, change this too.
 const SITE = 'https://www.tadaboo.com';
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const shiftDay = (d, n) => new Date(Date.parse(d + 'T00:00:00Z') + n * 86400e3).toISOString().slice(0, 10);
+const isObj = (x) => !!x && typeof x === 'object' && !Array.isArray(x);
 async function siteJson(f) {
-  const r = await fetch(`${SITE}/${f}`, { cf: { cacheTtl: 60 }, signal: AbortSignal.timeout(8000) });
+  const r = await fetch(`${SITE}/${f}`, { cf: { cacheTtl: 0 }, signal: AbortSignal.timeout(8000) });
   if (!r.ok) throw new Error(`${f}: HTTP ${r.status}`);
-  return r.json();
+  const j = await r.json();
+  if (!isObj(j)) throw new Error(`${f}: not an object`);
+  return j;
 }
-async function priceCheck(f) {
+// A tab opened before the daily Stockroom publish still charges yesterday's prices. So the worker keeps the
+// stock.json it saw before the latest one (KV stock:seen) and, for PREV_HOURS after a change, accepts either.
+const PREV_HOURS = 48;
+async function stockVersions(env, stock) {
+  const pick = (x) => ({ asOf: String(x.asOf || ''), prices: x.prices, bagPrices: x.bagPrices, sale: x.sale, offers: x.offers });
+  const cur = pick(stock);
+  let seen = null; try { seen = await env.ORDERS.get('stock:seen', 'json'); } catch { /* use today's only */ }
+  if (!seen?.cur) { try { await env.ORDERS.put('stock:seen', JSON.stringify({ cur, prev: null, changed: 0 })); } catch {} return [cur]; }
+  if (seen.cur.asOf !== cur.asOf && cur.asOf) {
+    seen = { cur, prev: seen.cur, changed: Date.now() };
+    try { await env.ORDERS.put('stock:seen', JSON.stringify(seen)); } catch { /* next order retries */ }
+  }
+  return seen.prev && Date.now() - seen.changed < PREV_HOURS * 3600e3 ? [cur, seen.prev] : [cur];
+}
+async function priceCheck(f, env) {
   let cat, stock;
   try { [cat, stock] = await Promise.all([siteJson('prices.json'), siteJson('stock.json')]); }
   catch (e) { return { skipped: String(e?.message || e).slice(0, 80) }; }      // site unreachable: don't block the order
-  const isObj = (x) => x && typeof x === 'object' && !Array.isArray(x);
-  const pr = isObj(stock.prices) ? stock.prices : {}, bp = isObj(stock.bagPrices) ? stock.bagPrices : {}, sale = isObj(stock.sale) ? stock.sale : {};
-  const today = istDate();
-  const offers = (Array.isArray(stock.offers) ? stock.offers : []).filter((o) => isObj(o) && o.pct > 0 && o.pct < 90
-    && shiftDay(String(o.from), -1) <= today && today <= shiftDay(String(o.to), 1));
-  const floorOf = (base, saleV, isBag) => {
-    let low = base;
-    if (Number.isFinite(saleV) && saleV > 0 && saleV < low) low = saleV;
-    for (const o of offers) if (o.scope === 'all' || o.scope === (isBag ? 'bags' : 'items')) low = Math.min(low, Math.round(base * (1 - o.pct / 100)));
-    return low;
-  };
-  const lines = (String(f.order_code || '').split('|')[2] || '').split(',');
-  const bad = [];
-  for (const l of lines) {
-    const [kind, id, , , priceS] = l.split(':'), price = Number(priceS);
-    let floor;
-    if (kind === 'b') {
-      const c = cat.bags?.[id]; if (!Number.isFinite(c)) { bad.push(`${id}: not in the catalogue`); continue; }
-      floor = floorOf(Number.isFinite(bp[id]) && bp[id] > 0 ? bp[id] : c, sale[id], true);
-    } else if (kind === 'i') {
-      const c = cat.items?.[id]; if (!c || !Number.isFinite(c.price)) { bad.push(`${id}: not in the catalogue`); continue; }
-      floor = floorOf(!c.fixed && Number.isFinite(pr[id]) && pr[id] > 0 ? pr[id] : c.price, c.fixed ? NaN : sale[id], false);
-    } else { bad.push(`${l}: unknown kind`); continue; }
-    if (price < floor) bad.push(`${id} at ${price}, lowest price ${floor}`);
-  }
-  return bad.length ? { bad: bad.slice(0, 5).join('; ') } : {};
+  try {
+    const today = istDate();
+    const floorsFrom = (st) => {
+      const pr = isObj(st.prices) ? st.prices : {}, bp = isObj(st.bagPrices) ? st.bagPrices : {}, sale = isObj(st.sale) ? st.sale : {};
+      const offers = (Array.isArray(st.offers) ? st.offers : []).filter((o) => isObj(o) && o.pct > 0 && o.pct < 90
+        && DAY.test(String(o.from)) && DAY.test(String(o.to)) && shiftDay(o.from, -1) <= today && today <= shiftDay(o.to, 1));
+      const floorOf = (base, saleV, isBag) => {
+        let low = base;
+        if (Number.isFinite(saleV) && saleV > 0 && saleV < low) low = saleV;
+        for (const o of offers) if (o.scope === 'all' || o.scope === (isBag ? 'bags' : 'items')) low = Math.min(low, Math.round(base * (1 - o.pct / 100)));
+        return low;
+      };
+      return (kind, id) => {
+        if (kind === 'b') { const c = cat.bags?.[id]; return Number.isFinite(c) ? floorOf(Number.isFinite(bp[id]) && bp[id] > 0 ? bp[id] : c, sale[id], true) : NaN; }
+        const c = cat.items?.[id]; if (!c || !Number.isFinite(c.price)) return NaN;
+        return floorOf(!c.fixed && Number.isFinite(pr[id]) && pr[id] > 0 ? pr[id] : c.price, c.fixed ? NaN : sale[id], false);
+      };
+    };
+    const versions = (env ? await stockVersions(env, stock) : [stock]).map(floorsFrom);
+    const lines = (String(f.order_code || '').split('|')[2] || '').split(',');
+    const bad = [];
+    for (const l of lines) {
+      const [kind, id, , , priceS] = l.split(':'), price = Number(priceS);
+      if (kind !== 'b' && kind !== 'i') { bad.push(`${l}: unknown kind`); continue; }
+      const floors = versions.map((v) => v(kind, id)).filter(Number.isFinite);
+      if (!floors.length) { bad.push(`${id}: not in the catalogue`); continue; }
+      const floor = Math.min(...floors);
+      if (price < floor) bad.push(`${id} at ${price}, lowest price ${floor}`);
+    }
+    return bad.length ? { bad: bad.slice(0, 5).join('; ') } : {};
+  } catch (e) { return { skipped: `error: ${String(e?.message || e).slice(0, 70)}` }; }   // never block an order on our own bug
 }
 
 async function readJson(req, max = 4000) {
@@ -164,10 +190,10 @@ async function payCreate(req, env, origin) {
   const key = `order:${id}`, o = await env.ORDERS.get(key, 'json');
   if (!o) return json({ success: false, error: 'Order not found' }, 404, h);
   if (o.payment?.status === 'paid') return json({ success: false, error: 'Already paid', paid: true }, 409, h);
-  if (o.status === 'rejected') return json({ success: false, error: 'Order cancelled' }, 409, h);
+  if (o.status === 'rejected') return json({ success: false, error: 'Order cancelled', cancelled: true }, 409, h);
   const placed = Date.parse(o.created_at);
   if (!(placed >= PAY_SINCE) || Date.now() - placed > PAY_HOURS * 3600e3) return json({ success: false, error: 'Order too old to pay online', expired: true }, 410, h);
-  if (o.check) return json({ success: false, error: 'Order total needs checking' }, 422, h);
+  if (o.check) return json({ success: false, error: 'Order total needs checking', needsCheck: true }, 422, h);
   const amount = Math.round(Number(o.fields?.total) * 100);
   if (!Number.isFinite(amount) || amount < 100 || amount > 5000000) return json({ success: false, error: 'Bad order total' }, 422, h);
   const out = (rid) => json({ success: true, key: env.RAZORPAY_KEY_ID, order_id: rid, amount, currency: 'INR' }, 200, h);
@@ -245,12 +271,14 @@ async function placeOrder(req, env, origin, ctx) {
   if (count >= PER_IP_PER_HOUR) return json({ success: false, error: 'Too many orders, please use WhatsApp' }, 429, h);
   await env.ORDERS.put(rlKey, String(count + 1), { expirationTtl: 3700 });
 
-  const key = `order:${id}`;
-  if (!(await env.ORDERS.get(key))) {                                                     // same order sent twice: keep the first
+  const key = `order:${id}`, prev = await env.ORDERS.get(key, 'json');
+  if (prev && (prev.fields?.order_code !== fields.order_code || prev.fields?.total !== fields.total || prev.fields?.pincode !== fields.pincode))
+    return json({ success: false, error: 'Order id already used', conflict: true }, 409, h);  // bag changed after a lost reply: page makes a new id
+  if (!prev) {                                                                            // same order sent twice: keep the first
     const order = { id, form_name: 'tadaboo_order', status: 'new', created_at: new Date().toISOString(), fields,
       metadata: { country: req.cf?.country || '', city: req.cf?.city || '' } };
     let check = totalCheck(fields);
-    if (!check) { const pc = await priceCheck(fields); if (pc.bad) check = `price below shop price: ${pc.bad}`; else if (pc.skipped) order.price_check = `skipped (${pc.skipped})`; }
+    if (!check) { const pc = await priceCheck(fields, env); if (pc.bad) check = `price below shop price: ${pc.bad}`; else if (pc.skipped) order.price_check = `skipped (${pc.skipped})`; }
     if (check) order.check = check;
     await env.ORDERS.put(key, JSON.stringify(order), { metadata: { status: 'new' } });
     if (env.WP_KEY && ctx) ctx.waitUntil(copyToWebsitePublisher(env, key, order));
@@ -271,8 +299,7 @@ async function copyToWebsitePublisher(env, key, order) {
     const body = await r.json().catch(() => null);
     copy = r.ok && body?.success !== false ? 'ok' : `failed: HTTP ${r.status} ${String(body?.error?.message || '').slice(0, 120)}`.trim();
   } catch (e) { copy = `failed: ${String(e?.name || e).slice(0, 60)}`; }
-  const o = await env.ORDERS.get(key, 'json');
-  if (o) { o.copy = copy; await env.ORDERS.put(key, JSON.stringify(o), { metadata: { status: o.status } }); }
+  try { await env.ORDERS.put(`copy:${order.id}`, copy, { expirationTtl: 400 * 86400 }); } catch { /* not worth failing for */ }
 }
 
 // One visit = one small KV key v:<date>:<n|r>:<src>:<land>:<random> (n = first visit from that device), kept 3 days.
@@ -326,7 +353,7 @@ async function listOrders(url, env) {
     for (const k of page.keys) {
       if (want && k.metadata?.status && k.metadata.status !== want) continue;
       const o = await env.ORDERS.get(k.name, 'json');
-      if (o && (!want || o.status === want)) data.push(o);
+      if (o && (!want || o.status === want)) { if (!o.copy) { const c = await env.ORDERS.get(`copy:${o.id}`); if (c) o.copy = c; } data.push(o); }
     }
     cursor = page.list_complete ? null : page.cursor;
   } while (cursor);

@@ -46,7 +46,7 @@ export function buildCollections({ entries, T, D, P, SITE_URL, inr, esc, VISIT =
   const FAQ = [
     ["Do you deliver across India?", `Yes, anywhere in India, in ${days} from your order.`],
     ["Is delivery free?", `Items worth ${inr(free)} or more ship free. Smaller orders pay ${inr(D.rates.india)}, or ${inr(D.rates.remote)} to the North East.`],
-    ["How do I order and pay?", `Add things to your bag on the website and pay online by UPI, card or netbanking, or send the same order on WhatsApp to ${T.phone} and we send you a payment link.`],
+    ["How do I order and pay?", `Add things to your bag on the website and pay online by UPI, card, netbanking or wallet, or send the same order on WhatsApp to ${T.phone} and we send you a payment link.`],
     ["Will it look exactly like the photo?", "Colours, characters or designs may vary with availability. The product type and value stay the same."],
   ];
   const faqHtml = (faq) => `<h2>Quick questions</h2>\n  ${faq.map(([q, a]) => `<details><summary>${esc(q)}</summary><p>${esc(a)}</p></details>`).join("\n  ")}`;

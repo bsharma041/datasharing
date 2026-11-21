@@ -48,6 +48,16 @@ const asText = (fields) => {
   return keys.map((k) => `${k}: ${String(fields[k] ?? '').trim()}`).join('\n');
 };
 
+// What the order inbox knows beyond the form: online payment, a flagged total or price, a second payment.
+const online = (lead) => {
+  const out = {};
+  if (lead.payment?.status === 'paid') out.paid = `₹${lead.payment.amount} online (Razorpay ${lead.payment.id})${lead.payment.note ? `: ${lead.payment.note}` : ''}`;
+  else out.paid = 'not paid yet';
+  if (lead.check) out.check = `needs checking, can't be paid online: ${lead.check}`;
+  if (lead.price_check) out.priceCheck = `prices not checked (${lead.price_check}): check them by hand`;
+  if (Array.isArray(lead.extra_payments) && lead.extra_payments.length) out.refund = lead.extra_payments.map((x) => `paid twice: refund ₹${x.amount} (${x.id})`).join('; ');
+  return out;
+};
 const writes = [], report = [];
 for (const lead of leads) {
   const leadId = lead.id ?? lead.lead_id ?? null;
@@ -56,7 +66,7 @@ for (const lead of leads) {
   if (lead.form_name && lead.form_name !== 'tadaboo_order') continue;
   const p = parseOrder(asText(fields));
   if (p.error) { report.push({ leadId, action: 'skipped', why: p.error }); continue; }
-  if (existing.has(p.id)) { report.push({ leadId, orderId: p.id, action: 'already in Stockroom' }); continue; }
+  if (existing.has(p.id)) { report.push({ leadId, orderId: p.id, action: 'already in Stockroom', ...online(lead) }); continue; }
   if (writes.some((w) => w.doc_id === p.id)) { report.push({ leadId, orderId: p.id, action: 'duplicate lead, skipped' }); continue; }
   const total = p.lines.reduce((a, l) => a + n(l.qty) * n(l.price), 0);
   const ship = shipDefault(p, total);
@@ -67,7 +77,7 @@ for (const lead of leads) {
     source: 'website', ...(leadId != null ? { leadId } : {}) };
   writes.push({ op: 'set', collection: 'orders', doc_id: p.id, data: body });
   const stated = n(String(fields.total ?? '').replace(/[^\d.]/g, ''));
-  report.push({ leadId, orderId: p.id, action: 'import', customer: p.customer.name, lines: p.lines.length, items: total, delivery: ship,
+  report.push({ leadId, orderId: p.id, action: 'import', customer: p.customer.name, lines: p.lines.length, items: total, delivery: ship, ...online(lead),
     ...(stated && Math.abs(stated - (total + ship)) > 0.5 ? { warn: `buyer's total ₹${stated} ≠ items ₹${total} + delivery ₹${ship}` } : {}) });
 }
 fs.writeFileSync(outFile, JSON.stringify({ writes, report }, null, 2));

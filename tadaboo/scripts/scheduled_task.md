@@ -32,7 +32,8 @@ Steps (use a fresh empty folder in your scratchpad as <S>):
 6. If nothing was imported, no lead changed and the site was already up to date, say just "All in step: no new orders, website already up to date. Visits today: N." and stop.
 
 Report in 3–6 short lines, plain language for a non-technical shop owner:
-- New website orders now waiting in Stockroom → Orders (name, items, total incl. delivery), and any total that did not add up (import.json "warn"). Remind: check the UPI credit with the order ID, then press "Confirm order and update stock".
+- New website orders now waiting in Stockroom → Orders (name, items, total incl. delivery), and any total that did not add up (import.json "warn").
+- Payment, for every order in import.json's report (new or already in the Stockroom): "paid" (paid online through Razorpay) or "not paid yet". Say plainly and first if any order has "check" (its total or a price was below the shop's: don't pack it until it's sorted out on WhatsApp), "priceCheck" (prices weren't checked: compare them by hand) or "refund" (the buyer paid twice: refund that payment in the Razorpay Dashboard). Remind: pack only paid orders, then press "Confirm order and update stock".
 - What changed on www.tadaboo.com (sold-out items, low or empty gift bags, price changes, offers, best sellers, reviews); live in about a minute.
 - Website visits today and in the last 7 days (one short line).
 - Anything that needs the owner (a skipped order, a price jump, a push error).
