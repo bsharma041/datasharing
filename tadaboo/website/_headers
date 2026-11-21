@@ -12,6 +12,8 @@
   Cache-Control: public, max-age=0, must-revalidate
 /stock.json
   Cache-Control: public, max-age=0, must-revalidate
+/prices.json
+  Cache-Control: public, max-age=300, must-revalidate
 
 # Sitemaps are for search engines to read, not to list as results.
 /sitemap.xml

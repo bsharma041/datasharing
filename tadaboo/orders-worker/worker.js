@@ -14,8 +14,8 @@
 // The amount charged is the total stored with the order when it was placed, never a number sent with /pay/create.
 // A paid order carries `payment: { status: "paid", id, amount (₹), via, at }`. The site works the total out in
 // the buyer's browser, so /order checks it adds up (items in the order code + a known delivery charge) and
-// /pay/create refuses an order that doesn't (`check`). Unit prices still come from the browser: the owner
-// checks the paid amount against the order before dispatch. A second payment for an already-paid order is
+// /pay/create refuses an order that doesn't (`check`). It also checks each unit price against the shop's
+// own prices (priceCheck): no line may be cheaper than the lowest price that item can have today. A second payment for an already-paid order is
 // kept in `extra_payments` (to refund), never written over the first.
 // Online payment is only offered for orders placed after it went live (PAY_SINCE) and for PAY_HOURS after.
 //
@@ -84,6 +84,51 @@ function totalCheck(f) {
   if (!Number.isFinite(total) || items <= 0) return 'bad total';
   if (items >= FREE_ABOVE ? fee !== 0 : !FEES.includes(fee)) return `total ${total} doesn't match items ${items} + delivery`;
   return '';
+}
+
+// The lowest price each item can legitimately have right now, worked out from the live site's files the same
+// way index.html does (applyStock + applyDiscounts): Stockroom price (stock.json prices/bagPrices) unless the
+// catalogue price is fixed (website/prices.json, made by prerender.mjs), then a Stockroom sale price, then any
+// occasion offer. Offers count from a day before `from` to a day after `to`, for buyers on either side of
+// midnight. A floor, not an exact match: tampering only ever lowers a price, and a sale starting or ending
+// mid-checkout must not block an honest buyer. If index.html's pricing rules change, change this too.
+const SITE = 'https://www.tadaboo.com';
+const shiftDay = (d, n) => new Date(Date.parse(d + 'T00:00:00Z') + n * 86400e3).toISOString().slice(0, 10);
+async function siteJson(f) {
+  const r = await fetch(`${SITE}/${f}`, { cf: { cacheTtl: 60 }, signal: AbortSignal.timeout(8000) });
+  if (!r.ok) throw new Error(`${f}: HTTP ${r.status}`);
+  return r.json();
+}
+async function priceCheck(f) {
+  let cat, stock;
+  try { [cat, stock] = await Promise.all([siteJson('prices.json'), siteJson('stock.json')]); }
+  catch (e) { return { skipped: String(e?.message || e).slice(0, 80) }; }      // site unreachable: don't block the order
+  const isObj = (x) => x && typeof x === 'object' && !Array.isArray(x);
+  const pr = isObj(stock.prices) ? stock.prices : {}, bp = isObj(stock.bagPrices) ? stock.bagPrices : {}, sale = isObj(stock.sale) ? stock.sale : {};
+  const today = istDate();
+  const offers = (Array.isArray(stock.offers) ? stock.offers : []).filter((o) => isObj(o) && o.pct > 0 && o.pct < 90
+    && shiftDay(String(o.from), -1) <= today && today <= shiftDay(String(o.to), 1));
+  const floorOf = (base, saleV, isBag) => {
+    let low = base;
+    if (Number.isFinite(saleV) && saleV > 0 && saleV < low) low = saleV;
+    for (const o of offers) if (o.scope === 'all' || o.scope === (isBag ? 'bags' : 'items')) low = Math.min(low, Math.round(base * (1 - o.pct / 100)));
+    return low;
+  };
+  const lines = (String(f.order_code || '').split('|')[2] || '').split(',');
+  const bad = [];
+  for (const l of lines) {
+    const [kind, id, , , priceS] = l.split(':'), price = Number(priceS);
+    let floor;
+    if (kind === 'b') {
+      const c = cat.bags?.[id]; if (!Number.isFinite(c)) { bad.push(`${id}: not in the catalogue`); continue; }
+      floor = floorOf(Number.isFinite(bp[id]) && bp[id] > 0 ? bp[id] : c, sale[id], true);
+    } else if (kind === 'i') {
+      const c = cat.items?.[id]; if (!c || !Number.isFinite(c.price)) { bad.push(`${id}: not in the catalogue`); continue; }
+      floor = floorOf(!c.fixed && Number.isFinite(pr[id]) && pr[id] > 0 ? pr[id] : c.price, c.fixed ? NaN : sale[id], false);
+    } else { bad.push(`${l}: unknown kind`); continue; }
+    if (price < floor) bad.push(`${id} at ${price}, lowest price ${floor}`);
+  }
+  return bad.length ? { bad: bad.slice(0, 5).join('; ') } : {};
 }
 
 async function readJson(req, max = 4000) {
@@ -204,7 +249,9 @@ async function placeOrder(req, env, origin, ctx) {
   if (!(await env.ORDERS.get(key))) {                                                     // same order sent twice: keep the first
     const order = { id, form_name: 'tadaboo_order', status: 'new', created_at: new Date().toISOString(), fields,
       metadata: { country: req.cf?.country || '', city: req.cf?.city || '' } };
-    const check = totalCheck(fields); if (check) order.check = check;
+    let check = totalCheck(fields);
+    if (!check) { const pc = await priceCheck(fields); if (pc.bad) check = `price below shop price: ${pc.bad}`; else if (pc.skipped) order.price_check = `skipped (${pc.skipped})`; }
+    if (check) order.check = check;
     await env.ORDERS.put(key, JSON.stringify(order), { metadata: { status: 'new' } });
     if (env.WP_KEY && ctx) ctx.waitUntil(copyToWebsitePublisher(env, key, order));
   }
