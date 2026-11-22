@@ -1889,8 +1889,8 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     body.innerHTML = `
       <div id="prog">${progress(0)}</div>
       ${bl.length ? `<span class="group-t">Gift bags</span>${bl.map(bline).join("")}` : ""}
-      ${pl.length ? `<span class="group-t">Single items</span>${pl.map(([k, n]) => { const p = P[k.slice(2)]; return line(k, n, thumb(p.id), p.name, p.price); }).join("")}
-        <div class="meter${m.done ? " done" : ""}"><span class="bar"><i style="width:${m.pct}%"></i></span><span>${m.msg}</span></div>` : ""}
+      ${pl.length ? `<span class="group-t">Single items</span>${pl.map(([k, n]) => { const p = P[k.slice(2)]; return line(k, n, thumb(p.id), p.name, p.price); }).join("")}` : ""}
+      ${!m.done || pl.length ? `<div class="meter${m.done ? " done" : ""}"><span class="bar"><i style="width:${m.pct}%"></i></span><span>${m.msg}</span></div>` : ""}
       <div class="totals" id="totals">${totalsHtml()}</div>
       <form class="form" id="oform" autocomplete="on">
         <label>Your name<input id="f-name" name="name" value="${esc(form.name || "")}" autocomplete="name"></label>

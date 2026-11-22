@@ -17,9 +17,9 @@ auth=(-H "Authorization: Bearer $TADABOO_ORDERS_TOKEN")
 case "${1:-}" in
   list)   curl -fsS "${auth[@]}" "$TADABOO_ORDERS_URL/orders${2:+?status=$2}" ;;
   status) [[ "${2:-}" =~ ^TB-[0-9]{6}-[A-Z0-9]{4}$ ]] || { echo "bad order id"; exit 2; }
-          curl -fsS "${auth[@]}" -H 'content-type: application/json' -d "{\"status\":\"${3:?status}\"}" "$TADABOO_ORDERS_URL/orders/$2/status"; echo ;;
+          curl -sS --fail-with-body "${auth[@]}" -H 'content-type: application/json' -d "{\"status\":\"${3:?status}\"}" "$TADABOO_ORDERS_URL/orders/$2/status"; echo ;;
   refund) [[ "${2:-}" =~ ^TB-[0-9]{6}-[A-Z0-9]{4}$ ]] || { echo "bad order id"; exit 2; }
-          curl -fsS "${auth[@]}" -X POST "$TADABOO_ORDERS_URL/orders/$2/refund"; echo ;;
+          curl -sS --fail-with-body "${auth[@]}" -X POST "$TADABOO_ORDERS_URL/orders/$2/refund"; echo ;;
   views)  [[ "${2:-30}" =~ ^[0-9]{1,3}$ ]] || { echo "bad days"; exit 2; }
           curl -fsS "${auth[@]}" "$TADABOO_ORDERS_URL/views?days=${2:-30}" ;;
   *) sed -n 2,12p "$0"; exit 2 ;;

@@ -571,7 +571,7 @@ async function setStatus(id, req, env) {
   const o = await loadOrder(env, id);
   if (!o) return json({ success: false, error: 'Not found' }, 404);
   if (o.cancel?.by === 'buyer' && body.status !== 'rejected') {
-    if (body.override !== true) return json({ success: false, error: `The buyer cancelled this order at ${o.cancel.at} and was refunded: don't send it`, cancelledByBuyer: true }, 409);
+    if (body.override !== true) return json({ success: false, error: `The buyer cancelled this order at ${o.cancel.at}${o.refund_pending ? ' (refund not finished yet)' : ''}: don't send it`, cancelledByBuyer: true }, 409);
     o.cancel_history = [...(o.cancel_history || []), { ...o.cancel, reopened: new Date().toISOString() }];
     delete o.cancel;
     await env.ORDERS.delete(`cancel:${id}`);

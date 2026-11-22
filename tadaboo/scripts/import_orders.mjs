@@ -109,12 +109,22 @@ if (cancelledFile && fs.existsSync(cancelledFile)) {
   const recent = Date.now() - 30 * 86400e3;
   for (const lead of listOf(JSON.parse(fs.readFileSync(cancelledFile, 'utf8'))) || []) {
     if (lead?.cancel?.by !== 'buyer' || !(Date.parse(lead.cancel.at) > recent)) continue;
-    let fields = lead.fields ?? {};
+    let fields = lead.fields ?? lead.data ?? lead.payload ?? {};
+    if (typeof fields === 'string') { try { fields = JSON.parse(fields); } catch { fields = {}; } }
     const p = parseOrder(asText(fields));
     if (p.error) { report.push({ leadId: lead.id, action: 'cancelled by buyer, not readable', why: p.error, refundStatus: refundLine(lead) }); continue; }
     // Ask the inbox to check again: refunds not finished, payments still being processed, or not checked yet.
     if (lead.refund_pending || lead.awaiting_capture || !lead.refund_checked || owes(lead)) retryRefund.push(lead.id);
+    // Cancelled between the two inbox lists: it is in leads.json too. Drop its "new" import; the cancel replaces it.
+    for (let i = writes.length - 1; i >= 0; i--) if (writes[i].op === 'set' && writes[i].doc_id === p.id) writes.splice(i, 1);
+    for (let i = report.length - 1; i >= 0; i--) if (report[i].orderId === p.id && report[i].action === 'import') report.splice(i, 1);
     const at = new Date().toISOString(), refundStatus = refundLine(lead), sr = stockroomOrder(p.id);
+    // No Stockroom orders read at all: a whole-document "set" could overwrite an order the owner already confirmed.
+    if (!sr && !dumpFiles.length) {
+      report.push({ leadId: lead.id, orderId: p.id, action: 'cancelled by buyer, not marked', customer: p.customer.name, refundStatus,
+        stop: `the buyer cancelled at ${lead.cancel.at}, and I couldn't read the Stockroom orders. If it's there, press Cancel order on it; don't send it.` });
+      continue;
+    }
     const hist = { status: 'cancelled', at, by: 'website inbox', note: `${CANCEL_NOTE} at ${lead.cancel.at}` };
     if (!sr) {
       const total = p.lines.reduce((a, l) => a + n(l.qty) * n(l.price), 0);
@@ -132,7 +142,7 @@ if (cancelledFile && fs.existsSync(cancelledFile)) {
       report.push({ leadId: lead.id, orderId: p.id, action: 'cancelled by buyer', customer: p.customer.name, refundStatus });
     } else if (sr.doc.status !== 'cancelled') {
       report.push({ leadId: lead.id, orderId: p.id, action: 'cancelled by buyer after you confirmed', customer: p.customer.name, refundStatus,
-        stop: `the buyer cancelled at ${lead.cancel.at} and was refunded: don't send it. Open it in the Stockroom and press Cancel order to put the stock back.` });
+        stop: `the buyer cancelled at ${lead.cancel.at}: don't send it. Open it in the Stockroom and press Cancel order to put the stock back.` });
     } else if (lead.refund_pending || lead.awaiting_capture || owes(lead)) {
       report.push({ leadId: lead.id, orderId: p.id, action: 'cancelled by buyer, refund pending', refundStatus });
     }
