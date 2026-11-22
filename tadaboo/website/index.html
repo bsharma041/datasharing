@@ -33,7 +33,7 @@
 </script>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
-{"@type":"Question","name":"Is there a minimum order?","acceptedAnswer":{"@type":"Answer","text":"Yes, when you pick single items. Your items, including any gift bags, must total more than ₹299 before delivery. Delivery is not counted. Ready-made gift bags on their own have no minimum."}},
+{"@type":"Question","name":"Is there a minimum order?","acceptedAnswer":{"@type":"Answer","text":"Yes. Every order needs items worth at least ₹299, gift bags and single items together. Delivery is not counted."}},
 {"@type":"Question","name":"How long does delivery take?","acceptedAnswer":{"@type":"Answer","text":"7–10 days from your order, anywhere in India. Checkout shows the expected dates as soon as you enter your PIN code."}},
 {"@type":"Question","name":"Do you deliver?","acceptedAnswer":{"@type":"Answer","text":"Yes, anywhere in India. Orders with items worth ₹999 or more ship free. Smaller orders pay ₹99, or ₹149 to the North East (Assam, Arunachal Pradesh, Manipur, Meghalaya, Mizoram, Nagaland, Sikkim and Tripura). Checkout shows your charge as soon as you enter your PIN code."}},
 {"@type":"Question","name":"Will I get exactly the colour in the photo?","acceptedAnswer":{"@type":"Answer","text":"Colours, characters or designs may vary with availability. The product type and value always stay the same."}},
@@ -1141,7 +1141,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
         <div class="txt">
           <span class="kick" style="color:var(--gold)">Pick · Mix · Make it yours</span>
           <h2>Build your own bag</h2>
-          <p>Pick any favourites worth more than ₹299. We pack them for you.</p>
+          <p>Pick any favourites worth ₹299 or more. We pack them for you.</p>
           <a class="btn" href="#shop">Start picking</a>
         </div>
         <div class="pics" aria-hidden="true">
@@ -1344,7 +1344,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
       <div class="head"><h2>Questions</h2></div>
       <div class="faqgrid">
       <div class="faq">
-        <details><summary>Is there a minimum order?</summary><p>Yes, when you pick single items. Your items, including any gift bags, must total more than ₹299 before delivery. Delivery is not counted. Ready-made gift bags on their own have no minimum.</p></details>
+        <details><summary>Is there a minimum order?</summary><p>Yes. Every order needs items worth at least ₹299, gift bags and single items together. Delivery is not counted.</p></details>
         <details><summary>How long does delivery take?</summary><p>7–10 days from your order, anywhere in India. Checkout shows the expected dates as soon as you enter your PIN code.</p></details>
         <details><summary>Do you deliver?</summary><p>Yes, anywhere in India. Orders with items worth ₹999 or more ship free. Smaller orders pay ₹99, or ₹149 to the North East (Assam, Arunachal Pradesh, Manipur, Meghalaya, Mizoram, Nagaland, Sikkim and Tripura). Checkout shows your charge as soon as you enter your PIN code.</p></details>
         <details><summary>Will I get exactly the colour in the photo?</summary><p>Colours, characters or designs may vary with availability. The product type and value always stay the same.</p></details>
@@ -1390,7 +1390,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
 <p class="sr" id="live" role="status" aria-live="polite"></p>
 
 <!-- Bump ?v= when catalog.js gains fields the page needs, so no buyer runs a new page on a cached old catalogue. -->
-<script src="catalog.js?v=9"></script>
+<script src="catalog.js?v=10"></script>
 <!-- Visit count. data-hit is catalog.js orders.url with /hit in place of /order. -->
 <script src="visit.js" data-hit="https://tadaboo-orders.bsharma-04.workers.dev/hit" defer></script>
 <script>
@@ -1552,9 +1552,9 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
       if (t === "p") custom += P[id].price * n; else bags += B[id].price * n;
       count += n;
     }
-    // Minimum applies once single items are in the bag: everything in the bag (gift bags too) must be over
-    // T.customMin, counting items only, never delivery. A bag of ready-made gift bags alone has no minimum.
-    const total = custom + bags, need = custom === 0 ? 0 : Math.max(0, T.customMin + 1 - total);
+    // Minimum order: everything in the bag (gift bags and single items) must be at least T.minOrder,
+    // counting items only, never delivery. Same rule as MIN_ORDER in the order worker.
+    const total = custom + bags, need = Math.max(0, T.minOrder - total);
     return { custom, bags, total, count, need, customOk: need === 0 };
   };
 
@@ -1728,8 +1728,8 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
   // ---------- Custom bag meter ----------
   const meterInfo = () => {
     const t = totals(), done = t.customOk;
-    return { t, done, pct: Math.min(100, (t.total / (T.customMin + 1)) * 100),
-      msg: done ? "Minimum reached: ready to pack" : `Add ${inr(t.need)} more. With single items, your items must total over ₹${T.customMin} (delivery not counted).` };
+    return { t, done, pct: Math.min(100, (t.total / T.minOrder) * 100),
+      msg: done ? "Minimum reached: ready to pack" : `Add ${inr(t.need)} more. Minimum order is ${inr(T.minOrder)} of items (delivery not counted).` };
   };
   function renderMbar() {
     const { t, done, pct, msg } = meterInfo();
@@ -1737,7 +1737,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     mb.classList.toggle("show", t.count > 0);
     $("#mbarText").textContent = !done ? `Items ${inr(t.total)} · add ${inr(t.need)} more` : `${t.count} in your bag · ${inr(t.total)}`;
     mb.setAttribute("aria-label", `${$("#mbarText").textContent}. View bag`);
-    $("#mbarFill").style.width = (t.custom > 0 ? pct : 100) + "%";
+    $("#mbarFill").style.width = pct + "%";
   }
 
   // ---------- Drawer: bag and gift-bag detail ----------
@@ -1909,7 +1909,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
       <p class="err" id="ferr" role="alert" hidden></p>
       <button class="btn" id="placeOrder" type="button">${placeLabel()}</button>
       <a class="walink" id="sendWa" target="_blank" rel="noopener" href="#">or send this order on WhatsApp</a>`
-      : `<button class="btn" disabled>${PAY_URL ? "Place order &amp; pay" : "Place order"}</button><span class="small">${m.msg}${bl.length ? " Or remove the single items to order your gift bags now." : ""}</span>
+      : `<button class="btn" disabled>${PAY_URL ? "Place order &amp; pay" : "Place order"}</button><span class="small">${m.msg}</span>
       <a class="btn line sm wa-ask" href="https://wa.me/${T.whatsapp}" target="_blank" rel="noopener" data-chat>Ask us on WhatsApp</a>`;
     updateWa();
     if (t.customOk && !T.orders.url) sapi().catch(() => {});
@@ -1955,7 +1955,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
   function renderProductFoot(p) {
     const k = "p:" + p.id, n = qty(k), m = meterInfo();
     $("#drawerFoot").innerHTML = `<div class="addrow">${favBtn(k, "flat")}${n ? stepper(k, n, "flat") + `<span class="small" style="flex:1">${n} in your custom bag</span>` : avail(k) <= 0 ? askLink(p.name) : `<button class="btn" data-padd="${p.id}">${view.from ? "Add just this item" : "Add to bag"} · ${inr(p.price)}</button>`}</div>
-      <span class="small">${m.t.custom > 0 ? m.msg : `With single items, your items must total over ₹${T.customMin}, before delivery.`}</span>`;
+      <span class="small">${m.t.count > 0 ? m.msg : `Minimum order is ${inr(T.minOrder)} of items, before delivery.`}</span>`;
   }
   // soft: refresh only what changed, so the bag's circle and product zoom don't replay.
   function renderDrawer(soft) {

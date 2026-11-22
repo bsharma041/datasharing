@@ -91,7 +91,7 @@ ${VISIT}
   for (const c of cats) {
     const f = from(c.list), holders = bags.filter((b) => live(b) && b.contents.some((id) => P[id].cat === c.id)).slice(0, 4);
     const desc = `${c.lede.split(". ")[0].replace(/\.$/, "")}. ${c.list.length} to choose from${f !== null ? `, from ${inr(f)}` : ""}. Delivered anywhere in India.`;
-    const faq = [["Can I buy just one?", `Yes. Pick single items and we pack them together. With single items, your items must total more than ${inr(T.customMin)} before delivery; gift bags count toward it.`], ...FAQ];
+    const faq = [["Can I buy just one?", `Yes. Pick single items and we pack them together. Every order needs items worth at least ${inr(T.minOrder)} before delivery; gift bags count toward it.`], ...FAQ];
     const trail = [["Stationery", "stationery/"], [c.name]];
     out[c.url + ".html"] = `${head(c.title, desc, c.url, ld(c.url, c.h1, trail, c.list, faq))}
 <main class="wrap">
@@ -117,7 +117,7 @@ ${foot}`;
     const all = cats.flatMap((c) => c.list), f = from(all), url = "stationery/";
     const title = "Cute Stationery for Kids, Online in India", h1 = "Cute stationery for kids";
     const desc = `Cute stationery for kids: pens, pencils, notebooks, fancy erasers, sharpeners, craft kits and squishies. ${all.length} things${f !== null ? ` from ${inr(f)}` : ""}, delivered anywhere in India.`;
-    const faq = [["Is there a minimum order?", `With single items, your items (gift bags included) must total more than ${inr(T.customMin)} before delivery. Ready-made gift bags on their own have no minimum.`], ...FAQ];
+    const faq = [["Is there a minimum order?", `Yes. Every order needs items worth at least ${inr(T.minOrder)}, gift bags and single items together. Delivery is not counted.`], ...FAQ];
     out[url + "index.html"] = `${head(title, desc, url, ld(url, h1, [["Stationery"]], all, faq))}
 <main class="wrap">
   ${crumbs([["Stationery"]])}
@@ -147,7 +147,7 @@ ${foot}`;
     const desc = `Ready-packed return gift bags and birthday hampers for kids, filled with stationery and craft kits. ${all.length} gift bags${f !== null ? ` from ${inr(f)}` : ""}, delivered anywhere in India.`;
     const faq = [
       ["Can I order many return gifts for a party?", "Yes. Add the return-gift bag you like, set the quantity, and send it to us. We'll confirm stock for larger orders."],
-      ["Can I choose what goes in the bag?", `Yes. Build your own: pick single items and we pack them together. Your items must total more than ${inr(T.customMin)} before delivery. Ready-made gift bags have no minimum.`],
+      ["Can I choose what goes in the bag?", `Yes. Build your own: pick single items and we pack them together. Every order needs items worth at least ${inr(T.minOrder)} before delivery, gift bags included.`],
       ["What comes with every order?", "A thank-you card and a TadaBoo bookmark."], ...FAQ];
     out[url + "index.html"] = `${head(title, desc, url, ld(url, h1, [["Gift bags"]], all, faq))}
 <main class="wrap">

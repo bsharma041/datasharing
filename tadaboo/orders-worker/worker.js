@@ -91,6 +91,8 @@ const REMOTE_PIN = ['78', '79', '737'], FEE = { india: 99, remote: 149 }, FREE_A
 const feeFor = (pin) => (REMOTE_PIN.some((p) => String(pin || '').trim().startsWith(p)) ? FEE.remote : FEE.india);
 const NUM = /^\d{1,6}(\.\d{1,2})?$/;
 // Does the total add up? Items from the order code (kind:id:qty:units:unitPrice, …) plus a known delivery charge.
+// Minimum order: items (gift bags included, delivery excluded) must total at least this. Same as minOrder in catalog.js.
+const MIN_ORDER = 299;
 function totalCheck(f) {
   const lines = String(f.order_code || '').split('|')[2] || '';
   let items = 0;
@@ -101,6 +103,7 @@ function totalCheck(f) {
   }
   const total = Number(f.total), fee = Math.round((total - items) * 100) / 100;
   if (!NUM.test(String(f.total).trim()) || items <= 0) return 'bad total';
+  if (items < MIN_ORDER) return `items ₹${items} below the ₹${MIN_ORDER} minimum order`;
   const want = items >= FREE_ABOVE ? 0 : feeFor(f.pincode);
   if (fee !== want) return `total ${total} doesn't match items ${items} + delivery ${want}`;
   return '';

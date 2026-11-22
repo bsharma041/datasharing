@@ -354,7 +354,7 @@ TadaBoo sells stationery and ready-to-gift bags in India. Shoppers pick a ready-
 
 - Gift bags: ${bagPrices.length} ready-made gift bags, priced from ${inr(Math.min(...bagPrices))} to ${inr(Math.max(...bagPrices))} (Indian rupees, INR). They cover Back to School, return gifts, themed bags for boys and girls, craft and colouring, and birthday hampers.
 - Shop: ${nP} products (${(T.categories || []).map((c) => c.name).join("; ")}).
-- Minimum order: with single items in the order, items (gift bags included) must total more than ${inr(T.customMin)}, before delivery. Ready-made gift bags on their own have no minimum.
+- Minimum order: every order needs items (gift bags included) worth at least ${inr(T.minOrder)}, before delivery.
 - Colours, characters or designs may vary with availability. The product type and value always stay the same.
 - Every order comes with a thank-you card and a TadaBoo bookmark.
 
