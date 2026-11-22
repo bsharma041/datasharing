@@ -40,7 +40,7 @@
 {"@type":"Question","name":"Can I buy single pencils?","acceptedAnswer":{"@type":"Answer","text":"Yes. Our Unicorn and Racing Car 2B pencils come in a box of 12 for ₹109, or as single pencils at ₹15 each. Mention it in your order note."}},
 {"@type":"Question","name":"How do I pay?","acceptedAnswer":{"@type":"Answer","text":"Online, through Razorpay's secure checkout: UPI, debit or credit card, netbanking or a wallet, for your order total including delivery. For orders sent on WhatsApp, we send you a Razorpay payment link."}},
 {"@type":"Question","name":"Can I return or replace something?","acceptedAnswer":{"@type":"Answer","text":"We don't accept returns or exchanges. If an item arrives damaged, or is wrong or missing, WhatsApp us on 97306 24700 within 24 hours of delivery with your order ID and an unedited unboxing video that starts from the sealed parcel. We replace only the affected items, not the whole bag or box. By default you get store credit for them, valid for 6 months. You can choose a replacement item instead, or a refund to your original payment method if you prefer. Approved refunds reach you within 5–7 working days."}},
-{"@type":"Question","name":"Can I cancel my order?","acceptedAnswer":{"@type":"Answer","text":"Yes, any time before we dispatch it. WhatsApp us on 97306 24700 with your order ID. Once your order has been dispatched, it can't be cancelled. If you have already paid, we refund the full amount, including delivery, to your original payment method within 5–7 working days of the cancellation."}},
+{"@type":"Question","name":"Can I cancel my order?","acceptedAnswer":{"@type":"Answer","text":"Yes. For an order placed on this website, open “My orders” on the same phone and browser and tap “Cancel order” within 2 hours of ordering, as long as we haven't confirmed it yet. If you've paid, the full amount, including delivery, is refunded automatically to the way you paid and reaches you in 5–7 working days. After that, or for an order sent on WhatsApp, WhatsApp us on 97306 24700 with your order ID any time before we dispatch it, and we refund you the same way. Once dispatched, an order can't be cancelled."}},
 {"@type":"Question","name":"Can I order many return gifts for a party?","acceptedAnswer":{"@type":"Answer","text":"Yes. Add the return-gift bag you like, set the quantity, and send it to us. We'll confirm stock for larger orders."}}]}
 </script>
 <!-- PRERENDER:jsonld --><script type="application/ld+json">
@@ -645,10 +645,14 @@ footer .wm{font-size:1.25rem}
 .df .paytrust .small{color:var(--muted)}
 .ostat{font-weight:700}.ostat.wait{color:#7A4E00}.ostat.ok{color:var(--ok)}
 .ocard.due{background:var(--warn-bg);box-shadow:inset 0 0 0 1px #E8C98A}
-.ocard .pill{align-self:flex-start;min-height:28px;padding:0 10px;font-size:.82rem;font-weight:600}
+.ocard .pill{align-self:flex-start;min-height:28px;padding:4px 10px;font-size:.82rem;font-weight:600;white-space:normal;max-width:100%}
 .ocard.due .addrow [data-pay-id]{flex:1 1 100%}
 .ocard .err{color:var(--price);font-size:.88rem;font-weight:600;margin:0}
 .ocard .err a,.df .err a{color:inherit}
+.pill.off{background:var(--line);color:var(--muted)}
+.ocard .cbox{background:var(--card);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.ocard .cbox p{margin:0;font-size:.92rem}
+.ocard .refund{margin:0;font-size:.88rem}
 .df .err.soft{color:var(--muted);font-weight:500}
 .df .err.soft::before{content:none}
 .placed ul{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:4px;font-size:.9rem;color:var(--muted)}
@@ -816,6 +820,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
 .rev .got button:focus-visible{outline:3px solid var(--price);outline-offset:2px;border-radius:4px}
 @media (max-width:560px){.revs{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;margin-inline:calc(-1 * var(--gutter));padding-inline:var(--gutter);scrollbar-width:none}.revs::-webkit-scrollbar{display:none}.rev{flex:0 0 84%;scroll-snap-align:start}}
 .ocard{background:var(--pc);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:8px}
+.ocard .small{font-size:.85rem;color:var(--muted)}
 .ocard .row{display:flex;justify-content:space-between;gap:10px}
 .ocard ul{list-style:none;margin:0;padding:0;font-size:.88rem;color:var(--muted);display:flex;flex-direction:column;gap:2px}
 .ocard .addrow .btn{flex:0 1 auto}
@@ -1321,7 +1326,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
         <h2>How to order</h2>
         <p>We deliver anywhere in India: free from ₹999, otherwise ₹99 (₹149 to the North East). Delivered in 7–10 days.</p>
         <div class="ways">
-          <div class="way"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><h3>Right here</h3><p>Fill your bag, place the order and pay online: UPI, card, netbanking or wallet.</p><button class="btn sm" type="button" data-openbagbtn>View my bag</button></div>
+          <div class="way"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1 12H6L5 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><h3>Right here</h3><p>Fill your bag, place the order and pay online: UPI, card, netbanking or wallet. Changed your mind? Cancel it in My orders within 2 hours, before we confirm it.</p><button class="btn sm" type="button" data-openbagbtn>View my bag</button></div>
           <div class="way wa"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 20.5l1.6-5.2A8.5 8.5 0 1 1 21 11.5z"/></svg><h3>On WhatsApp</h3><p>Send us your bag in one tap, or ask us anything first.</p><a class="btn sm wa" href="https://wa.me/919730624700" target="_blank" rel="noopener" data-chat>Chat on WhatsApp</a></div>
         </div>
         <a class="call" href="tel:+919730624700" aria-label="Call us on 97306 24700"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg><span class="num">97306&nbsp;24700</span></a>
@@ -1346,7 +1351,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
         <details><summary>Can I buy single pencils?</summary><p>Yes. Our Unicorn and Racing Car 2B pencils come in a box of 12 for ₹109, or as single pencils at ₹15 each. Mention it in your order note.</p></details>
         <details><summary>How do I pay?</summary><p>Online, through Razorpay's secure checkout: UPI, debit or credit card, netbanking or a wallet, for your order total including delivery. For orders sent on WhatsApp, we send you a Razorpay payment link.</p></details>
         <details><summary>Can I return or replace something?</summary><p>We don't accept returns or exchanges. If an item arrives damaged, or is wrong or missing, WhatsApp us on 97306 24700 within 24 hours of delivery with your order ID and an unedited unboxing video that starts from the sealed parcel. We replace only the affected items, not the whole bag or box. By default you get store credit for them, valid for 6 months. You can choose a replacement item instead, or a refund to your original payment method if you prefer. Approved refunds reach you within 5–7 working days.</p></details>
-        <details><summary>Can I cancel my order?</summary><p>Yes, any time before we dispatch it. WhatsApp us on 97306 24700 with your order ID. Once your order has been dispatched, it can't be cancelled. If you have already paid, we refund the full amount, including delivery, to your original payment method within 5–7 working days of the cancellation.</p></details>
+        <details><summary>Can I cancel my order?</summary><p>Yes. For an order placed on this website, open “My orders” on the same phone and browser and tap “Cancel order” within 2 hours of ordering, as long as we haven't confirmed it yet. If you've paid, the full amount, including delivery, is refunded automatically to the way you paid and reaches you in 5–7 working days. After that, or for an order sent on WhatsApp, WhatsApp us on 97306 24700 with your order ID any time before we dispatch it, and we refund you the same way. Once dispatched, an order can't be cancelled.</p></details>
         <details><summary>Can I order many return gifts for a party?</summary><p>Yes. Add the return-gift bag you like, set the quantity, and send it to us. We'll confirm stock for larger orders.</p></details>
       </div>
       <aside class="askus" aria-labelledby="askTitle">
@@ -1990,7 +1995,15 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
   const ORDERS_KEY = KEY + "-orders";
   const myOrders = (() => { try { const v = JSON.parse(localStorage.getItem(ORDERS_KEY)); return Array.isArray(v) ? v.filter((o) => isObj(o) && typeof o.id === "string" && Number.isFinite(o.total)) : []; } catch { return []; } })();
   { const lp = lastPlaced(); if (lp && !myOrders.some((o) => o.id === lp.id)) myOrders.unshift({ ...lp, how: "site" }); }
-  const saveOrders = () => { myOrders.sort((a, b) => (b.at || 0) - (a.at || 0)); myOrders.length = Math.min(myOrders.length, 20); try { localStorage.setItem(ORDERS_KEY, JSON.stringify(myOrders)); } catch {} };
+  // Another tab may have paid or cancelled an order since this one loaded: keep what it wrote.
+  // "Forget my orders" in any tab: orders from before then are never written back by a tab that still has them.
+  const FORGOT_KEY = ORDERS_KEY + "-forgot", forgotAt = () => { try { return Number(localStorage.getItem(FORGOT_KEY)) || 0; } catch { return 0; } };
+  const mergeStored = () => { const f = forgotAt(); if (f) for (let i = myOrders.length - 1; i >= 0; i--) if (!(myOrders[i].at > f)) myOrders.splice(i, 1);
+    try { const st = JSON.parse(localStorage.getItem(ORDERS_KEY)); if (!Array.isArray(st)) return;
+    for (const x of st) { if (!isObj(x) || typeof x.id !== "string" || !Number.isFinite(x.total) || !(x.at > f)) continue;
+      const m = myOrders.find((o) => o.id === x.id); if (!m) { myOrders.push(x); continue; }
+      for (const k of ["paid", "cancelled", "noCancel", "payState", "ck"]) if (x[k] && !m[k]) m[k] = x[k]; } } catch {} };
+  const saveOrders = () => { mergeStored(); myOrders.sort((a, b) => (b.at || 0) - (a.at || 0)); myOrders.length = Math.min(myOrders.length, 20); try { localStorage.setItem(ORDERS_KEY, JSON.stringify(myOrders)); } catch {} };
   const rememberOrder = (o) => { const i = myOrders.findIndex((x) => x.id === o.id); if (i >= 0) myOrders.splice(i, 1); myOrders.unshift(o); saveOrders(); };
   // Sending the bag on WhatsApp counts as an order sent (we confirm it in the chat).
   const rememberWa = () => { const t = totals(); if (!t.count) return; rememberOrder({ id: orderId(), how: "wa", total: t.total, cart: { ...cart }, items: Object.entries(cart).map(([k, n]) => `${nameOf(k)} × ${n} = ${inr((k[0] === "b" ? B : P)[k.slice(2)].price * n)}`), at: Date.now() }); };
@@ -2001,6 +2014,19 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     toast(short ? "Added what's in stock from that order" : "That order is back in your bag");
   }
   const mobile = (v) => String(v || "").replace(/\D/g, "").replace(/^(?:91|0)(?=\d{10}$)/, "");
+  // Cancel key: a random secret made for each order ID and kept on this phone. The order inbox only ever gets its
+  // SHA-256, and cancelling needs the secret itself, so nobody else can cancel the order (tadaboo/orders-worker).
+  let ckFor = null;
+  const cancelKey = async (id) => {
+    try {
+      // Kept in sessionStorage too, so a retry after a reload (reply lost) sends the same key the inbox already has.
+      if (!ckFor || ckFor.id !== id) { let k = null; try { k = sessionStorage.getItem("tadaboo-ck-" + id); } catch {}
+        ckFor = { id, key: /^[0-9a-f]{64}$/.test(k || "") ? k : [...crypto.getRandomValues(new Uint8Array(32))].map((b) => b.toString(16).padStart(2, "0")).join("") };
+        try { sessionStorage.setItem("tadaboo-ck-" + id, ckFor.key); } catch {} }
+      const h = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(ckFor.key));
+      return { key: ckFor.key, hash: [...new Uint8Array(h)].map((b) => b.toString(16).padStart(2, "0")).join("") };
+    } catch { return null; }   // no Web Crypto: the order still goes through, it just can't be cancelled online
+  };
   let placing = false;
   async function placeOrder(btn, again) {
     if (placing) return;
@@ -2025,12 +2051,13 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
       order_code: orderCode(), offers_whatsapp: form.offers === true ? "Yes" : "No", website: "", // honeypot: must stay empty
     };
     placing = true; btn.disabled = true; btn.textContent = "Placing your order…"; err.hidden = true;
-    let ok = false;
+    let ok = false, ck = null;
     try {
       const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 20000));
       if (T.orders.url) {
         // TadaBoo's own order inbox (Cloudflare Worker, tadaboo/orders-worker).
-        const r = await Promise.race([fetch(T.orders.url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ fields }) }), timeout]);
+        ck = await cancelKey(id);
+        const r = await Promise.race([fetch(T.orders.url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ fields, ...(ck ? { cancel_hash: ck.hash } : {}) }) }), timeout]);
         const res = await r.json().catch(() => null);
         ok = r.ok && !!res?.success;
         // An earlier try with this order ID did reach us, then the bag changed: send it again as a new order.
@@ -2047,7 +2074,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
       err.textContent = "We couldn't place your order online just now. Your bag is saved: please send it on WhatsApp instead.";
       err.hidden = false; $("#sendWa").focus(); return;
     }
-    const rec = { id, total, items, cart: { ...cart }, sub: t.total, ship: q.fee, region: q.region, eta: eta(q), name: fields.name, phone: fields.phone, at: Date.now() };
+    const rec = { id, total, items, cart: { ...cart }, sub: t.total, ship: q.fee, region: q.region, eta: eta(q), name: fields.name, phone: fields.phone, at: Date.now(), ...(ck ? { ck: ck.key } : {}) };
     try { localStorage.setItem(PLACED_KEY, JSON.stringify(rec)); } catch {}
     rememberOrder({ ...rec, how: "site" });
     for (const k of Object.keys(cart)) delete cart[k];
@@ -2061,16 +2088,19 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     header("My orders");
     const when = (t) => new Date(t).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
     const why = { check: "Prices need checking", cancelled: "Cancelled", expired: "Not paid" };
-    $("#drawerBody").innerHTML = myOrders.length ? `<p class="muted small">Orders from this phone. Pay for an order here, or tap Order again to buy the same things.</p>
+    $("#drawerBody").innerHTML = myOrders.length ? `<p class="muted small">Orders from this phone. Pay or cancel an order here, or tap Order again to buy the same things.</p>
       ${myOrders.map((o, i) => { const due = payable(o); return `<div class="ocard ${due ? "due" : `p${(i % 4) + 1}`}" data-id="${esc(o.id)}">
         <div class="row"><b class="num">${esc(o.id)}</b><span class="price">${inr(o.total)}</span></div>
-        ${o.paid ? `<span class="pill ok">${tickIcon}Paid</span>` : due ? `<span class="pill wait">${clockIcon}Payment pending · pay by ${esc(payBy(o))}</span>` : unpaid(o) ? `<span class="pill wait">${why[o.payState] || "Not paid"}</span>` : ""}
-        <span class="small muted">${o.at ? when(o.at) : ""}${o.how === "wa" ? `${o.at ? " · " : ""}Sent on WhatsApp` : ""}${o.eta && !due && !unpaid(o) ? ` · arriving ${esc(o.eta)}` : ""}</span>
+        ${o.cancelled ? `<span class="pill off">Cancelled</span><p class="refund">${esc(refundText(o))}</p>` : o.paid ? `<span class="pill ok">${tickIcon}Paid</span>` : due ? `<span class="pill wait">${clockIcon}Payment pending · pay by ${esc(payBy(o))}</span>` : unpaid(o) ? `<span class="pill wait">${why[o.payState] || "Not paid"}</span>` : ""}
+        <span class="small muted">${o.at ? when(o.at) : ""}${o.how === "wa" ? `${o.at ? " · " : ""}Sent on WhatsApp` : ""}${o.eta && !due && !unpaid(o) && !o.cancelled ? ` · arriving ${esc(o.eta)}` : ""}</span>
         <ul>${(o.items || []).slice(0, 6).map((x) => `<li>${esc(x)}</li>`).join("")}${(o.items || []).length > 6 ? `<li>+ ${(o.items || []).length - 6} more</li>` : ""}</ul>
         <p class="err" role="alert" hidden></p>
         <div class="addrow">${due ? `<button class="btn sm" data-pay-id="${esc(o.id)}">Pay ${inr(o.total)}</button>` : ""}
           ${!due && isObj(o.cart) && Object.keys(o.cart).some(valid) ? `<button class="btn sm" data-reorder-id="${esc(o.id)}">Order again</button>` : ""}
-          <a class="btn line sm" target="_blank" rel="noopener" href="${waAbout(o)}">Ask about it</a></div>
+          <a class="btn line sm" target="_blank" rel="noopener" href="${waAbout(o)}">Ask about it</a>
+          ${cancelable(o) ? `<button class="btn line sm" type="button" data-cancel-id="${esc(o.id)}">Cancel order</button>` : ""}</div>
+        ${cancelable(o) ? `<span class="small muted">You can cancel here until ${esc(cancelBy(o))}, while we haven't confirmed it.</span>` : ""}
+        <div class="cbox" hidden></div>
       </div>`; }).join("")}
       <button class="clear" type="button" data-forget-orders style="align-self:center">Forget my orders on this phone</button>`
       : `<div class="emptybag"><img src="img/tadaboo-bag.webp" alt="" width="359" height="400"><h3>No orders yet</h3><p>Orders you place here or send on WhatsApp will show up on this phone.</p></div>`;
@@ -2078,17 +2108,72 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
   }
   drawer.addEventListener("click", (e) => {
     const r = e.target.closest("[data-reorder-id]"); if (r) { const o = myOrders.find((x) => x.id === r.dataset.reorderId); if (o) reorder(o); }
-    if (e.target.closest("[data-forget-orders]")) { myOrders.length = 0; try { localStorage.removeItem(ORDERS_KEY); localStorage.removeItem(PLACED_KEY); } catch {} renderOrders(); renderAll(); toast("Your order history is cleared from this phone"); $("#closeDrawer").focus(); }
+    const cb = e.target.closest("[data-cancel-id]"); if (cb) { const o = myOrders.find((x) => x.id === cb.dataset.cancelId); if (o) cancelOrder(o, cb); }
+    if (e.target.closest("[data-forget-orders]")) { myOrders.length = 0; try { localStorage.removeItem(ORDERS_KEY); localStorage.removeItem(PLACED_KEY); localStorage.setItem(FORGOT_KEY, String(Date.now())); } catch {} renderOrders(); renderAll(); toast("Your order history is cleared from this phone"); $("#closeDrawer").focus(); }
   });
+  // Cancel from My orders: first ask the worker whether it can be cancelled and what was paid (it decides the
+  // refund from Razorpay's records, never from this page), then ask the buyer to confirm.
+  let cancelling = false;
+  async function cancelOrder(o, btn) {
+    if (cancelling) return;
+    const card = btn.closest(".ocard"), box = card.querySelector(".cbox"), msg = card.querySelector(".err"), label = btn.textContent;
+    const post = (confirm) => fetch(CANCEL_URL, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ order_id: o.id, key: o.ck, confirm }) })
+      .then(async (r) => ({ ...(await r.json().catch(() => ({}))), status: r.status }));
+    const wa = (t) => `<a target="_blank" rel="noopener" href="${waAbout(o, `Hi TadaBoo! I'd like to cancel my order ${o.id}.`)}">${t}</a>`;
+    const show = (html) => { const e = drawer.querySelector(`.ocard[data-id="${CSS.escape(o.id)}"] .err`); if (e) { e.innerHTML = html; e.hidden = false; e.querySelector("a")?.focus(); } };
+    const settle = (r) => {   // anything that means "no more cancelling here": remember it, redraw, say why
+      if (r.cancelled) { noteHere(o.id, "cancelled", { at: r.at || new Date().toISOString(), refunded: Number(r.refunded) || 0, pending: !!r.pending }); renderMine(); renderOrders(); return true; }
+      if (r.shopCancelled) { noteHere(o.id, "cancelled", { by: "shop" }); renderMine(); renderOrders(); return true; }
+      if (r.locked) { noteHere(o.id, "noCancel", "locked"); renderOrders(); show(`We've already confirmed this order, so it can't be cancelled here. ${wa("WhatsApp us")} and we'll cancel it if it hasn't been dispatched.`); return true; }
+      if (r.late) { noteHere(o.id, "noCancel", "late"); renderOrders(); show(`Online cancelling closes ${CANCEL_HOURS} hours after ordering. ${wa("WhatsApp us")} and we'll cancel it if it hasn't been dispatched.`); return true; }
+      if (r.busy) { renderOrders(); show(`Too many tries from this network just now. Please ${wa("WhatsApp us to cancel")}, or try again a little later.`); return true; }
+      if (r.denied) { noteHere(o.id, "noCancel", "denied"); renderOrders(); show(`This order can't be cancelled from this phone. ${wa("WhatsApp us")} to cancel it.`); return true; }
+      return false;
+    };
+    const fail = () => { cancelling = false; btn.disabled = false; btn.textContent = label; if (msg) { msg.innerHTML = `Couldn't reach us just now. Please try again, or ${wa("WhatsApp us to cancel")}.`; msg.hidden = false; } btn.focus(); };
+    cancelling = true; btn.disabled = true; btn.textContent = "Checking…"; if (msg) msg.hidden = true;
+    let r; try { r = await post(false); } catch { return fail(); }
+    if (settle(r)) { cancelling = false; return; }
+    if (!r.can) return fail();
+    cancelling = false; btn.hidden = true;
+    const paid = Number(r.paid) || 0;
+    const qid = `cq-${o.id}`;
+    box.setAttribute("role", "group"); box.setAttribute("aria-labelledby", qid);
+    box.innerHTML = `<p id="${esc(qid)}"><b>Cancel order <span class="num">${esc(o.id)}</span>?</b> ${paid > 0 ? `We refund ${inr(paid)} to the way you paid. It reaches you in 5–7 working days.` : o.paid || !r.sure ? "If you've paid, we refund the full amount to the way you paid. It reaches you in 5–7 working days." : "You haven't paid for it, so there's nothing to refund."} This can't be undone.</p>
+      <div class="addrow"><button class="btn sm" type="button" data-keep aria-describedby="${esc(qid)}">Keep my order</button><button class="btn line sm" type="button" data-yes>Yes, cancel it</button></div>`;
+    box.hidden = false; box.querySelector("[data-keep]").focus();
+    box.querySelector("[data-keep]").onclick = () => { box.hidden = true; box.innerHTML = ""; btn.hidden = false; btn.disabled = false; btn.textContent = label; btn.focus(); };
+    box.querySelector("[data-yes]").onclick = async (ev) => {
+      if (cancelling) return; cancelling = true;
+      const yes = ev.currentTarget; yes.disabled = true; yes.textContent = "Cancelling…"; box.querySelector("[data-keep]").disabled = true;
+      let c; try { c = await post(true); } catch { c = null; }
+      cancelling = false;
+      if (c && settle(c)) {
+        if (c.cancelled) { announce(`Order ${o.id} cancelled`); toast(c.refunded > 0 && !c.pending ? `Order cancelled. ${inr(c.refunded)} is on its way back to you.` : "Order cancelled"); drawer.querySelector(`.ocard[data-id="${CSS.escape(o.id)}"] .pill`)?.setAttribute("tabindex", "-1"); drawer.querySelector(`.ocard[data-id="${CSS.escape(o.id)}"] .pill`)?.focus(); }
+        return;
+      }
+      box.hidden = true; btn.hidden = false; fail();
+    };
+  }
   // Online payment through Razorpay Checkout (catalog.js `razorpay: true`). The order worker makes the
   // Razorpay order from the total it stored, and checks Razorpay's signature before marking the order paid.
   const PAY_URL = T.razorpay === true && T.orders.url ? T.orders.url.replace(/\/order$/, "/pay") : "";
   // Pay online only for website orders placed since online payment went live, while the order is held
   // (24 hours, with a day's grace; the worker applies the same rule). Older orders were paid by UPI.
   const PAY_SINCE = Date.parse("2026-11-21T08:57:55Z"), PAY_HOURS = 48;
-  const payable = (o) => !!PAY_URL && !!o && o.how !== "wa" && !o.paid && !o.payState && o.at >= PAY_SINCE && Date.now() - o.at < PAY_HOURS * 3600e3;
+  const payable = (o) => !!PAY_URL && !!o && o.how !== "wa" && !o.paid && !o.payState && !o.cancelled && o.at >= PAY_SINCE && Date.now() - o.at < PAY_HOURS * 3600e3;
   // A website order from the online-payment era that can no longer be paid here (time up, or refused).
-  const unpaid = (o) => !!o && o.how !== "wa" && !o.paid && o.at >= PAY_SINCE && !payable(o);
+  const unpaid = (o) => !!o && o.how !== "wa" && !o.paid && !o.cancelled && o.at >= PAY_SINCE && !payable(o);
+  // Buyer cancel (My orders): for website orders placed on this phone, within CANCEL_HOURS, until we confirm them.
+  // The worker decides; this only chooses when to show the button. Same window as CANCEL_HOURS in the worker.
+  const CANCEL_URL = T.orders.url ? T.orders.url + "/cancel" : "", CANCEL_HOURS = 2;
+  const cancelable = (o) => !!CANCEL_URL && !!o && o.how !== "wa" && typeof o.ck === "string" && !o.cancelled && !o.noCancel && Date.now() - o.at < CANCEL_HOURS * 3600e3;
+  const cancelBy = (o) => new Date(o.at + CANCEL_HOURS * 3600e3).toLocaleString("en-IN", { weekday: "short", hour: "numeric", minute: "2-digit" });
+  const refundText = (o) => { const c = o.cancelled || {};
+    if (c.by === "shop") return "We cancelled this order. If you paid, we refund the full amount to the way you paid. It reaches you in 5–7 working days.";
+    if (c.refunded > 0 && !c.pending) return `${inr(c.refunded)} refunded to the way you paid. It reaches you in 5–7 working days.`;
+    if (c.pending || o.paid) return "We're refunding your payment in full to the way you paid. It reaches you in 5–7 working days.";
+    return "You hadn't paid, so there's nothing to refund."; };
   // The time we ask buyers to pay by: 24 hours after placing (the worker allows a day more).
   const payBy = (o) => new Date(o.at + 24 * 3600e3).toLocaleString("en-IN", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
   const waAbout = (o, t) => `https://wa.me/${T.whatsapp}?text=${encodeURIComponent(t || `Hi TadaBoo! A question about my order ${o.id}:`)}`;
@@ -2137,9 +2222,19 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
         key: c.key, order_id: c.order_id, amount: c.amount, currency: "INR", name: "TadaBoo", description: "Order " + o.id,
         prefill: { name: o.name || "", contact: o.phone || "" }, notes: { order_id: o.id }, theme: { color: "#FF6B2C" },
         modal: { ondismiss: () => { if (!btn.isConnected) return; btn.disabled = false; btn.innerHTML = label; if (msg && msg.hidden) say("Payment not finished. Your order is saved: tap Pay to try again.", true); } },
-        handler: (r) => {
+        handler: async (r) => {
+          btn.textContent = "Confirming payment…";
+          // If the order was cancelled meanwhile (another tab), this payment is refunded: say so, don't show "Paid".
+          // At most 15 seconds: the webhook records the payment too, so a slow or lost reply just shows it as paid.
+          const v = await Promise.race([post("/verify", { order_id: o.id, ...r }), new Promise((res) => setTimeout(res, 15000, null))]).catch(() => null);
+          if (v?.cancelled) {
+            const c = { at: new Date().toISOString(), refunded: 0, pending: true };
+            noteHere(o.id, "cancelled", c); o.cancelled = c; renderMine();
+            if (inOrders) renderOrders(); else renderPlaced(o);
+            toast("This order was cancelled, so your payment is being refunded to the way you paid.");
+            return;
+          }
           done(r.razorpay_payment_id);
-          post("/verify", { order_id: o.id, ...r }).catch(() => {}); // the webhook records it too, if this call is lost
         },
       });
       // Checkout stays open after a failed attempt so the buyer can try another way; the button comes back when it closes.
@@ -2150,27 +2245,28 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
   function renderPlaced(o) {
     shown = o;
     const due = payable(o);
-    header(due ? "Complete your payment" : o.paid ? "Payment received" : "Order placed");
+    header(o.cancelled ? "Order cancelled" : due ? "Complete your payment" : o.paid ? "Payment received" : "Order placed");
     const first = String(o.name || "").split(/\s+/)[0];
-    $("#drawerBody").innerHTML = `${progress(o.paid ? 3 : 2)}<div class="placed">
+    $("#drawerBody").innerHTML = `${o.cancelled ? "" : progress(o.paid ? 3 : 2)}<div class="placed">
       ${due ? `<div class="pending">
         <span class="pill wait">${clockIcon}Payment pending</span>
         <span class="amt">${inr(o.total)}</span>
         <p>Pay now to complete order <b class="num">${esc(o.id)}</b>. Please pay by ${esc(payBy(o))}, or we cancel the order.</p>
       </div>` : `<img src="img/tadaboo-bag.webp" alt="" width="359" height="400">
-      <h3>Thank you${first ? ", " + esc(first) : ""}!</h3>
-      ${o.paid ? `<span class="pill ok">${tickIcon}Paid ${inr(o.total)}</span>` : ""}
+      <h3>${o.cancelled ? "Order cancelled" : `Thank you${first ? ", " + esc(first) : ""}!`}</h3>
+      ${o.cancelled ? `<span class="oid num">${esc(o.id)}</span><p>${esc(refundText(o))}</p>` : `${o.paid ? `<span class="pill ok">${tickIcon}Paid ${inr(o.total)}</span>` : ""}
       <span class="oid num">${esc(o.id)}</span>
       <p>${o.paid ? `We'll WhatsApp or call you on <span class="num">${esc(o.phone || "")}</span> before we pack it.` : `We have your order. We'll call or WhatsApp you on <span class="num">${esc(o.phone || "")}</span> to confirm it.`}</p>
       ${!o.paid && unpaid(o) ? `<p class="err" id="payerr" role="alert">This order isn't paid. <a target="_blank" rel="noopener" href="${waAbout(o)}">WhatsApp us</a> and we'll help.</p>` : ""}
-      ${o.paid && /^pay_/.test(o.paid) ? `<span class="fine">Razorpay payment ID <span class="num">${esc(o.paid)}</span></span>` : ""}`}
+      ${cancelable(o) ? `<span class="fine">Changed your mind? You can cancel it in My orders until ${esc(cancelBy(o))}.</span>` : ""}
+      ${o.paid && /^pay_/.test(o.paid) ? `<span class="fine">Razorpay payment ID <span class="num">${esc(o.paid)}</span></span>` : ""}`}`}
       <div class="payqr" id="payqr" hidden></div>
       <ul>${(o.items || []).map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
       <div class="totals">${Number.isFinite(o.ship) ? `<div class="r"><span>Items</span><span>${inr(o.sub)}</span></div>
         <div class="r"><span>Delivery to ${esc(o.region || "you")}</span><span>${o.ship ? inr(o.ship) : "Free"}</span></div>` : ""}
         <div class="r t"><span>Order total</span><span>${inr(o.total)}</span></div>
-        <span class="note">${o.eta ? `Estimated arrival ${esc(o.eta)}.` : `Delivered in ${esc(T.deliveryDays)}.`}</span></div>
-      ${due ? "" : `<div class="share"><b>Know someone with a party coming up?</b><span class="small" style="text-align:left">Share TadaBoo. Your favourites and this order stay saved on this device for next time.</span>
+        ${o.cancelled ? "" : `<span class="note">${o.eta ? `Estimated arrival ${esc(o.eta)}.` : `Delivered in ${esc(T.deliveryDays)}.`}</span>`}</div>
+      ${due || o.cancelled ? "" : `<div class="share"><b>Know someone with a party coming up?</b><span class="small" style="text-align:left">Share TadaBoo. Your favourites and this order stay saved on this device for next time.</span>
         <a class="btn line sm" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(`Found the cutest stationery and gift bags at TadaBoo ✦ ${location.origin}${location.pathname}`)}">Share on WhatsApp</a></div>`}
     </div>`;
     const upi = UPI_ID;
@@ -2180,7 +2276,7 @@ footer .myo{background:none;border:0;cursor:pointer;font:inherit;font-weight:600
     const paidWa = `https://wa.me/${T.whatsapp}?text=${encodeURIComponent(`Hi TadaBoo! I've paid ${inr(o.total)} for order ${o.id}. Screenshot attached.`)}`;
     // QR: exact amount and note when we have the UPI ID, else the fixed QR image.
     const box = $("#payqr");
-    if (o.paid) {
+    if (o.paid || o.cancelled) {
       $("#drawerFoot").innerHTML = `<a class="btn line sm" target="_blank" rel="noopener" href="${wa}">Questions? WhatsApp us</a>`;
       return;
     }

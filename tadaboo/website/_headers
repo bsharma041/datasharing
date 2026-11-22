@@ -27,7 +27,7 @@
 # Razorpay Checkout: its script (checkout.), its payment frame (api.) and its logging (lumberjack.).
 # Inline style attributes are used by the page, so style-src needs 'unsafe-inline'.
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.websitepublisher.ai https://checkout.razorpay.com 'sha256-NqInmPq6bmxuzTUhNdLCmK/C1uIjAx0WO2ZHA/8MNUc='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://*.razorpay.com; frame-src https://api.razorpay.com https://checkout.razorpay.com; connect-src 'self' https://tadaboo-orders.bsharma-04.workers.dev https://api.razorpay.com https://lumberjack.razorpay.com https://api.websitepublisher.ai https://*.websitepublisher.ai; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.websitepublisher.ai https://checkout.razorpay.com 'sha256-FuQxCLfywr8rF6LjvOWmRbW0yg9l5CJMgozLn3++rHg='; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https://*.razorpay.com; frame-src https://api.razorpay.com https://checkout.razorpay.com; connect-src 'self' https://tadaboo-orders.bsharma-04.workers.dev https://api.razorpay.com https://lumberjack.razorpay.com https://api.websitepublisher.ai https://*.websitepublisher.ai; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()

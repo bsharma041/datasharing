@@ -9,6 +9,9 @@
 //   POST /pay/create            public, from www.tadaboo.com: { order_id } → a Razorpay order for that stored order's total
 //   POST /pay/verify            public, from www.tadaboo.com: Checkout's { order_id, razorpay_* } → marks the order paid
 //   POST /pay/webhook           from Razorpay (signed): payment.captured / order.paid → marks the order paid
+//   POST /order/cancel          public, from www.tadaboo.com: { order_id, key, confirm } → the buyer cancels their own
+//                               order (only while it is still "new") and every payment on it is refunded in full
+//   POST /orders/<id>/refund    owner only → tries again to refund a buyer-cancelled order (after a refund failed)
 //
 // Razorpay: var RAZORPAY_KEY_ID (wrangler.toml, public), secrets RAZORPAY_KEY_SECRET and RAZORPAY_WEBHOOK_SECRET.
 // The amount charged is the total stored with the order when it was placed, never a number sent with /pay/create.
@@ -18,6 +21,19 @@
 // own prices (priceCheck): no line may be cheaper than the lowest price that item can have today. A second payment for an already-paid order is
 // kept in `extra_payments` (to refund), never written over the first.
 // Online payment is only offered for orders placed after it went live (PAY_SINCE) and for PAY_HOURS after.
+//
+// Buyer cancel: when placing an order the page makes a random 256-bit key, keeps it on the buyer's phone and
+// sends only its SHA-256 (`cancel_hash`, stored outside `fields`, so it never reaches WebsitePublisher or the
+// Stockroom). /order/cancel needs the key itself, so knowing an order ID is not enough. It works only while the
+// order's status is "new" (the owner hasn't confirmed it) and for CANCEL_HOURS (2) after it was placed. The order is marked rejected with
+// `cancel: { by: "buyer", at }` before any refund, so it can't be paid again. Refunds: each captured payment on
+// the order is fetched from Razorpay and refunded for what Razorpay says is still unrefunded, to the original
+// method (Razorpay never refunds anywhere else). Nothing the buyer sends decides an amount, and a payment counts
+// only if it is on the order's own Razorpay order (never by its notes, which the browser sets). A payment that
+// lands after the cancel (Checkout left open) is refunded the same way when it is recorded. Figures written back
+// (`refunded_total`, `refund_pending`, `awaiting_capture`) are always Razorpay's latest. The cancel, the Razorpay
+// order and each payment also live in their own write-once KV keys (see loadOrder), so no later write can undo them.
+// setStatus refuses to move a buyer-cancelled order on (409 cancelledByBuyer) unless told { override: true }.
 //
 // Visits: the site sends one hit per browser session (sessionStorage), `new` on the first visit from that device
 // (localStorage). Nothing about the visitor is stored (no IP, no cookie): only a count per day.
@@ -66,6 +82,7 @@ async function hmac(secret, msg) {
   const k = await crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   return hex(await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(msg)));
 }
+const sha256 = async (s) => hex(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s)));
 const payReady = (env) => !!(env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET);
 const ORDER_ID = /^TB-\d{6}-[A-Z0-9]{4}$/;
 const PAY_SINCE = Date.parse('2026-11-21T08:57:55Z'), PAY_HOURS = 48;
@@ -163,21 +180,48 @@ async function readJson(req, max = 4000) {
   try { const b = JSON.parse(text); return b && typeof b === 'object' ? b : null; } catch { return null; }
 }
 
+// ---- Order state that must never be lost ----
+// KV has no compare-and-set and a read elsewhere can be a minute old, so two requests can each read an order and
+// write it back, the later one undoing the earlier. Facts that must survive that are kept in their own write-once
+// keys and merged in on every read (loadOrder): the buyer's cancel (cancel:<id>), the Razorpay order made for it
+// (rzpo:<id>, and rzp:<razorpay order> → id for the webhook), and every payment (pay:<id>:<pay id>). The order
+// record itself is only a convenient copy. Refund totals are always worked out again from Razorpay.
+const KEEP = { expirationTtl: 400 * 86400 };
+async function loadOrder(env, id) {
+  const [o, c, r] = await Promise.all([env.ORDERS.get(`order:${id}`, 'json'), env.ORDERS.get(`cancel:${id}`, 'json'), env.ORDERS.get(`rzpo:${id}`, 'json')]);
+  if (!o) return null;
+  if (c?.by) { o.status = 'rejected'; o.cancel = c; }
+  if (r?.order_id && !o.rzp?.order_id) o.rzp = r;
+  return o;
+}
+const saveOrder = (env, o) => env.ORDERS.put(`order:${o.id}`, JSON.stringify(o), { metadata: { status: o.status } });
+async function paymentsOf(env, id) {
+  const out = [];
+  let cursor;
+  do {
+    const page = await env.ORDERS.list({ prefix: `pay:${id}:`, cursor });
+    for (const k of page.keys) out.push({ id: k.name.slice(`pay:${id}:`.length), amount: Number(k.metadata?.amount) || 0, via: k.metadata?.via || '' });
+    cursor = page.list_complete ? null : page.cursor;
+  } while (cursor);
+  return out;
+}
+
 // Note a payment on the stored order. Same payment seen twice (Checkout and webhook): kept once.
+// Only called for payments known to be on this order's own Razorpay order (signature or rzp:<order> map).
 async function markPaid(env, id, p) {
-  const key = `order:${id}`, o = await env.ORDERS.get(key, 'json');
-  if (!o) return false;
-  if (o.payment?.status === 'paid' && o.payment.id === p.id) return true;
+  await env.ORDERS.put(`pay:${id}:${p.id}`, '1', { ...KEEP, metadata: { amount: p.amount, via: p.via } });
+  const o = await loadOrder(env, id);
+  if (!o) return null;
+  if (o.payment?.status === 'paid' && o.payment.id === p.id) return o;
   if (o.payment?.status === 'paid') {                                   // a second, different payment: keep both
     o.extra_payments = (o.extra_payments || []).filter((x) => x.id !== p.id);
     if (o.extra_payments.length < 5) o.extra_payments.push({ id: p.id, amount: p.amount, via: p.via, at: new Date().toISOString(), note: 'paid twice: refund this one' });
-    await env.ORDERS.put(key, JSON.stringify(o), { metadata: { status: o.status } });
-    return true;
+  } else {
+    o.payment = { status: 'paid', id: p.id, amount: p.amount, via: p.via, at: new Date().toISOString(), rzp_order: p.rzp_order || o.rzp?.order_id || '' };
+    if (o.rzp?.amount && Math.round(p.amount * 100) !== o.rzp.amount) o.payment.note = `amount differs from order (${o.rzp.amount / 100})`;
   }
-  o.payment = { status: 'paid', id: p.id, amount: p.amount, via: p.via, at: new Date().toISOString(), rzp_order: p.rzp_order || o.rzp?.order_id || '' };
-  if (o.rzp?.amount && Math.round(p.amount * 100) !== o.rzp.amount) o.payment.note = `amount differs from order (${o.rzp.amount / 100})`;
-  await env.ORDERS.put(key, JSON.stringify(o), { metadata: { status: o.status } });
-  return true;
+  await saveOrder(env, o);
+  return o;
 }
 
 async function payCreate(req, env, origin) {
@@ -187,10 +231,10 @@ async function payCreate(req, env, origin) {
   const b = await readJson(req);
   const id = String(b?.order_id || '');
   if (!ORDER_ID.test(id)) return json({ success: false, error: 'Bad order id' }, 422, h);
-  const key = `order:${id}`, o = await env.ORDERS.get(key, 'json');
+  const o = await loadOrder(env, id);
   if (!o) return json({ success: false, error: 'Order not found' }, 404, h);
-  if (o.payment?.status === 'paid') return json({ success: false, error: 'Already paid', paid: true }, 409, h);
   if (o.status === 'rejected') return json({ success: false, error: 'Order cancelled', cancelled: true }, 409, h);
+  if (o.payment?.status === 'paid' || (await paymentsOf(env, id)).length) return json({ success: false, error: 'Already paid', paid: true }, 409, h);
   const placed = Date.parse(o.created_at);
   if (!(placed >= PAY_SINCE) || Date.now() - placed > PAY_HOURS * 3600e3) return json({ success: false, error: 'Order too old to pay online', expired: true }, 410, h);
   if (o.check) return json({ success: false, error: 'Order total needs checking', needsCheck: true }, 422, h);
@@ -201,38 +245,50 @@ async function payCreate(req, env, origin) {
   if (o.rzp?.order_id && o.rzp.amount === amount) return out(o.rzp.order_id);
   let r, body;
   try {
-    r = await fetch(`${RZP}/orders`, {
-      method: 'POST',
-      headers: { authorization: 'Basic ' + btoa(`${env.RAZORPAY_KEY_ID}:${env.RAZORPAY_KEY_SECRET}`), 'content-type': 'application/json' },
-      body: JSON.stringify({ amount, currency: 'INR', receipt: id, notes: { order_id: id } }),
-      signal: AbortSignal.timeout(15000),
-    });
-    body = await r.json().catch(() => null);
+    r = await rzpFetch(env, '/orders', { method: 'POST', body: JSON.stringify({ amount, currency: 'INR', receipt: id, notes: { order_id: id } }) });
+    body = r.body;
   } catch { return json({ success: false, error: 'Payment service unreachable' }, 502, h); }
   if (!r.ok || !body?.id) return json({ success: false, error: 'Payment service error' }, 502, h);
   o.rzp = { order_id: body.id, amount, at: new Date().toISOString() };
-  await env.ORDERS.put(key, JSON.stringify(o), { metadata: { status: o.status } });
+  await env.ORDERS.put(`rzp:${body.id}`, id, KEEP);
+  await env.ORDERS.put(`rzpo:${id}`, JSON.stringify(o.rzp), KEEP);
+  await env.ORDERS.put(`rzpos:${id}:${body.id}`, '1', KEEP);           // every Razorpay order made for it (two taps at once make two)
+  await saveOrder(env, o);
   return out(body.id);
 }
 
 // Checkout's success callback. The signature proves Razorpay saw this payment for our Razorpay order.
-async function payVerify(req, env, origin) {
+async function payVerify(req, env, origin, ctx) {
   const h = cors(origin, env);
   if (!h) return json({ success: false, error: 'Origin not allowed' }, 403);
   if (!payReady(env)) return json({ success: false, error: 'Online payment is not set up' }, 503, h);
   const b = await readJson(req);
   const id = String(b?.order_id || ''), ro = String(b?.razorpay_order_id || ''), rp = String(b?.razorpay_payment_id || ''), sig = String(b?.razorpay_signature || '');
   if (!ORDER_ID.test(id) || !/^order_\w{6,40}$/.test(ro) || !/^pay_\w{6,40}$/.test(rp) || !/^[0-9a-f]{64}$/.test(sig)) return json({ success: false, error: 'Bad payment details' }, 422, h);
-  const o = await env.ORDERS.get(`order:${id}`, 'json');
-  if (!o || o.rzp?.order_id !== ro) return json({ success: false, error: 'Order not found' }, 404, h);
+  const o = await loadOrder(env, id);
+  if (!o || !o.rzp?.order_id || (o.rzp.order_id !== ro && (await env.ORDERS.get(`rzp:${ro}`)) !== id)) return json({ success: false, error: 'Order not found' }, 404, h);
   if (!sameSecret(await hmac(env.RAZORPAY_KEY_SECRET, `${ro}|${rp}`), sig)) return json({ success: false, error: 'Signature mismatch' }, 400, h);
-  await markPaid(env, id, { id: rp, amount: o.rzp.amount / 100, via: 'checkout', rzp_order: ro });
+  const after = await markPaid(env, id, { id: rp, amount: o.rzp.amount / 100, via: 'checkout', rzp_order: ro });
+  if (after?.cancel?.by === 'buyer') { ctx?.waitUntil(refundAll(env, id)); return json({ success: true, id, cancelled: true }, 200, h); }
   return json({ success: true, id, paid: true }, 200, h);
+}
+
+// Which TadaBoo order a Razorpay order belongs to: the map payCreate wrote, else the receipt on the Razorpay order
+// (set by this worker with its secret key). Never the payment's notes: the buyer's browser sets those.
+async function orderOfRzp(env, rzpOrder) {
+  if (!/^order_\w{6,40}$/.test(String(rzpOrder || ''))) return '';
+  const mapped = await env.ORDERS.get(`rzp:${rzpOrder}`);
+  if (ORDER_ID.test(mapped || '')) return mapped;
+  const r = await rzpFetch(env, `/orders/${rzpOrder}`).catch(() => null);
+  const id = String(r?.ok ? r.body?.receipt || '' : '');
+  if (!ORDER_ID.test(id)) return '';
+  const o = await loadOrder(env, id);
+  return o && (!o.rzp?.order_id || o.rzp.order_id === rzpOrder) ? id : '';
 }
 
 // Razorpay webhook (Dashboard → Webhooks, events payment.captured and order.paid). Catches payments
 // where the buyer closed the page before Checkout called back.
-async function payWebhook(req, env) {
+async function payWebhook(req, env, ctx) {
   if (!env.RAZORPAY_WEBHOOK_SECRET) return json({ success: false }, 503);
   const raw = await req.text();
   if (raw.length > 100000) return json({ success: false }, 413);
@@ -240,11 +296,141 @@ async function payWebhook(req, env) {
   if (!sameSecret(await hmac(env.RAZORPAY_WEBHOOK_SECRET, raw), sig)) return json({ success: false }, 400);
   let ev; try { ev = JSON.parse(raw); } catch { return json({ success: false }, 400); }
   const p = ev?.payload?.payment?.entity;
-  if (!['payment.captured', 'order.paid'].includes(ev?.event) || !p?.id) return json({ success: true, ignored: true });
-  const id = String(p.notes?.order_id || ev?.payload?.order?.entity?.receipt || '');
-  if (!ORDER_ID.test(id)) return json({ success: true, ignored: true });
-  await markPaid(env, id, { id: p.id, amount: (p.amount || 0) / 100, via: 'webhook', rzp_order: p.order_id || '' });
+  if (!['payment.captured', 'order.paid'].includes(ev?.event) || !PAY_ID.test(String(p?.id || ''))) return json({ success: true, ignored: true });
+  const id = payReady(env) ? await orderOfRzp(env, p.order_id) : await env.ORDERS.get(`rzp:${p.order_id}`).then((x) => (ORDER_ID.test(x || '') ? x : ''));
+  if (!id) return json({ success: true, ignored: true });                // not one of our website orders (e.g. a payment link)
+  const o = await markPaid(env, id, { id: p.id, amount: (p.amount || 0) / 100, via: 'webhook', rzp_order: p.order_id });
+  if (o?.cancel?.by === 'buyer') ctx?.waitUntil(refundAll(env, id));
   return json({ success: true });
+}
+
+// ---- Buyer cancel and refunds ----
+const rzpFetch = (env, path, init = {}) => fetch(`${RZP}${path}`, { ...init, signal: AbortSignal.timeout(15000),
+  headers: { authorization: 'Basic ' + btoa(`${env.RAZORPAY_KEY_ID}:${env.RAZORPAY_KEY_SECRET}`), 'content-type': 'application/json', ...(init.headers || {}) } })
+  .then(async (r) => ({ ok: r.ok, status: r.status, body: await r.json().catch(() => null) }));
+const PAY_ID = /^pay_\w{6,40}$/;
+const rupees = (paise) => Math.round(paise) / 100;
+
+// Razorpay's own view of the payments on this order's Razorpay order. null if it couldn't be read.
+async function rzpOrdersOf(env, o, withList = true) {
+  const set = new Set(o.rzp?.order_id ? [o.rzp.order_id] : []);
+  if (withList) { const page = await env.ORDERS.list({ prefix: `rzpos:${o.id}:` }); for (const k of page.keys) set.add(k.name.slice(`rzpos:${o.id}:`.length)); }
+  return [...set].filter((x) => /^order_\w{6,40}$/.test(x));
+}
+async function rzpPayments(env, o, withList = true) {
+  const orders = await rzpOrdersOf(env, o, withList);
+  if (!orders.length) return [];
+  if (!payReady(env)) return null;
+  const out = [];
+  for (const ro of orders) {
+    const r = await rzpFetch(env, `/orders/${ro}/payments`).catch(() => null);
+    if (!r?.ok || !Array.isArray(r.body?.items)) return null;
+    out.push(...r.body.items.filter((p) => PAY_ID.test(String(p?.id || '')) && p.order_id === ro));
+  }
+  return out;
+}
+// Refunded, still to refund, and waiting for capture, in paise, from Razorpay's figures.
+const tally = (pays) => pays.reduce((t, p) => {
+  t.refunded += p.amount_refunded || 0;
+  if (p.status === 'captured' || p.status === 'refunded') t.due += Math.max(0, (p.amount || 0) - (p.amount_refunded || 0));
+  if (p.status === 'authorized') t.waiting += p.amount || 0;
+  return t;
+}, { refunded: 0, due: 0, waiting: 0 });
+
+// Refund every captured payment on a buyer-cancelled order's own Razorpay order, for what Razorpay says is still
+// unrefunded. Only payments whose order_id is this order's Razorpay order count (never by notes). Safe to run any
+// number of times, also at once: Razorpay refuses a refund above what is left on a payment, and the result written
+// back is always Razorpay's latest figures.
+async function refundAll(env, id) {
+  let o = await loadOrder(env, id);
+  if (!o || o.cancel?.by !== 'buyer') return o;
+  const errors = [], done = [];
+  let pays = await rzpPayments(env, o);
+  if (pays === null) errors.push(payReady(env) ? "couldn't read the payments from Razorpay" : 'online payment not set up');
+  for (const p of pays || []) {
+    const dueOf = (q) => ((q.status === 'captured' || q.status === 'refunded') ? (q.amount || 0) - (q.amount_refunded || 0) : 0);
+    if (dueOf(p) <= 0) continue;
+    const lock = `lock:refund:${p.id}`;
+    if (await env.ORDERS.get(lock)) continue;                                  // another call refunded it or is doing so
+    await env.ORDERS.put(lock, '1', { expirationTtl: 60 });
+    const fresh = await rzpFetch(env, `/payments/${p.id}`).catch(() => null);  // what is left now, after taking the lock
+    const due = fresh?.ok && fresh.body?.order_id === p.order_id ? dueOf(fresh.body) : 0;
+    if (due <= 0) { if (!fresh?.ok) { errors.push(`${p.id}: couldn't read it`); try { await env.ORDERS.delete(lock); } catch {} } continue; }
+    const rf = await rzpFetch(env, `/payments/${p.id}/refund`, { method: 'POST', body: JSON.stringify({ amount: due, notes: { order_id: id, reason: 'Cancelled by the buyer on the website' } }) }).catch(() => null);
+    if (rf?.ok && rf.body?.id) done.push({ id: rf.body.id, payment: p.id, amount: rupees(due), at: new Date().toISOString() });  // lock stays for its minute
+    else { errors.push(`${p.id}: ${String(rf?.body?.error?.description || rf?.status || 'unreachable').slice(0, 100)}`); try { await env.ORDERS.delete(lock); } catch {} }
+  }
+  // Payments recorded here that are not on our Razorpay order can't be refunded automatically: the owner does it.
+  const recorded = await paymentsOf(env, id);
+  const foreign = pays ? recorded.filter((x) => !pays.some((p) => p.id === x.id)) : [];
+  if (foreign.length) errors.push(`${foreign.map((x) => x.id).join(', ')}: not on this order's Razorpay order, refund by hand`);
+  if (done.length || pays) { const again = await rzpPayments(env, o); if (again) pays = again; }
+  const t = tally(pays || []);
+  o = await loadOrder(env, id) || o;                                              // re-read: keep what others wrote meanwhile
+  const known = new Set((o.refunds || []).map((x) => x.id));
+  o.refunds = [...(o.refunds || []), ...done.filter((x) => !known.has(x.id))].slice(-10);
+  o.refunded_total = rupees(t.refunded);
+  o.awaiting_capture = t.waiting > 0;
+  o.refund_pending = t.due > 0 || pays === null || foreign.length > 0;
+  if (errors.length && (o.refund_pending || o.awaiting_capture)) o.refund_error = errors.join('; ').slice(0, 300); else delete o.refund_error;
+  o.refund_checked = new Date().toISOString();
+  await saveOrder(env, o);
+  return o;
+}
+
+const cancelView = (o) => ({ success: true, cancelled: true, at: o.cancel.at, refunded: Number(o.refunded_total) || 0, pending: !!(o.refund_pending || o.awaiting_capture) });
+
+// Online cancel is open for CANCEL_HOURS after placing (the page says the same); after that, WhatsApp.
+const CANCEL_HOURS = 2, CANCEL_TRIES = 20;
+// The buyer cancels their own order from "My orders". confirm: false only says whether it can be cancelled.
+async function cancelOrder(req, env, origin) {
+  const h = cors(origin, env);
+  if (!h) return json({ success: false, error: 'Origin not allowed' }, 403);
+  const b = await readJson(req, 1000);
+  const id = String(b?.order_id || ''), k = String(b?.key || '');
+  if (!ORDER_ID.test(id) || !/^[0-9a-f]{64}$/.test(k)) return json({ success: false, error: 'Bad request' }, 422, h);
+  // Only wrong keys count towards the limit, so an honest buyer on a shared mobile IP isn't blocked.
+  const ip = req.headers.get('cf-connecting-ip') || 'unknown', rl = `rlc:${ip}:${new Date().toISOString().slice(0, 13)}`;
+  const n = +(await env.ORDERS.get(rl)) || 0;
+  if (n >= CANCEL_TRIES) return json({ success: false, error: 'Too many tries', busy: true }, 429, h);
+  const o = await loadOrder(env, id);
+  // Same answer for "no such order" and "wrong key", so the endpoint tells a guesser nothing.
+  if (!o || !o.cancel_hash || !sameSecret(await sha256(k), o.cancel_hash)) {
+    await env.ORDERS.put(rl, String(n + 1), { expirationTtl: 3700 });
+    return json({ success: false, error: 'Not allowed', denied: true }, 403, h);
+  }
+  if (o.cancel?.by === 'buyer') {
+    // Repeat calls cost nothing: refunds are looked at again only when something may still be owed, at most once a minute.
+    const recorded = [o.payment?.status === 'paid' ? o.payment.amount : 0, ...(o.extra_payments || []).map((x) => x.amount)].reduce((a, x) => a + (Number(x) || 0), 0);
+    const owed = !o.refund_checked || o.refund_pending || o.awaiting_capture || recorded > (Number(o.refunded_total) || 0) + 0.001;
+    const recent = Date.now() - Date.parse(o.refund_checked || 0) < 60e3;
+    return json(cancelView(b.confirm === true && owed && !recent ? await refundAll(env, id) : o), 200, h);
+  }
+  if (o.status === 'rejected') return json({ success: false, error: 'Cancelled by the shop', shopCancelled: true }, 409, h);
+  if (o.status !== 'new') return json({ success: false, error: 'Already confirmed', locked: true }, 409, h);
+  if (!(Date.now() - Date.parse(o.created_at) < CANCEL_HOURS * 3600e3)) return json({ success: false, error: 'Too late to cancel online', late: true }, 409, h);
+  if (b.confirm !== true) {
+    // What was paid: Razorpay's figures when it can be asked, else the payments recorded here.
+    // No KV list or write here: the dry run can be called freely without using up the shop's daily KV allowance.
+    const pays = await rzpPayments(env, o, false);
+    const recorded = [o.payment?.status === 'paid' ? o.payment.amount : 0, ...(o.extra_payments || []).map((x) => x.amount)].reduce((a, x) => a + (Number(x) || 0), 0);
+    const fromRzp = pays ? pays.filter((p) => ['captured', 'refunded', 'authorized'].includes(p.status)).reduce((a, p) => a + (p.amount || 0) - (p.amount_refunded || 0), 0) : 0;
+    return json({ success: true, can: true, paid: Math.max(rupees(fromRzp), Math.round(recorded * 100) / 100), sure: pays !== null }, 200, h);
+  }
+  // The cancel goes in its own write-once key first: from then on every read sees the order as cancelled, whatever
+  // else writes the order record. Then the money goes back.
+  const at = new Date().toISOString();
+  await env.ORDERS.put(`cancel:${id}`, JSON.stringify({ by: 'buyer', at }), KEEP);
+  o.status = 'rejected'; o.updated_at = at; o.cancel = { by: 'buyer', at };
+  await saveOrder(env, o);
+  return json(cancelView(await refundAll(env, id)), 200, h);
+}
+
+async function ownerRefund(id, env) {
+  const o = await loadOrder(env, id);
+  if (o?.cancel?.by !== 'buyer') return json({ success: false, error: 'Not a buyer-cancelled order' }, 409);
+  const r = await refundAll(env, id);
+  return json({ success: true, id, refunded: Number(r.refunded_total) || 0, pending: !!r.refund_pending, awaiting_capture: !!r.awaiting_capture, error: r.refund_error || '' });
 }
 
 async function placeOrder(req, env, origin, ctx) {
@@ -277,6 +463,7 @@ async function placeOrder(req, env, origin, ctx) {
   if (!prev) {                                                                            // same order sent twice: keep the first
     const order = { id, form_name: 'tadaboo_order', status: 'new', created_at: new Date().toISOString(), fields,
       metadata: { country: req.cf?.country || '', city: req.cf?.city || '' } };
+    if (/^[0-9a-f]{64}$/.test(String(body.cancel_hash || ''))) order.cancel_hash = body.cancel_hash;
     let check = totalCheck(fields);
     if (!check) { const pc = await priceCheck(fields, env); if (pc.bad) check = `price below shop price: ${pc.bad}`; else if (pc.skipped) order.price_check = `skipped (${pc.skipped})`; }
     if (check) order.check = check;
@@ -346,28 +533,48 @@ async function listViews(url, env) {
 
 async function listOrders(url, env) {
   const want = url.searchParams.get('status');
+  const keysOf = async (prefix) => { const out = []; let cursor; do { const page = await env.ORDERS.list({ prefix, cursor }); out.push(...page.keys); cursor = page.list_complete ? null : page.cursor; } while (cursor); return out; };
+  const cancelled = new Set((await keysOf('cancel:')).map((k) => k.name.slice(7)));
+  const pays = {};
+  for (const k of await keysOf('pay:')) { const [, id, pid] = k.name.split(':'); (pays[id] ||= []).push({ id: pid, amount: Number(k.metadata?.amount) || 0, via: k.metadata?.via || '' }); }
   const data = [];
-  let cursor;
-  do {
-    const page = await env.ORDERS.list({ prefix: 'order:', cursor });
-    for (const k of page.keys) {
-      if (want && k.metadata?.status && k.metadata.status !== want) continue;
-      const o = await env.ORDERS.get(k.name, 'json');
-      if (o && (!want || o.status === want)) { if (!o.copy) { const c = await env.ORDERS.get(`copy:${o.id}`); if (c) o.copy = c; } data.push(o); }
+  for (const k of await keysOf('order:')) {
+    const id = k.name.slice(6);
+    const st = cancelled.has(id) ? 'rejected' : k.metadata?.status;
+    if (want && st && st !== want) continue;
+    const o = await loadOrder(env, id);
+    if (!o || (want && o.status !== want)) continue;
+    delete o.cancel_hash;
+    // Payments kept in their own keys: put back any the order record lost.
+    for (const p of pays[id] || []) {
+      if (o.payment?.id === p.id || (o.extra_payments || []).some((x) => x.id === p.id)) continue;
+      if (o.payment?.status !== 'paid') o.payment = { status: 'paid', id: p.id, amount: p.amount, via: p.via };
+      else (o.extra_payments ||= []).push({ id: p.id, amount: p.amount, via: p.via, note: 'paid twice: refund this one' });
     }
-    cursor = page.list_complete ? null : page.cursor;
-  } while (cursor);
+    if (!o.copy) { const c = await env.ORDERS.get(`copy:${o.id}`); if (c) o.copy = c; }
+    data.push(o);
+  }
   data.sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
   return json({ data, total: data.length });
 }
 
+// A buyer-cancelled order is never moved on by accident (the hourly sync's "won" after the buyer cancelled and was
+// refunded): that answers 409 cancelledByBuyer. { override: true } reopens it on purpose (the cancel is kept in
+// cancel_history, so later payments are no longer refunded automatically). A reopened order still shows its old,
+// refunded payment, so it can't be paid online again: send the buyer a Razorpay payment link instead.
 async function setStatus(id, req, env) {
   let body; try { body = await req.json(); } catch { return json({ success: false, error: 'Bad JSON' }, 400); }
   if (!STATUSES.includes(body?.status)) return json({ success: false, error: `status must be one of ${STATUSES.join(', ')}` }, 422);
-  const key = `order:${id}`, o = await env.ORDERS.get(key, 'json');
+  const o = await loadOrder(env, id);
   if (!o) return json({ success: false, error: 'Not found' }, 404);
+  if (o.cancel?.by === 'buyer' && body.status !== 'rejected') {
+    if (body.override !== true) return json({ success: false, error: `The buyer cancelled this order at ${o.cancel.at} and was refunded: don't send it`, cancelledByBuyer: true }, 409);
+    o.cancel_history = [...(o.cancel_history || []), { ...o.cancel, reopened: new Date().toISOString() }];
+    delete o.cancel;
+    await env.ORDERS.delete(`cancel:${id}`);
+  }
   o.status = body.status; o.updated_at = new Date().toISOString();
-  await env.ORDERS.put(key, JSON.stringify(o), { metadata: { status: o.status } });
+  await saveOrder(env, o);
   return json({ success: true, id, status: o.status });
 }
 
@@ -378,12 +585,15 @@ export default {
     if (url.pathname === '/order' && req.method === 'POST') return placeOrder(req, env, origin, ctx);
     if (url.pathname === '/hit' && req.method === 'POST') return hit(req, env, origin);
     if (url.pathname === '/pay/create' && req.method === 'POST') return payCreate(req, env, origin);
-    if (url.pathname === '/pay/verify' && req.method === 'POST') return payVerify(req, env, origin);
-    if (url.pathname === '/pay/webhook' && req.method === 'POST') return payWebhook(req, env);
+    if (url.pathname === '/pay/verify' && req.method === 'POST') return payVerify(req, env, origin, ctx);
+    if (url.pathname === '/pay/webhook' && req.method === 'POST') return payWebhook(req, env, ctx);
+    if (url.pathname === '/order/cancel' && req.method === 'POST') return cancelOrder(req, env, origin);
     if (url.pathname === '/views' && req.method === 'GET') return isOwner(req, env) ? listViews(url, env) : json({ success: false, error: 'Unauthorized' }, 401);
     if (url.pathname === '/orders' && req.method === 'GET') return isOwner(req, env) ? listOrders(url, env) : json({ success: false, error: 'Unauthorized' }, 401);
     const m = /^\/orders\/(TB-\d{6}-[A-Z0-9]{4})\/status$/.exec(url.pathname);
     if (m && req.method === 'POST') return isOwner(req, env) ? setStatus(m[1], req, env) : json({ success: false, error: 'Unauthorized' }, 401);
+    const rf = /^\/orders\/(TB-\d{6}-[A-Z0-9]{4})\/refund$/.exec(url.pathname);
+    if (rf && req.method === 'POST') return isOwner(req, env) ? ownerRefund(rf[1], env) : json({ success: false, error: 'Unauthorized' }, 401);
     if (url.pathname === '/') return new Response('TadaBoo order inbox', { headers: { 'content-type': 'text/plain' } });
     return json({ success: false, error: 'Not found' }, 404);
   },
