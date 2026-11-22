@@ -363,6 +363,7 @@ TadaBoo sells stationery and ready-to-gift bags in India. Shoppers pick a ready-
 - We deliver anywhere in India, in ${T.deliveryDays || "7–10 days"} from your order.
 - Orders with items worth ${inr(D.freeAbove)} or more ship free. Smaller orders pay ${inr(D.rates.india)}, or ${inr(D.rates.remote)} to the North East (Assam, Arunachal Pradesh, Manipur, Meghalaya, Mizoram, Nagaland, Sikkim and Tripura).
 - Payment is online through Razorpay: UPI, debit or credit card, netbanking or a wallet, for the order total including delivery. Orders placed on WhatsApp get a Razorpay payment link.
+- Cancelling: a website order can be cancelled in “My orders” within 2 hours of ordering, before the shop confirms it; after that, on WhatsApp any time before dispatch. Either way the full amount, including delivery, is refunded through Razorpay to the original payment method, in 5–7 working days. Dispatched orders can't be cancelled.
 
 ## Contact
 
