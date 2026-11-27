@@ -584,5 +584,22 @@
   <g:product_type>Kids gift bags &gt; Return gifts</g:product_type>
   <g:brand>TadaBoo</g:brand>
 </item>
+<item>
+  <g:id>bag-little-artist-cat</g:id>
+  <g:title>Little Artist - Purring Cat Edition</g:title>
+  <g:description>Ready-packed TadaBoo gift bag with 5 items: Purring Cat HB Pencil Set (10 Pcs), Dual Tip Brush Pens (12 Colours), 2-in-1 Puzzle and Whiteboard Set, 3D Embossed Colouring Mural, Cow Pencil Sharpener. Sharpener: Cow or Camera.</g:description>
+  <g:link>https://www.tadaboo.com/bag/little-artist-cat</g:link>
+  <g:image_link>https://www.tadaboo.com/img/cat-pencil-set.webp</g:image_link>
+  <g:additional_image_link>https://www.tadaboo.com/img/brush-pens.webp</g:additional_image_link>
+  <g:additional_image_link>https://www.tadaboo.com/img/puzzle-whiteboard.webp</g:additional_image_link>
+  <g:additional_image_link>https://www.tadaboo.com/img/3d-coloring-mural.webp</g:additional_image_link>
+  <g:additional_image_link>https://www.tadaboo.com/img/cow-sharpener.webp</g:additional_image_link>
+  <g:availability>in_stock</g:availability>
+  <g:price>536.00 INR</g:price>
+  <g:condition>new</g:condition>
+  <g:identifier_exists>no</g:identifier_exists>
+  <g:product_type>Kids gift bags &gt; Return gifts</g:product_type>
+  <g:brand>TadaBoo</g:brand>
+</item>
 </channel>
 </rss>
