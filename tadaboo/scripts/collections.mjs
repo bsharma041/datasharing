@@ -28,6 +28,7 @@ const OCCASIONS = [
   ["birthday", "Birthday hampers", "A bigger present for the birthday child."],
   ["themed", "Themed gift bags for boys and girls", "Cars, space, unicorns and kawaii, matched and packed."],
   ["school", "Back to school bags", "Pencils, pens and the small things a pencil case needs."],
+  ["artist", "Artist Collection", "Pencils, brush pens and colouring kits for little artists."],
   ["create", "Craft and colouring bags", "For the child who would rather make something."],
 ];
 

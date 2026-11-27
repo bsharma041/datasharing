@@ -120,7 +120,7 @@ window.TADABOO = {
   ],
 
   // Ready-made gift collections (catalogue pages 7–9).
-  // `for`: girls | boys | any. `occasion`: school | create | themed | return | birthday.
+  // `for`: girls | boys | any. `occasion`: school | create | artist | themed | return | birthday (artist = Artist Collection).
   // `cover`: the product photo shown on the bag's card.
   bags: [
     { id: "bts-starter", cover: "labubu-gel-pen", name: "Back to School · Starter", price: 199, for: "any", occasion: "school", tint: "sky",
@@ -145,11 +145,11 @@ window.TADABOO = {
       items: ["chocolate-squishy", "a7-notebook", "3d-sticker", "animal-memo-pad", "magnetic-bookmark", "donut-unicorn-eraser", "labubu-gel-pen"] },
     { id: "colour-studio", cover: "brush-pens", name: "Colour Studio", price: 526, for: "any", occasion: "create", tint: "sky",
       items: ["brush-pens", "cat-pencil-set", "3d-coloring-mural", "puzzle-whiteboard", "3d-sticker"], note: "An art gift for ages 6–12. The pencil set has its own eraser and sharpener." },
-    { id: "little-artist-pikachu", added: "2026-11-27", cover: "pokemon-pencil-set", name: "Little Artist · Pikachu Edition", price: 536, for: "any", occasion: "create", tint: "butter",
+    { id: "little-artist-pikachu", added: "2026-11-27", cover: "pokemon-pencil-set", name: "Little Artist · Pikachu Edition", price: 536, for: "any", occasion: "artist", tint: "butter",
       items: ["pokemon-pencil-set", "brush-pens", "puzzle-whiteboard", "3d-coloring-mural", "cow-sharpener"], note: "Sharpener: Cow or Camera." },
-    { id: "little-artist-cat", added: "2026-11-27", cover: "cat-pencil-set", name: "Little Artist · Purring Cat Edition", price: 536, for: "any", occasion: "create", tint: "blush",
+    { id: "little-artist-cat", added: "2026-11-27", cover: "cat-pencil-set", name: "Little Artist · Purring Cat Edition", price: 536, for: "any", occasion: "artist", tint: "blush",
       items: ["cat-pencil-set", "brush-pens", "puzzle-whiteboard", "3d-coloring-mural", "cow-sharpener"], note: "Sharpener: Cow or Camera." },
-    { id: "art-attack", added: "2026-11-27", cover: "6in1-set", name: "Art Attack", price: 1132, for: "any", occasion: "create", tint: "mint",
+    { id: "art-attack", added: "2026-11-27", cover: "6in1-set", name: "Art Attack", price: 1132, for: "any", occasion: "artist", tint: "mint",
       items: ["brush-pens", "6in1-set", "activity-set", "diamond-bracelet", "3d-sticker", "3d-coloring-mural", "hamburger-glue", "reward-stamps", "puzzle-whiteboard"], note: "A big craft-and-colour bag for ages 6–12." },
     { id: "hamper-boys", cover: "dumpling-squishy", name: "Birthday Hamper · Boys", price: 999, for: "boys", occasion: "birthday", tint: "sky",
       items: ["dumpling-squishy", "activity-set", "reward-stamps", "racing-pencils", "eraser-combo", "bath-bomb", "light-up-pen", "shuttlecock-sharpener"], note: "Activity set: Space or Dino. Eraser combo: Space or Sports." },
